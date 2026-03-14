@@ -1,0 +1,19 @@
+# 编译输出
+/Debug/
+/Release/
+/build/
+*.elf
+*.hex
+*.bin
+*.map
+
+# Keil 临时文件
+*.uvguix
+*.uvoptx
+*.uvprojx
+*.pack
+*.scvd
+
+# 系统文件
+Thumbs.db
+.DS_Store
