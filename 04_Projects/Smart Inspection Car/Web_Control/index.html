@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>校园巡检小车系统 By-Ych队</title>
+    <!-- 网站图标 -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <!-- 弹窗 本地CDN -->
     <link rel="stylesheet" href="lib/sweetalert2.min.css">  
     <script src="lib/sweetalert2.min.js"></script>  
     <!-- Tailwind CSS 本地CDN -->
     <script src="lib/tailwind.min.js"></script>  
-    <!-- Font Awesome 图标库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome 图标库 - 使用多个CDN源作为备份 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="none" onload="if(media!='all')media='all'">
+    <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" media="none" onload="if(media!='all')media='all'">
     <!-- MQTT.js 客户端库 -->
     <script src="lib/mqtt.min.js"></script>
     <!-- Chart.js 图表库 -->
@@ -657,7 +661,7 @@
                 <div class="lg:col-span-8">
                     <!-- 地图容器 -->
                     <div class="apple-card dashboard-card relative overflow-hidden h-full">
-                        <div id="map-container" class="w-full h-full"></div>
+                        <div id="map-container" class="w-full h-full" style="will-change: transform;"></div>
                         
                         <!-- 地图控制按钮组 -->
                         <div class="absolute top-4 right-6 h-full flex flex-col gap-2 z-10" style="padding: 10px 0;">
