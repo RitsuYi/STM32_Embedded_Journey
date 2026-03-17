@@ -1,393 +1,472 @@
-# STM32 ADC
+# STM32 SPI
 
 ---
 
-## 1. ADC 简介
+## 1. SPI 简介
 
-ADC（Analog-Digital Converter）模拟-数字转换器，是STM32微控制器中用于将模拟信号转换为数字信号的重要外设。
+SPI（Serial Peripheral Interface）是由Motorola公司开发的一种通用数据总线，用于连接微控制器及其外围设备。
 
-- **功能**：将引脚上连续变化的模拟电压转换为内存中存储的数字变量，建立模拟电路到数字电路的桥梁
-- **转换精度**：12位逐次逼近型ADC，转换时间1us
-- **输入范围**：0~3.3V，转换结果范围：0~4095
-- **输入通道**：18个输入通道，可测量16个外部和2个内部信号源
-- **转换单元**：规则组和注入组两个转换单元
-- **看门狗**：模拟看门狗自动监测输入电压范围
+- **通信线**：四根通信线：SCK（Serial Clock）、MOSI（Master Output Slave Input）、MISO（Master Input Slave Output）、SS（Slave Select）
+- **通信特点**：同步，全双工
+- **设备支持**：支持总线挂载多设备（一主多从）
+- **STM32F103C8T6**：SPI1、SPI2
 
 ---
 
-## 2. ADC 基本概念
+## 2. SPI 基本概念
 
-### 2.1 模拟-数字转换
+### 2.1 SPI 总线
 
-模拟-数字转换是指将连续的模拟信号转换为离散的数字信号的过程，ADC通过采样、量化和编码三个步骤完成转换。
+SPI总线是一种串行通信总线，使用四条线在设备之间传输数据：
 
-### 2.2 逐次逼近型ADC
+- **SCK（Serial Clock）**：串行时钟线，由主设备产生，用于同步数据传输
+- **MOSI（Master Output Slave Input）**：主设备输出、从设备输入
+- **MISO（Master Input Slave Output）**：主设备输入、从设备输出
+- **SS（Slave Select）**：从设备选择线，用于选择要通信的从设备
 
-逐次逼近型ADC是一种常用的ADC类型，通过逐次逼近的方式确定模拟电压对应的数字值：
+### 2.2 SPI 通信特点
 
-- **转换原理**：从最高位开始，逐位试探，直到确定所有位的值
-- **转换时间**：1us
-- **转换精度**：12位
+- **同步通信**：使用时钟信号进行同步
+- **全双工通信**：同一时间可以同时发送和接收数据
+- **主从模式**：一个主设备可以控制多个从设备
+- **高速传输**：支持较高的传输速率
 
-![逐次逼近型ADC](Images/ADC/逐次逼近型ADC.jpg)
+### 2.3 SPI 设备类型
 
-### 2.3 ADC转换时间
+- **主设备（Master）**：产生时钟信号，控制通信流程，选择从设备
+- **从设备（Slave）**：响应主设备的命令，由SS信号选择
 
-ADC转换的步骤：采样、保持、量化、编码
+### 2.4 SPI 硬件电路
 
-STM32ADC的总转换时间为：
-Tconv = 采样时间 + 12.5个ADC周期
-
-例如：当ADCCLK=14MHz，采样时间为1.5个ADC周期
-Tconv = 1.5 + 12.5 = 14个ADC周期 = 1μs
-
----
-
-## 3. ADC 结构
-
-### 3.1 ADC 基本结构
-
-ADC的基本结构包括：
-
-- **输入通道**：16个外部输入通道和2个内部信号源
-- **采样保持电路**：对输入信号进行采样和保持
-- **逐次逼近寄存器**：用于逐次逼近转换
-- **数据寄存器**：存储转换结果
-- **规则组**：用于常规的ADC转换
-- **注入组**：用于紧急的ADC转换
-- **模拟看门狗**：监测输入电压范围
-
-![ADC基本结构](Images/ADC/ADC基本结构.png)
-
-### 3.2 ADC 框图
-
-![ADC框图](Images/ADC/ADC框图.png)
+![SPI硬件电路](Images/SPI/SPI硬件电路.png)
 
 ---
 
-## 4. ADC 功能特点
+## 3. SPI 结构
 
-### 4.1 输入通道
+### 3.1 SPI 基本结构
 
-- **外部通道**：16个外部输入通道，对应GPIO引脚
-- **内部通道**：2个内部信号源（温度传感器、内部参考电压）
-- **STM32F103C8T6**：ADC1、ADC2，10个外部输入通道
+SPI的基本结构包括：
 
-### 4.2 转换模式
+- **时钟发生器**：产生SCK时钟信号
+- **移位寄存器**：用于数据的串行和并行转换
+- **数据寄存器**：存储待发送或接收的数据
+- **控制逻辑**：控制SPI的工作模式和时序
 
-| 模式 | 说明 |
+![SPI基本结构](Images/SPI/SPI基本结构.png)
+
+### 3.2 SPI 框图
+
+![SPI框图](Images/SPI/SPI框图.png)
+
+### 3.3 移位示意图
+
+![移位示意图](Images/SPI/移位示意图.png)
+
+---
+
+## 4. SPI 时序
+
+### 4.1 基本时序单元
+
+#### 4.1.1 起始条件和终止条件
+
+![SPI时序基本单元起始条件和终止条件](Images/SPI/SPI时序基本单元起始条件和终止条件.png)
+
+- **起始条件**：SS引脚拉低，表示通信开始
+- **终止条件**：SS引脚拉高，表示通信结束
+
+#### 4.1.2 交换一个字节
+
+SPI有四种工作模式，由CPOL（时钟极性）和CPHA（时钟相位）决定：
+
+**模式0**：CPOL=0, CPHA=0
+- 空闲时SCK为低电平
+- 数据在SCK的第一个边沿采样，第二个边沿切换
+
+![SPI时序基本单元交换一个字节（模式0）](Images/SPI/SPI时序基本单元交换一个字节（模式0）.png)
+
+**模式1**：CPOL=0, CPHA=1
+- 空闲时SCK为低电平
+- 数据在SCK的第一个边沿切换，第二个边沿采样
+
+![SPI时序基本单元交换一个字节（模式1）](Images/SPI/SPI时序基本单元交换一个字节（模式1）.png)
+
+**模式2**：CPOL=1, CPHA=0
+- 空闲时SCK为高电平
+- 数据在SCK的第一个边沿采样，第二个边沿切换
+
+![SPI时序基本单元交换一个字节（模式2）](Images/SPI/SPI时序基本单元交换一个字节（模式2）.png)
+
+**模式3**：CPOL=1, CPHA=1
+- 空闲时SCK为高电平
+- 数据在SCK的第一个边沿切换，第二个边沿采样
+
+![SPI时序基本单元交换一个字节（模式3）](Images/SPI/SPI时序基本单元交换一个字节（模式3）.png)
+
+### 4.2 通信时序
+
+#### 4.2.1 指定地址写
+
+![SPI时序指定地址写](Images/SPI/SPI时序指定地址写.png)
+
+#### 4.2.2 指定地址读
+
+![SPI时序指定地址读](Images/SPI/SPI时序指定地址读.png)
+
+#### 4.2.3 发送指令
+
+![SPI时序发送指令](Images/SPI/SPI时序发送指令.png)
+
+#### 4.2.4 主模式全双工连续传输
+
+![主模式全双工连续传输](Images/SPI/主模式全双工连续传输.png)
+
+#### 4.2.5 非连续传输发送
+
+![非连续传输发送](Images/SPI/非连续传输发送.png)
+
+---
+
+## 5. STM32 SPI 功能特点
+
+### 5.1 硬件SPI特点
+
+- **硬件自动执行**：由硬件自动执行时钟生成、数据收发等功能，减轻CPU的负担
+- **数据帧**：可配置8位/16位数据帧
+- **数据顺序**：可配置高位先行/低位先行
+- **时钟频率**：fPCLK / (2, 4, 8, 16, 32, 64, 128, 256)
+- **多主机模型**：支持多主机模型、主或从操作
+- **精简模式**：可精简为半双工/单工通信
+- **DMA支持**：支持DMA传输
+- **I2S兼容**：兼容I2S协议
+
+### 5.2 软件与硬件SPI对比
+
+![软硬件波形对比](Images/SPI/软硬件波形对比.png)
+
+- **软件SPI**：使用GPIO模拟SPI时序，灵活性高，但占用CPU资源
+- **硬件SPI**：由硬件自动执行，效率高，节省CPU资源
+
+---
+
+## 6. W25Q64 应用实例
+
+### 6.1 W25Qxx 系列概述
+
+W25Qxx系列是一种低成本、小型化、使用简单的非易失性存储器，常应用于数据存储、字库存储、固件程序存储等场景。
+
+- **存储介质**：Nor Flash（闪存）
+- **时钟频率**：80MHz / 160MHz (Dual SPI) / 320MHz (Quad SPI)
+
+### 6.2 存储容量（24位地址）
+
+| 型号 | 容量 |
 |------|------|
-| 单次转换，非扫描模式 | 只转换一个通道，转换一次后停止 |
-| 连续转换，非扫描模式 | 只转换一个通道，连续转换 |
-| 单次转换，扫描模式 | 转换多个通道，转换一次后停止 |
-| 连续转换，扫描模式 | 转换多个通道，连续转换 |
+| W25Q40 | 4Mbit / 512KByte |
+| W25Q80 | 8Mbit / 1MByte |
+| W25Q16 | 16Mbit / 2MByte |
+| W25Q32 | 32Mbit / 4MByte |
+| W25Q64 | 64Mbit / 8MByte |
+| W25Q128 | 128Mbit / 16MByte |
+| W25Q256 | 256Mbit / 32MByte |
 
-### 4.3 规则组和注入组
+### 6.3 W25Q64 硬件电路
 
-- **规则组**：用于常规的ADC转换，最多16个通道
-- **注入组**：用于紧急的ADC转换，最多4个通道，可以打断规则组的转换
+![W25Q64硬件电路](Images/SPI/W25Q64硬件电路.png)
 
-### 4.4 模拟看门狗
+### 6.4 W25Q64 框图
 
-- **功能**：自动监测输入电压范围
-- **触发**：当输入电压超出设定范围时触发中断或事件
-- **类型**：独立看门狗（监测单个通道）和通用看门狗（监测所有通道）
+![W25Q64框图](Images/SPI/W25Q64框图.png)
 
-### 4.5 触发控制
+### 6.5 Flash 操作注意事项
 
-ADC1和ADC2用于规则通道的外部触发：
+#### 写入操作时：
 
-| 触发源 | 类型 | EXTSEL[2:0] |
-|---------|------|--------------|
-| TIM1_CC1事件 | 来自片上定时器的内部信号 | 000 |
-| TIM1_CC2事件 | 来自片上定时器的内部信号 | 001 |
-| TIM1_CC3事件 | 来自片上定时器的内部信号 | 010 |
-| TIM2_CC2事件 | 来自片上定时器的内部信号 | 011 |
-| TIM3_TRGO事件 | 来自片上定时器的内部信号 | 100 |
-| TIM4_CC4事件 | 来自片上定时器的内部信号 | 101 |
-| EXTI线11/TIM8_TRGO事件(1x2) | 外部引脚/来自片上定时器的内部信号 | 110 |
-| 软件控制位 | SWSTART | 111 |
+- 写入操作前，必须先进行写使能
+- 每个数据位只能由1改写为0，不能由0改写为1
+- 写入数据前必须先擦除，擦除后，所有数据位变为1
+- 擦除必须按最小擦除单元进行
+- 连续写入多字节时，最多写入一页的数据，超过页尾位置的数据，会回到页首覆盖写入
+- 写入操作结束后，芯片进入忙状态，不响应新的读写操作
 
----
+#### 读取操作时：
 
-## 5. ADC 相关函数
-
-### 5.1 初始化函数
-
-| 函数名称 | 功能说明 |
-|---------|----------|
-| ADC_Init() | 初始化ADC配置 |
-| ADC_StructInit() | 将ADC结构体初始化为默认值 |
-
-### 5.2 规则组配置函数
-
-| 函数名称 | 功能说明 |
-|---------|----------|
-| ADC_RegularChannelConfig() | 配置规则组通道 |
-| ADC_SoftwareStartConvCmd() | 软件启动ADC转换 |
-| ADC_GetConversionValue() | 获取ADC转换结果 |
-| ADC_ExternalTrigConvCmd() | 配置外部触发转换 |
-
-### 5.3 注入组配置函数
-
-| 函数名称 | 功能说明 |
-|---------|----------|
-| ADC_InjectedChannelConfig() | 配置注入组通道 |
-| ADC_ExternalTrigInjectedConvConfig() | 配置注入组外部触发 |
-| ADC_StartCalibration() | 启动ADC校准 |
-
-### 5.4 状态查询函数
-
-| 函数名称 | 功能说明 |
-|---------|----------|
-| ADC_GetFlagStatus() | 获取ADC标志位状态 |
-| ADC_ClearFlag() | 清除ADC标志位 |
-| ADC_GetITStatus() | 获取ADC中断状态 |
-| ADC_ClearITPendingBit() | 清除ADC中断挂起位 |
-
-### 5.5 模拟看门狗函数
-
-| 函数名称 | 功能说明 |
-|---------|----------|
-| ADC_AnalogWatchdogCmd() | 使能或禁用模拟看门狗 |
-| ADC_AnalogWatchdogThresholdsConfig() | 配置模拟看门狗阈值 |
-| ADC_AnalogWatchdogSingleChannelConfig() | 配置模拟看门狗监测通道 |
-
-![ADC基本函数](Images/ADC/6.ADC基本函数.png)
+- 直接调用读取时序，无需使能，无需额外操作
+- 没有页的限制
+- 读取操作结束后不会进入忙状态，但不能在忙状态时读取
 
 ---
 
-## 6. ADC 配置步骤
+## 7. SPI 相关函数
 
-### 6.1 基本配置步骤
+### 7.1 初始化函数
 
-1. **使能ADC时钟**：调用`RCC_APB2PeriphClockCmd()`使能ADC时钟
-2. **使能GPIO时钟**：调用`RCC_APB2PeriphClockCmd()`使能GPIO时钟
-3. **配置GPIO为模拟输入**：设置GPIO为模拟输入模式
-4. **初始化ADC**：配置ADC模式、数据对齐、扫描模式等参数
-5. **配置规则组通道**：设置要转换的通道和采样时间
-6. **使能ADC**：调用`ADC_Cmd()`使能ADC
-7. **校准ADC**：调用`ADC_StartCalibration()`校准ADC
-8. **启动ADC转换**：调用`ADC_SoftwareStartConvCmd()`启动转换
-9. **读取转换结果**：调用`ADC_GetConversionValue()`获取转换结果
+| 函数名称 | 功能说明 |
+|---------|----------|
+| SPI_DeInit() | 将SPI寄存器重置为默认值 |
+| SPI_Init() | 初始化SPI配置 |
+| SPI_StructInit() | 将SPI结构体初始化为默认值 |
 
-### 6.2 多通道配置步骤
+### 7.2 控制函数
 
-1. **使能ADC时钟**：调用`RCC_APB2PeriphClockCmd()`使能ADC时钟
-2. **使能GPIO时钟**：调用`RCC_APB2PeriphClockCmd()`使能GPIO时钟
-3. **配置GPIO为模拟输入**：设置多个GPIO为模拟输入模式
-4. **初始化ADC**：配置ADC模式、数据对齐、扫描模式等参数
-5. **配置规则组通道**：设置多个要转换的通道和采样时间
-6. **使能DMA**：配置DMA用于自动传输转换结果
-7. **使能ADC**：调用`ADC_Cmd()`使能ADC
-8. **校准ADC**：调用`ADC_StartCalibration()`校准ADC
-9. **启动ADC转换**：调用`ADC_SoftwareStartConvCmd()`启动转换
-10. **读取转换结果**：从DMA缓冲区读取转换结果
+| 函数名称 | 功能说明 |
+|---------|----------|
+| SPI_Cmd() | 使能或禁用SPI |
+| SPI_ITConfig() | 配置SPI中断 |
+| SPI_DMACmd() | 使能或禁用SPI的DMA |
+| SPI_SendData() | 发送数据 |
+| SPI_ReceiveData() | 接收数据 |
+| SPI_NSSInternalSoftwareConfig() | 配置内部NSS |
+| SPI_SSOutputCmd() | 使能或禁用SS输出 |
+| SPI_DataSizeConfig() | 配置数据帧大小 |
+| SPI_BiDirectionalLineConfig() | 配置双向数据线 |
+
+### 7.3 状态函数
+
+| 函数名称 | 功能说明 |
+|---------|----------|
+| SPI_GetFlagStatus() | 获取SPI标志位状态 |
+| SPI_ClearFlag() | 清除SPI标志位 |
+| SPI_GetITStatus() | 获取SPI中断状态 |
+| SPI_ClearITPendingBit() | 清除SPI中断挂起位 |
+
+![SPI相关函数](Images/SPI/10.SPI相关函数.png)
 
 ---
 
-## 7. 示例代码
+## 8. SPI 配置步骤
 
-### 7.1 单通道ADC配置示例
+### 8.1 基本配置步骤
+
+1. **使能SPI时钟**：调用`RCC_APB2PeriphClockCmd()`（SPI1）或`RCC_APB1PeriphClockCmd()`（SPI2）使能SPI时钟
+2. **配置GPIO**：将SCK、MOSI、MISO配置为复用推挽输出，SS配置为通用推挽输出
+3. **配置SPI**：设置SPI模式、数据大小、时钟极性、时钟相位、波特率等参数
+4. **配置中断**：根据需要配置SPI中断
+5. **使能SPI**：调用`SPI_Cmd()`使能SPI
+
+### 8.2 主设备发送数据步骤
+
+1. **拉低SS**：拉低SS引脚，选择从设备
+2. **发送数据**：调用`SPI_SendData()`发送数据
+3. **等待发送完成**：等待`SPI_FLAG_TXE`标志
+4. **等待接收完成**：等待`SPI_FLAG_RXNE`标志
+5. **读取数据**：调用`SPI_ReceiveData()`读取接收到的数据
+6. **拉高SS**：拉高SS引脚，结束通信
+
+### 8.3 主设备接收数据步骤
+
+1. **拉低SS**：拉低SS引脚，选择从设备
+2. **发送dummy数据**：调用`SPI_SendData()`发送dummy数据以产生时钟
+3. **等待接收完成**：等待`SPI_FLAG_RXNE`标志
+4. **读取数据**：调用`SPI_ReceiveData()`读取接收到的数据
+5. **拉高SS**：拉高SS引脚，结束通信
+
+---
+
+## 9. 示例代码
+
+### 9.1 SPI初始化示例
 
 ```c
-// ADC初始化函数
-void ADC1_Init(void)
+// SPI1初始化函数
+void SPI1_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
-    ADC_InitTypeDef ADC_InitStructure;
+    SPI_InitTypeDef SPI_InitStructure;
     
-    // 使能ADC1和GPIOA时钟
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
+    // 使能SPI1和GPIOA时钟
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1 | RCC_APB2Periph_GPIOA, ENABLE);
     
-    // 配置PA0为模拟输入
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+    // 配置PA5(SCK)、PA7(MOSI)为复用推挽输出
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
     
-    // 配置ADC1
-    ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
-    ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-    ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
-    ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-    ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-    ADC_InitStructure.ADC_NbrOfChannel = 1;
-    ADC_Init(ADC1, &ADC_InitStructure);
+    // 配置PA6(MISO)为浮空输入
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
     
-    // 配置规则组通道0
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_55Cycles5);
+    // 配置PA4(SS)为通用推挽输出
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
     
-    // 使能ADC1
-    ADC_Cmd(ADC1, ENABLE);
+    // 初始化SS为高电平
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
     
-    // 校准ADC1
-    ADC_ResetCalibration(ADC1);
-    while(ADC_GetResetCalibrationStatus(ADC1));
-    ADC_StartCalibration(ADC1);
-    while(ADC_GetCalibrationStatus(ADC1));
-}
-
-// 读取ADC值
-uint16_t ADC1_Read(void)
-{
-    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-    while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
-    return ADC_GetConversionValue(ADC1);
-}
-
-// 将ADC值转换为电压
-float ADC1_GetVoltage(uint16_t adc_value)
-{
-    return (float)adc_value * 3.3 / 4095;
+    // 配置SPI1
+    SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+    SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+    SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
+    SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
+    SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+    SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+    SPI_InitStructure.SPI_CRCPolynomial = 7;
+    SPI_Init(SPI1, &SPI_InitStructure);
+    
+    // 使能SPI1
+    SPI_Cmd(SPI1, ENABLE);
 }
 ```
 
-### 7.2 多通道ADC配置示例
+### 9.2 SPI交换字节示例
 
 ```c
-// 多通道ADC初始化函数
-void ADC1_MultiChannel_Init(void)
+// SPI交换一个字节
+uint8_t SPI1_SwapByte(uint8_t byte)
 {
-    GPIO_InitTypeDef GPIO_InitStructure;
-    ADC_InitTypeDef ADC_InitStructure;
-    DMA_InitTypeDef DMA_InitStructure;
+    // 等待发送缓冲区为空
+    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
     
-    // 使能ADC1、GPIOA和DMA1时钟
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+    // 发送数据
+    SPI_I2S_SendData(SPI1, byte);
     
-    // 配置PA0、PA1、PA2为模拟输入
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    // 等待接收缓冲区非空
+    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
     
-    // 配置DMA1通道1
-    DMA_DeInit(DMA1_Channel1);
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&(ADC1->DR);
-    DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)ADC_Value;
-    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-    DMA_InitStructure.DMA_BufferSize = 3;
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-    DMA_Init(DMA1_Channel1, &DMA_InitStructure);
-    DMA_Cmd(DMA1_Channel1, ENABLE);
-    
-    // 配置ADC1
-    ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
-    ADC_InitStructure.ADC_ScanConvMode = ENABLE;
-    ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
-    ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-    ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-    ADC_InitStructure.ADC_NbrOfChannel = 3;
-    ADC_Init(ADC1, &ADC_InitStructure);
-    
-    // 配置规则组通道
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_55Cycles5);
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 2, ADC_SampleTime_55Cycles5);
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 3, ADC_SampleTime_55Cycles5);
-    
-    // 使能ADC1的DMA
-    ADC_DMACmd(ADC1, ENABLE);
-    
-    // 使能ADC1
-    ADC_Cmd(ADC1, ENABLE);
-    
-    // 校准ADC1
-    ADC_ResetCalibration(ADC1);
-    while(ADC_GetResetCalibrationStatus(ADC1));
-    ADC_StartCalibration(ADC1);
-    while(ADC_GetCalibrationStatus(ADC1));
-    
-    // 启动ADC转换
-    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+    // 返回接收到的数据
+    return SPI_I2S_ReceiveData(SPI1);
 }
 ```
 
-### 7.3 模拟看门狗配置示例
+### 9.3 W25Q64读取示例
 
 ```c
-// 模拟看门狗初始化函数
-void ADC1_AnalogWatchdog_Init(void)
+// W25Q64读取数据
+void W25Q64_ReadData(uint32_t addr, uint8_t *data, uint16_t len)
 {
-    ADC_InitTypeDef ADC_InitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
+    // 拉低SS
+    GPIO_ResetBits(GPIOA, GPIO_Pin_4);
     
-    // 使能ADC1和GPIOA时钟
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
+    // 发送读指令
+    SPI1_SwapByte(0x03);
     
-    // 配置PA0为模拟输入
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    // 发送24位地址
+    SPI1_SwapByte((addr >> 16) &amp; 0xFF);
+    SPI1_SwapByte((addr &gt;&gt; 8) &amp; 0xFF);
+    SPI1_SwapByte(addr &amp; 0xFF);
     
-    // 配置ADC1
-    ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
-    ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-    ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
-    ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-    ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-    ADC_InitStructure.ADC_NbrOfChannel = 1;
-    ADC_Init(ADC1, &ADC_InitStructure);
-    
-    // 配置规则组通道0
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_55Cycles5);
-    
-    // 配置模拟看门狗
-    ADC_AnalogWatchdogCmd(ADC1, ADC_AnalogWatchdog_SingleRegEnable);
-    ADC_AnalogWatchdogSingleChannelConfig(ADC1, ADC_Channel_0);
-    ADC_AnalogWatchdogThresholdsConfig(ADC1, 1000, 3000);
-    
-    // 配置ADC看门狗中断
-    ADC_ITConfig(ADC1, ADC_IT_AWD, ENABLE);
-    
-    // 配置NVIC
-    NVIC_InitStructure.NVIC_IRQChannel = ADC1_2_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-    
-    // 使能ADC1
-    ADC_Cmd(ADC1, ENABLE);
-    
-    // 校准ADC1
-    ADC_ResetCalibration(ADC1);
-    while(ADC_GetResetCalibrationStatus(ADC1));
-    ADC_StartCalibration(ADC1);
-    while(ADC_GetCalibrationStatus(ADC1));
-    
-    // 启动ADC转换
-    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-}
-
-// ADC1_2中断服务函数
-void ADC1_2_IRQHandler(void)
-{
-    if (ADC_GetITStatus(ADC1, ADC_IT_AWD) != RESET)
+    // 读取数据
+    while(len--)
     {
-        // 模拟看门狗触发，处理电压异常
-        LED_On();
-        
-        // 清除中断标志位
-        ADC_ClearITPendingBit(ADC1, ADC_IT_AWD);
+        *data++ = SPI1_SwapByte(0xFF);
     }
+    
+    // 拉高SS
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+}
+```
+
+### 9.4 W25Q64写入示例
+
+```c
+// W25Q64写使能
+void W25Q64_WriteEnable(void)
+{
+    // 拉低SS
+    GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+    
+    // 发送写使能指令
+    SPI1_SwapByte(0x06);
+    
+    // 拉高SS
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+}
+
+// W25Q64页写入
+void W25Q64_PageProgram(uint32_t addr, uint8_t *data, uint16_t len)
+{
+    // 写使能
+    W25Q64_WriteEnable();
+    
+    // 拉低SS
+    GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+    
+    // 发送页写入指令
+    SPI1_SwapByte(0x02);
+    
+    // 发送24位地址
+    SPI1_SwapByte((addr &gt;&gt; 16) &amp; 0xFF);
+    SPI1_SwapByte((addr &gt;&gt; 8) &amp; 0xFF);
+    SPI1_SwapByte(addr &amp; 0xFF);
+    
+    // 写入数据
+    while(len--)
+    {
+        SPI1_SwapByte(*data++);
+    }
+    
+    // 拉高SS
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+}
+```
+
+### 9.5 W25Q64擦除示例
+
+```c
+// W25Q64扇区擦除
+void W25Q64_SectorErase(uint32_t addr)
+{
+    // 写使能
+    W25Q64_WriteEnable();
+    
+    // 拉低SS
+    GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+    
+    // 发送扇区擦除指令
+    SPI1_SwapByte(0x20);
+    
+    // 发送24位地址
+    SPI1_SwapByte((addr &gt;&gt; 16) &amp; 0xFF);
+    SPI1_SwapByte((addr &gt;&gt; 8) &amp; 0xFF);
+    SPI1_SwapByte(addr &amp; 0xFF);
+    
+    // 拉高SS
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+}
+
+// W25Q64读取状态寄存器
+uint8_t W25Q64_ReadStatusRegister(void)
+{
+    uint8_t status;
+    
+    // 拉低SS
+    GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+    
+    // 发送读状态寄存器指令
+    SPI1_SwapByte(0x05);
+    
+    // 读取状态
+    status = SPI1_SwapByte(0xFF);
+    
+    // 拉高SS
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+    
+    return status;
+}
+
+// W25Q64等待忙状态结束
+void W25Q64_WaitBusy(void)
+{
+    while(W25Q64_ReadStatusRegister() &amp; 0x01);
 }
 ```
 
 ---
 
-## 8. 总结
+## 10. 总结
 
-ADC是STM32微控制器中用于模拟-数字转换的重要外设，通过合理配置ADC，可以实现：
+SPI是一种常用的串行通信总线，具有以下特点：
 
-- **模拟信号采集**：采集各种传感器的模拟信号
-- **电压测量**：测量电压值，用于电压监控
-- **温度测量**：使用内部温度传感器测量芯片温度
-- **电池电量检测**：检测电池电量，用于电源管理
+- **高速传输**：支持较高的传输速率，适合高速数据传输
+- **全双工通信**：同一时间可以同时发送和接收数据
+- **多设备支持**：一个主设备可以控制多个从设备
+- **硬件支持**：STM32内部集成了硬件SPI，减轻CPU负担
+- **W25Q64应用**：常用于数据存储、字库存储、固件程序存储等场景
 
-掌握ADC的配置和使用方法，对于STM32的模拟信号处理非常重要。通过本文档的学习，希望读者能够熟练掌握ADC的使用技巧，为STM32项目开发提供可靠的模拟-数字转换支持。
+掌握SPI的配置和使用方法，对于STM32项目开发非常重要。通过本文档的学习，希望读者能够熟练掌握SPI的使用技巧，为STM32项目开发提供可靠的通信支持。
