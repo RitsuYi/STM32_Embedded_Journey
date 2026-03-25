@@ -30,7 +30,6 @@
 .\objects\main.o: .\Library\misc.h
 .\objects\main.o: .\Hardware\Button.h
 .\objects\main.o: .\Hardware\Encoder.h
-.\objects\main.o: .\Hardware\LED.h
 .\objects\main.o: .\Hardware\OLED.h
 .\objects\main.o: .\System\RTC.h
 .\objects\main.o: .\System\Timer.h

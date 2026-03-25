@@ -1,4 +1,4 @@
-#include "stm32f10x.h"
+#include "OLED.h"
 #include "OLED_Font.h"
 
 /*引脚配置*/
@@ -124,6 +124,22 @@ void OLED_Clear(void)
 	}
 }
 
+static uint16_t OLED_ScaleByte(uint8_t Data)
+{
+	uint8_t i;
+	uint16_t Result = 0;
+	
+	for (i = 0; i < 8; i++)
+	{
+		if (Data & (1 << i))
+		{
+			Result |= (uint16_t)(0x03 << (i * 2));
+		}
+	}
+	
+	return Result;
+}
+
 /**
   * @brief  OLED显示一个字符
   * @param  Line 行位置，范围：1~4
@@ -132,17 +148,30 @@ void OLED_Clear(void)
   * @retval 无
   */
 void OLED_ShowChar(uint8_t Line, uint8_t Column, char Char)
+{
+	OLED_ShowCharMode(Line, Column, Char, 0);
+}
+
+/**
+  * @brief  OLED显示一个字符，支持反白
+  * @param  Line 行位置，范围：1~4
+  * @param  Column 列位置，范围：1~16
+  * @param  Char 要显示的字符
+  * @param  Inverse 0正常显示，1反白显示
+  * @retval 无
+  */
+void OLED_ShowCharMode(uint8_t Line, uint8_t Column, char Char, uint8_t Inverse)
 {      	
 	uint8_t i;
 	OLED_SetCursor((Line - 1) * 2, (Column - 1) * 8);		//设置光标位置在上半部分
 	for (i = 0; i < 8; i++)
 	{
-		OLED_WriteData(OLED_F8x16[Char - ' '][i]);			//显示上半部分内容
+		OLED_WriteData(Inverse ? (uint8_t)(~OLED_F8x16[Char - ' '][i]) : OLED_F8x16[Char - ' '][i]);			//显示上半部分内容
 	}
 	OLED_SetCursor((Line - 1) * 2 + 1, (Column - 1) * 8);	//设置光标位置在下半部分
 	for (i = 0; i < 8; i++)
 	{
-		OLED_WriteData(OLED_F8x16[Char - ' '][i + 8]);		//显示下半部分内容
+		OLED_WriteData(Inverse ? (uint8_t)(~OLED_F8x16[Char - ' '][i + 8]) : OLED_F8x16[Char - ' '][i + 8]);		//显示下半部分内容
 	}
 }
 
@@ -155,10 +184,72 @@ void OLED_ShowChar(uint8_t Line, uint8_t Column, char Char)
   */
 void OLED_ShowString(uint8_t Line, uint8_t Column, char *String)
 {
+	OLED_ShowStringMode(Line, Column, String, 0);
+}
+
+/**
+  * @brief  OLED显示字符串，支持反白
+  * @param  Line 起始行位置，范围：1~4
+  * @param  Column 起始列位置，范围：1~16
+  * @param  String 要显示的字符串
+  * @param  Inverse 0正常显示，1反白显示
+  * @retval 无
+  */
+void OLED_ShowStringMode(uint8_t Line, uint8_t Column, char *String, uint8_t Inverse)
+{
 	uint8_t i;
 	for (i = 0; String[i] != '\0'; i++)
 	{
-		OLED_ShowChar(Line, Column + i, String[i]);
+		OLED_ShowCharMode(Line, Column + i, String[i], Inverse);
+	}
+}
+
+/**
+  * @brief  OLED显示2倍放大字符（16x32）
+  * @param  Page 起始页，范围：0~4
+  * @param  X 起始列，范围：0~112
+  * @param  Char 要显示的字符
+  * @retval 无
+  */
+void OLED_ShowBigChar(uint8_t Page, uint8_t X, char Char)
+{
+	uint8_t i;
+	for (i = 0; i < 8; i++)
+	{
+		uint16_t Top = OLED_ScaleByte(OLED_F8x16[Char - ' '][i]);
+		uint16_t Bottom = OLED_ScaleByte(OLED_F8x16[Char - ' '][i + 8]);
+		
+		OLED_SetCursor(Page + 0, X + i * 2);
+		OLED_WriteData((uint8_t)(Top & 0xFF));
+		OLED_WriteData((uint8_t)(Top & 0xFF));
+		
+		OLED_SetCursor(Page + 1, X + i * 2);
+		OLED_WriteData((uint8_t)((Top >> 8) & 0xFF));
+		OLED_WriteData((uint8_t)((Top >> 8) & 0xFF));
+		
+		OLED_SetCursor(Page + 2, X + i * 2);
+		OLED_WriteData((uint8_t)(Bottom & 0xFF));
+		OLED_WriteData((uint8_t)(Bottom & 0xFF));
+		
+		OLED_SetCursor(Page + 3, X + i * 2);
+		OLED_WriteData((uint8_t)((Bottom >> 8) & 0xFF));
+		OLED_WriteData((uint8_t)((Bottom >> 8) & 0xFF));
+	}
+}
+
+/**
+  * @brief  OLED显示2倍放大字符串（16x32）
+  * @param  Page 起始页，范围：0~4
+  * @param  X 起始列，范围：0~127
+  * @param  String 要显示的字符串
+  * @retval 无
+  */
+void OLED_ShowBigString(uint8_t Page, uint8_t X, char *String)
+{
+	uint8_t i;
+	for (i = 0; String[i] != '\0'; i++)
+	{
+		OLED_ShowBigChar(Page, X + i * 16, String[i]);
 	}
 }
 
