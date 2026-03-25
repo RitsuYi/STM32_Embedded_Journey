@@ -3,11 +3,11 @@
 <title>Static Call Graph - [.\Objects\Project.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\Project.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060528: Last Updated: Wed Mar 25 19:35:34 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060528: Last Updated: Wed Mar 25 21:07:22 2026
 <BR><P>
-<H3>Maximum Stack Usage =        192 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =        304 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
-__rt_entry_main &rArr; main &rArr; Watch_RenderScreen &rArr; Watch_ShowHomePage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+__rt_entry_main &rArr; main &rArr; Menu_Render &rArr; Menu_ShowMenuPage &rArr; Menu_DrawMenuIcon &rArr; Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
 <P>
 <H3>
 Functions with no stack information
@@ -85,8 +85,8 @@ Function Pointers
 Global Symbols
 </H3>
 <P><STRONG><a name="[3a]"></a>__main</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, __main.o(!!!main))
-<BR><BR>[Calls]<UL><LI><a href="#[3c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry
-<LI><a href="#[3b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__scatterload
+<BR><BR>[Calls]<UL><LI><a href="#[3b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__scatterload
+<LI><a href="#[3c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry
 </UL>
 
 <P><STRONG><a name="[3b]"></a>__scatterload</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __scatter.o(!!!scatter))
@@ -97,9 +97,9 @@ Global Symbols
 <BR><BR>[Calls]<UL><LI><a href="#[3c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry
 </UL>
 
-<P><STRONG><a name="[92]"></a>__scatterload_rt2_thumb_only</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __scatter.o(!!!scatter), UNUSED)
+<P><STRONG><a name="[d6]"></a>__scatterload_rt2_thumb_only</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __scatter.o(!!!scatter), UNUSED)
 
-<P><STRONG><a name="[93]"></a>__scatterload_null</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __scatter.o(!!!scatter), UNUSED)
+<P><STRONG><a name="[d7]"></a>__scatterload_null</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __scatter.o(!!!scatter), UNUSED)
 
 <P><STRONG><a name="[3e]"></a>__scatterload_copy</STRONG> (Thumb, 26 bytes, Stack size unknown bytes, __scatter_copy.o(!!handler_copy), UNUSED)
 <BR><BR>[Calls]<UL><LI><a href="#[3e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__scatterload_copy
@@ -107,78 +107,78 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[3e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__scatterload_copy
 </UL>
 
-<P><STRONG><a name="[94]"></a>__scatterload_zeroinit</STRONG> (Thumb, 28 bytes, Stack size unknown bytes, __scatter_zi.o(!!handler_zi), UNUSED)
+<P><STRONG><a name="[d8]"></a>__scatterload_zeroinit</STRONG> (Thumb, 28 bytes, Stack size unknown bytes, __scatter_zi.o(!!handler_zi), UNUSED)
 
 <P><STRONG><a name="[42]"></a>__rt_lib_init</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit.o(.ARM.Collect$$libinit$$00000000))
 <BR><BR>[Called By]<UL><LI><a href="#[41]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry_li
 </UL>
 
-<P><STRONG><a name="[95]"></a>__rt_lib_init_alloca_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000002E))
+<P><STRONG><a name="[d9]"></a>__rt_lib_init_alloca_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000002E))
 
-<P><STRONG><a name="[96]"></a>__rt_lib_init_argv_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000002C))
+<P><STRONG><a name="[da]"></a>__rt_lib_init_argv_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000002C))
 
-<P><STRONG><a name="[97]"></a>__rt_lib_init_atexit_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000001B))
+<P><STRONG><a name="[db]"></a>__rt_lib_init_atexit_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000001B))
 
-<P><STRONG><a name="[98]"></a>__rt_lib_init_clock_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000021))
+<P><STRONG><a name="[dc]"></a>__rt_lib_init_clock_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000021))
 
-<P><STRONG><a name="[99]"></a>__rt_lib_init_cpp_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000032))
+<P><STRONG><a name="[dd]"></a>__rt_lib_init_cpp_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000032))
 
-<P><STRONG><a name="[9a]"></a>__rt_lib_init_exceptions_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000030))
+<P><STRONG><a name="[de]"></a>__rt_lib_init_exceptions_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000030))
 
-<P><STRONG><a name="[9b]"></a>__rt_lib_init_fp_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000002))
+<P><STRONG><a name="[df]"></a>__rt_lib_init_fp_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000002))
 
-<P><STRONG><a name="[9c]"></a>__rt_lib_init_fp_trap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000001F))
+<P><STRONG><a name="[e0]"></a>__rt_lib_init_fp_trap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000001F))
 
-<P><STRONG><a name="[9d]"></a>__rt_lib_init_getenv_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000023))
+<P><STRONG><a name="[e1]"></a>__rt_lib_init_getenv_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000023))
 
-<P><STRONG><a name="[9e]"></a>__rt_lib_init_heap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000000A))
+<P><STRONG><a name="[e2]"></a>__rt_lib_init_heap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000000A))
 
-<P><STRONG><a name="[9f]"></a>__rt_lib_init_lc_collate_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000011))
+<P><STRONG><a name="[e3]"></a>__rt_lib_init_lc_collate_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000011))
 
-<P><STRONG><a name="[a0]"></a>__rt_lib_init_lc_ctype_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000013))
+<P><STRONG><a name="[e4]"></a>__rt_lib_init_lc_ctype_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000013))
 
-<P><STRONG><a name="[a1]"></a>__rt_lib_init_lc_monetary_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000015))
+<P><STRONG><a name="[e5]"></a>__rt_lib_init_lc_monetary_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000015))
 
-<P><STRONG><a name="[a2]"></a>__rt_lib_init_lc_numeric_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000017))
+<P><STRONG><a name="[e6]"></a>__rt_lib_init_lc_numeric_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000017))
 
-<P><STRONG><a name="[a3]"></a>__rt_lib_init_lc_time_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000019))
+<P><STRONG><a name="[e7]"></a>__rt_lib_init_lc_time_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000019))
 
-<P><STRONG><a name="[a4]"></a>__rt_lib_init_preinit_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000004))
+<P><STRONG><a name="[e8]"></a>__rt_lib_init_preinit_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000004))
 
-<P><STRONG><a name="[a5]"></a>__rt_lib_init_rand_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000000E))
+<P><STRONG><a name="[e9]"></a>__rt_lib_init_rand_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000000E))
 
-<P><STRONG><a name="[a6]"></a>__rt_lib_init_return</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000033))
+<P><STRONG><a name="[ea]"></a>__rt_lib_init_return</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000033))
 
-<P><STRONG><a name="[a7]"></a>__rt_lib_init_signal_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000001D))
+<P><STRONG><a name="[eb]"></a>__rt_lib_init_signal_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000001D))
 
-<P><STRONG><a name="[a8]"></a>__rt_lib_init_stdio_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000025))
+<P><STRONG><a name="[ec]"></a>__rt_lib_init_stdio_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$00000025))
 
-<P><STRONG><a name="[a9]"></a>__rt_lib_init_user_alloc_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000000C))
+<P><STRONG><a name="[ed]"></a>__rt_lib_init_user_alloc_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libinit2.o(.ARM.Collect$$libinit$$0000000C))
 
 <P><STRONG><a name="[47]"></a>__rt_lib_shutdown</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown.o(.ARM.Collect$$libshutdown$$00000000))
 <BR><BR>[Called By]<UL><LI><a href="#[46]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_exit_ls
 </UL>
 
-<P><STRONG><a name="[aa]"></a>__rt_lib_shutdown_cpp_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000002))
+<P><STRONG><a name="[ee]"></a>__rt_lib_shutdown_cpp_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000002))
 
-<P><STRONG><a name="[ab]"></a>__rt_lib_shutdown_fp_trap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000007))
+<P><STRONG><a name="[ef]"></a>__rt_lib_shutdown_fp_trap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000007))
 
-<P><STRONG><a name="[ac]"></a>__rt_lib_shutdown_heap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$0000000F))
+<P><STRONG><a name="[f0]"></a>__rt_lib_shutdown_heap_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$0000000F))
 
-<P><STRONG><a name="[ad]"></a>__rt_lib_shutdown_return</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000010))
+<P><STRONG><a name="[f1]"></a>__rt_lib_shutdown_return</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000010))
 
-<P><STRONG><a name="[ae]"></a>__rt_lib_shutdown_signal_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$0000000A))
+<P><STRONG><a name="[f2]"></a>__rt_lib_shutdown_signal_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$0000000A))
 
-<P><STRONG><a name="[af]"></a>__rt_lib_shutdown_stdio_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000004))
+<P><STRONG><a name="[f3]"></a>__rt_lib_shutdown_stdio_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$00000004))
 
-<P><STRONG><a name="[b0]"></a>__rt_lib_shutdown_user_alloc_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$0000000C))
+<P><STRONG><a name="[f4]"></a>__rt_lib_shutdown_user_alloc_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, libshutdown2.o(.ARM.Collect$$libshutdown$$0000000C))
 
 <P><STRONG><a name="[3c]"></a>__rt_entry</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry.o(.ARM.Collect$$rtentry$$00000000))
-<BR><BR>[Called By]<UL><LI><a href="#[3a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__main
-<LI><a href="#[3d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__scatterload_rt2
+<BR><BR>[Called By]<UL><LI><a href="#[3d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__scatterload_rt2
+<LI><a href="#[3a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__main
 </UL>
 
-<P><STRONG><a name="[b1]"></a>__rt_entry_presh_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$00000002))
+<P><STRONG><a name="[f5]"></a>__rt_entry_presh_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$00000002))
 
 <P><STRONG><a name="[3f]"></a>__rt_entry_sh</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry4.o(.ARM.Collect$$rtentry$$00000004))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8 + Unknown Stack Size
@@ -191,17 +191,17 @@ Global Symbols
 <BR><BR>[Calls]<UL><LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_lib_init
 </UL>
 
-<P><STRONG><a name="[b2]"></a>__rt_entry_postsh_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$00000009))
+<P><STRONG><a name="[f6]"></a>__rt_entry_postsh_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$00000009))
 
 <P><STRONG><a name="[43]"></a>__rt_entry_main</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$0000000D))
-<BR><BR>[Stack]<UL><LI>Max Depth = 192 + Unknown Stack Size
-<LI>Call Chain = __rt_entry_main &rArr; main &rArr; Watch_RenderScreen &rArr; Watch_ShowHomePage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+<BR><BR>[Stack]<UL><LI>Max Depth = 304 + Unknown Stack Size
+<LI>Call Chain = __rt_entry_main &rArr; main &rArr; Menu_Render &rArr; Menu_ShowMenuPage &rArr; Menu_DrawMenuIcon &rArr; Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
 </UL>
 <BR>[Calls]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 <LI><a href="#[45]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;exit
 </UL>
 
-<P><STRONG><a name="[b3]"></a>__rt_entry_postli_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$0000000C))
+<P><STRONG><a name="[f7]"></a>__rt_entry_postli_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$0000000C))
 
 <P><STRONG><a name="[4c]"></a>__rt_exit</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, rtexit.o(.ARM.Collect$$rtexit$$00000000))
 <BR><BR>[Called By]<UL><LI><a href="#[45]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;exit
@@ -211,7 +211,7 @@ Global Symbols
 <BR><BR>[Calls]<UL><LI><a href="#[47]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_lib_shutdown
 </UL>
 
-<P><STRONG><a name="[b4]"></a>__rt_exit_prels_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, rtexit2.o(.ARM.Collect$$rtexit$$00000002))
+<P><STRONG><a name="[f8]"></a>__rt_exit_prels_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, rtexit2.o(.ARM.Collect$$rtexit$$00000002))
 
 <P><STRONG><a name="[48]"></a>__rt_exit_exit</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, rtexit2.o(.ARM.Collect$$rtexit$$00000004))
 <BR><BR>[Calls]<UL><LI><a href="#[49]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_sys_exit
@@ -348,11 +348,23 @@ Global Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[40]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__user_setup_stackheap
 </UL>
 
-<P><STRONG><a name="[b5]"></a>__use_two_region_memory</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, heapauxi.o(.text), UNUSED)
+<P><STRONG><a name="[9d]"></a>__aeabi_memcpy4</STRONG> (Thumb, 0 bytes, Stack size 8 bytes, rt_memcpy_w.o(.text))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = __aeabi_memcpy4
+</UL>
+<BR>[Called By]<UL><LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
+</UL>
 
-<P><STRONG><a name="[b6]"></a>__rt_heap_escrow$2region</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, heapauxi.o(.text), UNUSED)
+<P><STRONG><a name="[f9]"></a>__aeabi_memcpy8</STRONG> (Thumb, 0 bytes, Stack size 8 bytes, rt_memcpy_w.o(.text), UNUSED)
 
-<P><STRONG><a name="[b7]"></a>__rt_heap_expand$2region</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, heapauxi.o(.text), UNUSED)
+<P><STRONG><a name="[fa]"></a>__rt_memcpy_w</STRONG> (Thumb, 100 bytes, Stack size 8 bytes, rt_memcpy_w.o(.text), UNUSED)
+
+<P><STRONG><a name="[fb]"></a>_memcpy_lastbytes_aligned</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, rt_memcpy_w.o(.text), UNUSED)
+
+<P><STRONG><a name="[fc]"></a>__use_two_region_memory</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, heapauxi.o(.text), UNUSED)
+
+<P><STRONG><a name="[fd]"></a>__rt_heap_escrow$2region</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, heapauxi.o(.text), UNUSED)
+
+<P><STRONG><a name="[fe]"></a>__rt_heap_expand$2region</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, heapauxi.o(.text), UNUSED)
 
 <P><STRONG><a name="[40]"></a>__user_setup_stackheap</STRONG> (Thumb, 74 bytes, Stack size 8 bytes, sys_stackheap_outer.o(.text))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8 + Unknown Stack Size
@@ -373,26 +385,26 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry_main
 </UL>
 
-<P><STRONG><a name="[b8]"></a>__user_libspace</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, libspace.o(.text), UNUSED)
+<P><STRONG><a name="[ff]"></a>__user_libspace</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, libspace.o(.text), UNUSED)
 
 <P><STRONG><a name="[4a]"></a>__user_perproc_libspace</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, libspace.o(.text))
 <BR><BR>[Called By]<UL><LI><a href="#[40]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__user_setup_stackheap
 </UL>
 
-<P><STRONG><a name="[b9]"></a>__user_perthread_libspace</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, libspace.o(.text), UNUSED)
+<P><STRONG><a name="[100]"></a>__user_perthread_libspace</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, libspace.o(.text), UNUSED)
 
 <P><STRONG><a name="[49]"></a>_sys_exit</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, sys_exit.o(.text))
 <BR><BR>[Called By]<UL><LI><a href="#[48]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_exit_exit
 </UL>
 
-<P><STRONG><a name="[ba]"></a>__I$use$semihosting</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, use_no_semi.o(.text), UNUSED)
+<P><STRONG><a name="[101]"></a>__I$use$semihosting</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, use_no_semi.o(.text), UNUSED)
 
-<P><STRONG><a name="[bb]"></a>__use_no_semihosting_swi</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, use_no_semi.o(.text), UNUSED)
+<P><STRONG><a name="[102]"></a>__use_no_semihosting_swi</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, use_no_semi.o(.text), UNUSED)
 
 <P><STRONG><a name="[7]"></a>BusFault_Handler</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_it.o(i.BusFault_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
-<P><STRONG><a name="[bc]"></a>__semihosting_library_function</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, indicate_semi.o(.text), UNUSED)
+<P><STRONG><a name="[103]"></a>__semihosting_library_function</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, indicate_semi.o(.text), UNUSED)
 
 <P><STRONG><a name="[4d]"></a>Button_GetEvent</STRONG> (Thumb, 64 bytes, Stack size 16 bytes, button.o(i.Button_GetEvent))
 <BR><BR>[Stack]<UL><LI>Max Depth = 40<LI>Call Chain = Button_GetEvent &rArr; Timer_GetMillis &rArr; Timer_UpdateOverflow
@@ -495,7 +507,8 @@ Global Symbols
 <P><STRONG><a name="[52]"></a>GPIO_Init</STRONG> (Thumb, 278 bytes, Stack size 24 bytes, stm32f10x_gpio.o(i.GPIO_Init))
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = GPIO_Init
 </UL>
-<BR>[Called By]<UL><LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
+<BR>[Called By]<UL><LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
+<LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Init
 <LI><a href="#[5e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_Init
 <LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_Init
 </UL>
@@ -505,19 +518,108 @@ Global Symbols
 <LI><a href="#[60]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_ReadState
 </UL>
 
-<P><STRONG><a name="[65]"></a>GPIO_WriteBit</STRONG> (Thumb, 10 bytes, Stack size 0 bytes, stm32f10x_gpio.o(i.GPIO_WriteBit))
-<BR><BR>[Called By]<UL><LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
-<LI><a href="#[67]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
-<LI><a href="#[66]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
-<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
+<P><STRONG><a name="[62]"></a>GPIO_ReadOutputDataBit</STRONG> (Thumb, 18 bytes, Stack size 0 bytes, stm32f10x_gpio.o(i.GPIO_ReadOutputDataBit))
+<BR><BR>[Called By]<UL><LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_GetState
+</UL>
+
+<P><STRONG><a name="[67]"></a>GPIO_ResetBits</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_gpio.o(i.GPIO_ResetBits))
+<BR><BR>[Called By]<UL><LI><a href="#[66]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_On
+</UL>
+
+<P><STRONG><a name="[65]"></a>GPIO_SetBits</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_gpio.o(i.GPIO_SetBits))
+<BR><BR>[Called By]<UL><LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Off
+</UL>
+
+<P><STRONG><a name="[b2]"></a>GPIO_WriteBit</STRONG> (Thumb, 10 bytes, Stack size 0 bytes, stm32f10x_gpio.o(i.GPIO_WriteBit))
+<BR><BR>[Called By]<UL><LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
+<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
+<LI><a href="#[b3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
 </UL>
 
 <P><STRONG><a name="[5]"></a>HardFault_Handler</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_it.o(i.HardFault_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
+<P><STRONG><a name="[61]"></a>LED_GetState</STRONG> (Thumb, 20 bytes, Stack size 8 bytes, led.o(i.LED_GetState))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = LED_GetState
+</UL>
+<BR>[Calls]<UL><LI><a href="#[62]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_ReadOutputDataBit
+</UL>
+<BR>[Called By]<UL><LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowFlashlightPage
+<LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[63]"></a>LED_Init</STRONG> (Thumb, 42 bytes, Stack size 8 bytes, led.o(i.LED_Init))
+<BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = LED_Init &rArr; GPIO_Init
+</UL>
+<BR>[Calls]<UL><LI><a href="#[51]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RCC_APB2PeriphClockCmd
+<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_Init
+<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Off
+</UL>
+<BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+</UL>
+
+<P><STRONG><a name="[64]"></a>LED_Off</STRONG> (Thumb, 12 bytes, Stack size 8 bytes, led.o(i.LED_Off))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = LED_Off
+</UL>
+<BR>[Calls]<UL><LI><a href="#[65]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_SetBits
+</UL>
+<BR>[Called By]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Init
+<LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[66]"></a>LED_On</STRONG> (Thumb, 12 bytes, Stack size 8 bytes, led.o(i.LED_On))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = LED_On
+</UL>
+<BR>[Calls]<UL><LI><a href="#[67]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_ResetBits
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
 <P><STRONG><a name="[6]"></a>MemManage_Handler</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_it.o(i.MemManage_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
+<P><STRONG><a name="[8e]"></a>Menu_Init</STRONG> (Thumb, 90 bytes, Stack size 8 bytes, menu.o(i.Menu_Init))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Menu_Init
+</UL>
+<BR>[Calls]<UL><LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SyncMenuAnimation
+</UL>
+<BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+</UL>
+
+<P><STRONG><a name="[d5]"></a>Menu_NeedsRender</STRONG> (Thumb, 12 bytes, Stack size 0 bytes, menu.o(i.Menu_NeedsRender))
+<BR><BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+</UL>
+
+<P><STRONG><a name="[90]"></a>Menu_Render</STRONG> (Thumb, 162 bytes, Stack size 16 bytes, menu.o(i.Menu_Render))
+<BR><BR>[Stack]<UL><LI>Max Depth = 248<LI>Call Chain = Menu_Render &rArr; Menu_ShowMenuPage &rArr; Menu_DrawMenuIcon &rArr; Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[95]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Update
+<LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowTimeSettingPage
+<LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchValue
+<LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchPage
+<LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowSettingSelectPage
+<LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowHomePage
+<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowFlashlightPage
+<LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
+</UL>
+<BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+</UL>
+
+<P><STRONG><a name="[aa]"></a>Menu_Update</STRONG> (Thumb, 88 bytes, Stack size 24 bytes, menu.o(i.Menu_Update))
+<BR><BR>[Stack]<UL><LI>Max Depth = 124<LI>Call Chain = Menu_Update &rArr; Menu_HandleButton &rArr; Menu_SaveTimeSetting &rArr; RTC_GetTime &rArr; RTC_EpochToTime &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[ab]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_UpdateStopwatch
+<LI><a href="#[ac]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_UpdateMenuAnimation
+<LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleEncoder
+<LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+<BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+</UL>
+
 <P><STRONG><a name="[4]"></a>NMI_Handler</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f10x_it.o(i.NMI_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
@@ -531,204 +633,304 @@ Global Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[57]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_EXTIInit
 </UL>
 
-<P><STRONG><a name="[61]"></a>OLED_Clear</STRONG> (Thumb, 42 bytes, Stack size 16 bytes, oled.o(i.OLED_Clear))
-<BR><BR>[Stack]<UL><LI>Max Depth = 56<LI>Call Chain = OLED_Clear &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+<P><STRONG><a name="[91]"></a>OLED_Clear</STRONG> (Thumb, 12 bytes, Stack size 8 bytes, oled.o(i.OLED_Clear))
+<BR><BR>[Stack]<UL><LI>Max Depth = 56<LI>Call Chain = OLED_Clear &rArr; OLED_Update &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
-<LI><a href="#[62]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
+<BR>[Calls]<UL><LI><a href="#[95]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Update
+<LI><a href="#[a4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ClearBuffer
 </UL>
-<BR>[Called By]<UL><LI><a href="#[69]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
-<LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
-<LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_RenderScreen
+<BR>[Called By]<UL><LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
+<LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
 </UL>
 
-<P><STRONG><a name="[64]"></a>OLED_I2C_Init</STRONG> (Thumb, 76 bytes, Stack size 8 bytes, oled.o(i.OLED_I2C_Init))
+<P><STRONG><a name="[a4]"></a>OLED_ClearBuffer</STRONG> (Thumb, 36 bytes, Stack size 0 bytes, oled.o(i.OLED_ClearBuffer))
+<BR><BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[77]"></a>OLED_DrawCircle</STRONG> (Thumb, 188 bytes, Stack size 32 bytes, oled.o(i.OLED_DrawCircle))
+<BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = OLED_DrawCircle &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[b0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawPixel
+</UL>
+<BR>[Called By]<UL><LI><a href="#[7a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawStopwatchIcon
+<LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawSettingsIcon
+<LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawLightIcon
+</UL>
+
+<P><STRONG><a name="[78]"></a>OLED_DrawFilledRect</STRONG> (Thumb, 58 bytes, Stack size 32 bytes, oled.o(i.OLED_DrawFilledRect))
+<BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = OLED_DrawFilledRect &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[b0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawPixel
+</UL>
+<BR>[Called By]<UL><LI><a href="#[7a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawStopwatchIcon
+<LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawSettingsIcon
+<LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIndicators
+<LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawLightIcon
+</UL>
+
+<P><STRONG><a name="[75]"></a>OLED_DrawLine</STRONG> (Thumb, 154 bytes, Stack size 44 bytes, oled.o(i.OLED_DrawLine))
+<BR><BR>[Stack]<UL><LI>Max Depth = 60<LI>Call Chain = OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[b0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawPixel
+</UL>
+<BR>[Called By]<UL><LI><a href="#[74]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawRect
+<LI><a href="#[7a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawStopwatchIcon
+<LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawLightIcon
+<LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawBackIcon
+</UL>
+
+<P><STRONG><a name="[b0]"></a>OLED_DrawPixel</STRONG> (Thumb, 80 bytes, Stack size 16 bytes, oled.o(i.OLED_DrawPixel))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = OLED_DrawPixel
+</UL>
+<BR>[Called By]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawLine
+<LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawFilledRect
+<LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCircle
+<LI><a href="#[ad]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCharScaled
+</UL>
+
+<P><STRONG><a name="[74]"></a>OLED_DrawRect</STRONG> (Thumb, 124 bytes, Stack size 28 bytes, oled.o(i.OLED_DrawRect))
+<BR><BR>[Stack]<UL><LI>Max Depth = 88<LI>Call Chain = OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawLine
+</UL>
+<BR>[Called By]<UL><LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawBackIcon
+</UL>
+
+<P><STRONG><a name="[a8]"></a>OLED_DrawStringScaled</STRONG> (Thumb, 88 bytes, Stack size 40 bytes, oled.o(i.OLED_DrawStringScaled))
+<BR><BR>[Stack]<UL><LI>Max Depth = 104<LI>Call Chain = OLED_DrawStringScaled &rArr; OLED_DrawCharScaled &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[ae]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_GetScaledDimension
+<LI><a href="#[ad]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCharScaled
+</UL>
+<BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[a7]"></a>OLED_GetStringWidth</STRONG> (Thumb, 68 bytes, Stack size 24 bytes, oled.o(i.OLED_GetStringWidth))
+<BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = OLED_GetStringWidth &rArr; OLED_GetScaledDimension
+</UL>
+<BR>[Calls]<UL><LI><a href="#[ae]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_GetScaledDimension
+</UL>
+<BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[b1]"></a>OLED_I2C_Init</STRONG> (Thumb, 76 bytes, Stack size 8 bytes, oled.o(i.OLED_I2C_Init))
 <BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = OLED_I2C_Init &rArr; GPIO_Init
 </UL>
-<BR>[Calls]<UL><LI><a href="#[65]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
+<BR>[Calls]<UL><LI><a href="#[b2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
 <LI><a href="#[51]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RCC_APB2PeriphClockCmd
 <LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_Init
 </UL>
-<BR>[Called By]<UL><LI><a href="#[69]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
+<BR>[Called By]<UL><LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
 </UL>
 
-<P><STRONG><a name="[66]"></a>OLED_I2C_SendByte</STRONG> (Thumb, 88 bytes, Stack size 16 bytes, oled.o(i.OLED_I2C_SendByte))
+<P><STRONG><a name="[b3]"></a>OLED_I2C_SendByte</STRONG> (Thumb, 88 bytes, Stack size 16 bytes, oled.o(i.OLED_I2C_SendByte))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[65]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
+<BR>[Calls]<UL><LI><a href="#[b2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
 </UL>
-<BR>[Called By]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
-<LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<BR>[Called By]<UL><LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
+<LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteDataBurst
 </UL>
 
-<P><STRONG><a name="[67]"></a>OLED_I2C_Start</STRONG> (Thumb, 48 bytes, Stack size 8 bytes, oled.o(i.OLED_I2C_Start))
+<P><STRONG><a name="[b4]"></a>OLED_I2C_Start</STRONG> (Thumb, 48 bytes, Stack size 8 bytes, oled.o(i.OLED_I2C_Start))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = OLED_I2C_Start
 </UL>
-<BR>[Calls]<UL><LI><a href="#[65]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
+<BR>[Calls]<UL><LI><a href="#[b2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
 </UL>
-<BR>[Called By]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
-<LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<BR>[Called By]<UL><LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
+<LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteDataBurst
 </UL>
 
-<P><STRONG><a name="[68]"></a>OLED_I2C_Stop</STRONG> (Thumb, 36 bytes, Stack size 8 bytes, oled.o(i.OLED_I2C_Stop))
+<P><STRONG><a name="[b5]"></a>OLED_I2C_Stop</STRONG> (Thumb, 36 bytes, Stack size 8 bytes, oled.o(i.OLED_I2C_Stop))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = OLED_I2C_Stop
 </UL>
-<BR>[Calls]<UL><LI><a href="#[65]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
+<BR>[Calls]<UL><LI><a href="#[b2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
 </UL>
-<BR>[Called By]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
-<LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<BR>[Called By]<UL><LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
+<LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteDataBurst
 </UL>
 
-<P><STRONG><a name="[69]"></a>OLED_Init</STRONG> (Thumb, 174 bytes, Stack size 16 bytes, oled.o(i.OLED_Init))
-<BR><BR>[Stack]<UL><LI>Max Depth = 72<LI>Call Chain = OLED_Init &rArr; OLED_Clear &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+<P><STRONG><a name="[b6]"></a>OLED_Init</STRONG> (Thumb, 174 bytes, Stack size 16 bytes, oled.o(i.OLED_Init))
+<BR><BR>[Stack]<UL><LI>Max Depth = 72<LI>Call Chain = OLED_Init &rArr; OLED_Clear &rArr; OLED_Update &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
-<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
-<LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<BR>[Calls]<UL><LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
+<LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
 </UL>
 <BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[62]"></a>OLED_SetCursor</STRONG> (Thumb, 34 bytes, Stack size 16 bytes, oled.o(i.OLED_SetCursor))
+<P><STRONG><a name="[b8]"></a>OLED_SetCursor</STRONG> (Thumb, 34 bytes, Stack size 16 bytes, oled.o(i.OLED_SetCursor))
 <BR><BR>[Stack]<UL><LI>Max Depth = 40<LI>Call Chain = OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
+<BR>[Calls]<UL><LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteCommand
 </UL>
-<BR>[Called By]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowCharMode
-<LI><a href="#[6b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
-<LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<BR>[Called By]<UL><LI><a href="#[95]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Update
+<LI><a href="#[bc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowCharMode
+<LI><a href="#[b9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
 </UL>
 
-<P><STRONG><a name="[6b]"></a>OLED_ShowBigChar</STRONG> (Thumb, 176 bytes, Stack size 32 bytes, oled.o(i.OLED_ShowBigChar))
+<P><STRONG><a name="[b9]"></a>OLED_ShowBigChar</STRONG> (Thumb, 176 bytes, Stack size 32 bytes, oled.o(i.OLED_ShowBigChar))
 <BR><BR>[Stack]<UL><LI>Max Depth = 72<LI>Call Chain = OLED_ShowBigChar &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
-<LI><a href="#[62]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
-<LI><a href="#[6c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ScaleByte
+<BR>[Calls]<UL><LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
+<LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
+<LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ScaleByte
 </UL>
-<BR>[Called By]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigString
+<BR>[Called By]<UL><LI><a href="#[a3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigString
 </UL>
 
-<P><STRONG><a name="[6d]"></a>OLED_ShowBigString</STRONG> (Thumb, 42 bytes, Stack size 24 bytes, oled.o(i.OLED_ShowBigString))
+<P><STRONG><a name="[a3]"></a>OLED_ShowBigString</STRONG> (Thumb, 42 bytes, Stack size 24 bytes, oled.o(i.OLED_ShowBigString))
 <BR><BR>[Stack]<UL><LI>Max Depth = 96<LI>Call Chain = OLED_ShowBigString &rArr; OLED_ShowBigChar &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[6b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
+<BR>[Calls]<UL><LI><a href="#[b9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
 </UL>
-<BR>[Called By]<UL><LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowHomePage
+<BR>[Called By]<UL><LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchValue
+<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowHomePage
 </UL>
 
-<P><STRONG><a name="[6e]"></a>OLED_ShowCharMode</STRONG> (Thumb, 168 bytes, Stack size 24 bytes, oled.o(i.OLED_ShowCharMode))
+<P><STRONG><a name="[bc]"></a>OLED_ShowCharMode</STRONG> (Thumb, 168 bytes, Stack size 24 bytes, oled.o(i.OLED_ShowCharMode))
 <BR><BR>[Stack]<UL><LI>Max Depth = 64<LI>Call Chain = OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
-<LI><a href="#[62]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
+<BR>[Calls]<UL><LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteData
+<LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
 </UL>
-<BR>[Called By]<UL><LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<BR>[Called By]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
 </UL>
 
-<P><STRONG><a name="[6f]"></a>OLED_ShowString</STRONG> (Thumb, 22 bytes, Stack size 16 bytes, oled.o(i.OLED_ShowString))
+<P><STRONG><a name="[a0]"></a>OLED_ShowString</STRONG> (Thumb, 22 bytes, Stack size 16 bytes, oled.o(i.OLED_ShowString))
 <BR><BR>[Stack]<UL><LI>Max Depth = 104<LI>Call Chain = OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
 </UL>
-<BR>[Called By]<UL><LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowPlaceholderPage
-<LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowHomePage
+<BR>[Called By]<UL><LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowTimeSettingPage
+<LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchPage
+<LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowSettingSelectPage
+<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowHomePage
+<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowFlashlightPage
+<LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
 </UL>
 
-<P><STRONG><a name="[70]"></a>OLED_ShowStringMode</STRONG> (Thumb, 44 bytes, Stack size 24 bytes, oled.o(i.OLED_ShowStringMode))
+<P><STRONG><a name="[a1]"></a>OLED_ShowStringMode</STRONG> (Thumb, 44 bytes, Stack size 24 bytes, oled.o(i.OLED_ShowStringMode))
 <BR><BR>[Stack]<UL><LI>Max Depth = 88<LI>Call Chain = OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowCharMode
+<BR>[Calls]<UL><LI><a href="#[bc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowCharMode
 </UL>
-<BR>[Called By]<UL><LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
-<LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowHomePage
+<BR>[Called By]<UL><LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowTimeSettingPage
+<LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchPage
+<LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowSettingSelectPage
+<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowHomePage
+<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowFlashlightPage
+<LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
 </UL>
 
-<P><STRONG><a name="[6a]"></a>OLED_WriteCommand</STRONG> (Thumb, 32 bytes, Stack size 8 bytes, oled.o(i.OLED_WriteCommand))
+<P><STRONG><a name="[95]"></a>OLED_Update</STRONG> (Thumb, 36 bytes, Stack size 8 bytes, oled.o(i.OLED_Update))
+<BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = OLED_Update &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
+<LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_WriteDataBurst
+</UL>
+<BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[b7]"></a>OLED_WriteCommand</STRONG> (Thumb, 32 bytes, Stack size 8 bytes, oled.o(i.OLED_WriteCommand))
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = OLED_WriteCommand &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
-<LI><a href="#[67]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
-<LI><a href="#[66]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
+<BR>[Calls]<UL><LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
+<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
+<LI><a href="#[b3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
 </UL>
-<BR>[Called By]<UL><LI><a href="#[62]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
-<LI><a href="#[69]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
+<BR>[Called By]<UL><LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_SetCursor
+<LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
 </UL>
 
-<P><STRONG><a name="[63]"></a>OLED_WriteData</STRONG> (Thumb, 32 bytes, Stack size 8 bytes, oled.o(i.OLED_WriteData))
+<P><STRONG><a name="[bb]"></a>OLED_WriteData</STRONG> (Thumb, 32 bytes, Stack size 8 bytes, oled.o(i.OLED_WriteData))
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = OLED_WriteData &rArr; OLED_I2C_SendByte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
-<LI><a href="#[67]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
-<LI><a href="#[66]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
+<BR>[Calls]<UL><LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
+<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
+<LI><a href="#[b3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
 </UL>
-<BR>[Called By]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowCharMode
-<LI><a href="#[6b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
-<LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<BR>[Called By]<UL><LI><a href="#[bc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowCharMode
+<LI><a href="#[b9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
 </UL>
 
 <P><STRONG><a name="[b]"></a>PendSV_Handler</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f10x_it.o(i.PendSV_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
-<P><STRONG><a name="[86]"></a>RCC_APB1PeriphClockCmd</STRONG> (Thumb, 26 bytes, Stack size 0 bytes, stm32f10x_rcc.o(i.RCC_APB1PeriphClockCmd))
-<BR><BR>[Called By]<UL><LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
+<P><STRONG><a name="[cf]"></a>RCC_APB1PeriphClockCmd</STRONG> (Thumb, 26 bytes, Stack size 0 bytes, stm32f10x_rcc.o(i.RCC_APB1PeriphClockCmd))
+<BR><BR>[Called By]<UL><LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
 </UL>
 
 <P><STRONG><a name="[51]"></a>RCC_APB2PeriphClockCmd</STRONG> (Thumb, 26 bytes, Stack size 0 bytes, stm32f10x_rcc.o(i.RCC_APB2PeriphClockCmd))
 <BR><BR>[Called By]<UL><LI><a href="#[57]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_EXTIInit
-<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Init
+<LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Init
 <LI><a href="#[5e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_Init
 <LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_Init
 </UL>
 
-<P><STRONG><a name="[7d]"></a>RTC_AdvanceMilliseconds</STRONG> (Thumb, 48 bytes, Stack size 0 bytes, rtc.o(i.RTC_AdvanceMilliseconds))
-<BR><BR>[Called By]<UL><LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Tick1ms
+<P><STRONG><a name="[c6]"></a>RTC_AdvanceMilliseconds</STRONG> (Thumb, 48 bytes, Stack size 0 bytes, rtc.o(i.RTC_AdvanceMilliseconds))
+<BR><BR>[Called By]<UL><LI><a href="#[c5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Tick1ms
 <LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[74]"></a>RTC_CalculateWeekday</STRONG> (Thumb, 102 bytes, Stack size 28 bytes, rtc.o(i.RTC_CalculateWeekday))
+<P><STRONG><a name="[8f]"></a>RTC_CalculateWeekday</STRONG> (Thumb, 102 bytes, Stack size 28 bytes, rtc.o(i.RTC_CalculateWeekday))
 <BR><BR>[Stack]<UL><LI>Max Depth = 28<LI>Call Chain = RTC_CalculateWeekday
 </UL>
-<BR>[Called By]<UL><LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_LoadBuildTime
-<LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
+<BR>[Called By]<UL><LI><a href="#[c1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_LoadBuildTime
+<LI><a href="#[be]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
+<LI><a href="#[8a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveDateSetting
+<LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RefreshSettingWeekday
 </UL>
 
-<P><STRONG><a name="[75]"></a>RTC_GetTime</STRONG> (Thumb, 28 bytes, Stack size 16 bytes, rtc.o(i.RTC_GetTime))
+<P><STRONG><a name="[9b]"></a>RTC_GetTime</STRONG> (Thumb, 28 bytes, Stack size 16 bytes, rtc.o(i.RTC_GetTime))
 <BR><BR>[Stack]<UL><LI>Max Depth = 68<LI>Call Chain = RTC_GetTime &rArr; RTC_EpochToTime &rArr; RTC_CalculateWeekday
 </UL>
-<BR>[Calls]<UL><LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
+<BR>[Calls]<UL><LI><a href="#[be]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
 </UL>
 <BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+<LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveTimeSetting
+<LI><a href="#[8a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveDateSetting
 </UL>
 
-<P><STRONG><a name="[76]"></a>RTC_Init</STRONG> (Thumb, 16 bytes, Stack size 16 bytes, rtc.o(i.RTC_Init))
+<P><STRONG><a name="[c0]"></a>RTC_Init</STRONG> (Thumb, 16 bytes, Stack size 16 bytes, rtc.o(i.RTC_Init))
 <BR><BR>[Stack]<UL><LI>Max Depth = 76<LI>Call Chain = RTC_Init &rArr; RTC_LoadBuildTime &rArr; RTC_CalculateWeekday
 </UL>
-<BR>[Calls]<UL><LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
-<LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_LoadBuildTime
+<BR>[Calls]<UL><LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
+<LI><a href="#[c1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_LoadBuildTime
 </UL>
 <BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[72]"></a>RTC_IsLeapYear</STRONG> (Thumb, 50 bytes, Stack size 0 bytes, rtc.o(i.RTC_IsLeapYear))
-<BR><BR>[Called By]<UL><LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_TimeToEpoch
-<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
-<LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
+<P><STRONG><a name="[83]"></a>RTC_IsLeapYear</STRONG> (Thumb, 50 bytes, Stack size 0 bytes, rtc.o(i.RTC_IsLeapYear))
+<BR><BR>[Called By]<UL><LI><a href="#[c4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_TimeToEpoch
+<LI><a href="#[bf]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
+<LI><a href="#[be]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
+<LI><a href="#[6c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMonthDays
 </UL>
 
-<P><STRONG><a name="[78]"></a>RTC_SetTime</STRONG> (Thumb, 38 bytes, Stack size 8 bytes, rtc.o(i.RTC_SetTime))
+<P><STRONG><a name="[9c]"></a>RTC_SetTime</STRONG> (Thumb, 38 bytes, Stack size 8 bytes, rtc.o(i.RTC_SetTime))
 <BR><BR>[Stack]<UL><LI>Max Depth = 40<LI>Call Chain = RTC_SetTime &rArr; RTC_TimeToEpoch &rArr; RTC_GetMonthDays
 </UL>
-<BR>[Calls]<UL><LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_TimeToEpoch
-<LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsTimeValid
+<BR>[Calls]<UL><LI><a href="#[c4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_TimeToEpoch
+<LI><a href="#[c2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsTimeValid
 </UL>
-<BR>[Called By]<UL><LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
+<BR>[Called By]<UL><LI><a href="#[c0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
+<LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveTimeSetting
+<LI><a href="#[8a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveDateSetting
 </UL>
 
-<P><STRONG><a name="[7c]"></a>RTC_Tick1ms</STRONG> (Thumb, 10 bytes, Stack size 4 bytes, rtc.o(i.RTC_Tick1ms))
+<P><STRONG><a name="[c5]"></a>RTC_Tick1ms</STRONG> (Thumb, 10 bytes, Stack size 4 bytes, rtc.o(i.RTC_Tick1ms))
 <BR><BR>[Stack]<UL><LI>Max Depth = 4<LI>Call Chain = RTC_Tick1ms
 </UL>
-<BR>[Calls]<UL><LI><a href="#[7d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_AdvanceMilliseconds
+<BR>[Calls]<UL><LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_AdvanceMilliseconds
 </UL>
 <BR>[Called By]<UL><LI><a href="#[29]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM2_IRQHandler
 </UL>
@@ -742,78 +944,78 @@ Global Symbols
 <P><STRONG><a name="[38]"></a>SystemInit</STRONG> (Thumb, 78 bytes, Stack size 8 bytes, system_stm32f10x.o(i.SystemInit))
 <BR><BR>[Stack]<UL><LI>Max Depth = 28<LI>Call Chain = SystemInit &rArr; SetSysClock &rArr; SetSysClockTo72
 </UL>
-<BR>[Calls]<UL><LI><a href="#[7e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetSysClock
+<BR>[Calls]<UL><LI><a href="#[c7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetSysClock
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(.text)
 </UL>
 <P><STRONG><a name="[29]"></a>TIM2_IRQHandler</STRONG> (Thumb, 30 bytes, Stack size 8 bytes, stm32f10x_it.o(i.TIM2_IRQHandler))
 <BR><BR>[Stack]<UL><LI>Max Depth = 20<LI>Call Chain = TIM2_IRQHandler &rArr; TIM_GetITStatus
 </UL>
-<BR>[Calls]<UL><LI><a href="#[82]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_IRQHandler
-<LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_GetITStatus
-<LI><a href="#[81]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_ClearITPendingBit
-<LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Tick1ms
+<BR>[Calls]<UL><LI><a href="#[cb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_IRQHandler
+<LI><a href="#[c9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_GetITStatus
+<LI><a href="#[ca]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_ClearITPendingBit
+<LI><a href="#[c5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Tick1ms
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
-<P><STRONG><a name="[88]"></a>TIM_ClearFlag</STRONG> (Thumb, 6 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_ClearFlag))
-<BR><BR>[Called By]<UL><LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_UpdateOverflow
-<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
+<P><STRONG><a name="[d1]"></a>TIM_ClearFlag</STRONG> (Thumb, 6 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_ClearFlag))
+<BR><BR>[Called By]<UL><LI><a href="#[cc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_UpdateOverflow
+<LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
 </UL>
 
-<P><STRONG><a name="[81]"></a>TIM_ClearITPendingBit</STRONG> (Thumb, 6 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_ClearITPendingBit))
+<P><STRONG><a name="[ca]"></a>TIM_ClearITPendingBit</STRONG> (Thumb, 6 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_ClearITPendingBit))
 <BR><BR>[Called By]<UL><LI><a href="#[29]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM2_IRQHandler
 </UL>
 
-<P><STRONG><a name="[8a]"></a>TIM_Cmd</STRONG> (Thumb, 24 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_Cmd))
-<BR><BR>[Called By]<UL><LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
+<P><STRONG><a name="[d3]"></a>TIM_Cmd</STRONG> (Thumb, 24 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_Cmd))
+<BR><BR>[Called By]<UL><LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
 </UL>
 
-<P><STRONG><a name="[84]"></a>TIM_GetCounter</STRONG> (Thumb, 6 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_GetCounter))
+<P><STRONG><a name="[cd]"></a>TIM_GetCounter</STRONG> (Thumb, 6 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_GetCounter))
 <BR><BR>[Called By]<UL><LI><a href="#[4f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_GetMillis
 </UL>
 
-<P><STRONG><a name="[8b]"></a>TIM_GetFlagStatus</STRONG> (Thumb, 18 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_GetFlagStatus))
-<BR><BR>[Called By]<UL><LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_UpdateOverflow
+<P><STRONG><a name="[d4]"></a>TIM_GetFlagStatus</STRONG> (Thumb, 18 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_GetFlagStatus))
+<BR><BR>[Called By]<UL><LI><a href="#[cc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_UpdateOverflow
 </UL>
 
-<P><STRONG><a name="[80]"></a>TIM_GetITStatus</STRONG> (Thumb, 34 bytes, Stack size 12 bytes, stm32f10x_tim.o(i.TIM_GetITStatus))
+<P><STRONG><a name="[c9]"></a>TIM_GetITStatus</STRONG> (Thumb, 34 bytes, Stack size 12 bytes, stm32f10x_tim.o(i.TIM_GetITStatus))
 <BR><BR>[Stack]<UL><LI>Max Depth = 12<LI>Call Chain = TIM_GetITStatus
 </UL>
 <BR>[Called By]<UL><LI><a href="#[29]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM2_IRQHandler
 </UL>
 
-<P><STRONG><a name="[89]"></a>TIM_SetCounter</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_SetCounter))
-<BR><BR>[Called By]<UL><LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
+<P><STRONG><a name="[d2]"></a>TIM_SetCounter</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_SetCounter))
+<BR><BR>[Called By]<UL><LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
 </UL>
 
-<P><STRONG><a name="[87]"></a>TIM_TimeBaseInit</STRONG> (Thumb, 122 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_TimeBaseInit))
-<BR><BR>[Called By]<UL><LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
+<P><STRONG><a name="[d0]"></a>TIM_TimeBaseInit</STRONG> (Thumb, 122 bytes, Stack size 0 bytes, stm32f10x_tim.o(i.TIM_TimeBaseInit))
+<BR><BR>[Called By]<UL><LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
 </UL>
 
 <P><STRONG><a name="[4f]"></a>Timer_GetMillis</STRONG> (Thumb, 34 bytes, Stack size 16 bytes, timer.o(i.Timer_GetMillis))
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = Timer_GetMillis &rArr; Timer_UpdateOverflow
 </UL>
-<BR>[Calls]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_GetCounter
-<LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_UpdateOverflow
+<BR>[Calls]<UL><LI><a href="#[cd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_GetCounter
+<LI><a href="#[cc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_UpdateOverflow
 </UL>
 <BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_Init
 <LI><a href="#[4d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_GetEvent
 <LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[82]"></a>Timer_IRQHandler</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, timer.o(i.Timer_IRQHandler))
+<P><STRONG><a name="[cb]"></a>Timer_IRQHandler</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, timer.o(i.Timer_IRQHandler))
 <BR><BR>[Called By]<UL><LI><a href="#[29]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM2_IRQHandler
 </UL>
 
-<P><STRONG><a name="[85]"></a>Timer_Init</STRONG> (Thumb, 86 bytes, Stack size 16 bytes, timer.o(i.Timer_Init))
+<P><STRONG><a name="[ce]"></a>Timer_Init</STRONG> (Thumb, 86 bytes, Stack size 16 bytes, timer.o(i.Timer_Init))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Timer_Init
 </UL>
-<BR>[Calls]<UL><LI><a href="#[87]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_TimeBaseInit
-<LI><a href="#[89]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_SetCounter
-<LI><a href="#[8a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_Cmd
-<LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_ClearFlag
-<LI><a href="#[86]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RCC_APB1PeriphClockCmd
+<BR>[Calls]<UL><LI><a href="#[d0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_TimeBaseInit
+<LI><a href="#[d2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_SetCounter
+<LI><a href="#[d3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_Cmd
+<LI><a href="#[d1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_ClearFlag
+<LI><a href="#[cf]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RCC_APB1PeriphClockCmd
 </UL>
 <BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
@@ -821,22 +1023,24 @@ Global Symbols
 <P><STRONG><a name="[8]"></a>UsageFault_Handler</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, stm32f10x_it.o(i.UsageFault_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f10x_md.o(RESET)
 </UL>
-<P><STRONG><a name="[44]"></a>main</STRONG> (Thumb, 222 bytes, Stack size 24 bytes, main.o(i.main))
-<BR><BR>[Stack]<UL><LI>Max Depth = 192<LI>Call Chain = main &rArr; Watch_RenderScreen &rArr; Watch_ShowHomePage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+<P><STRONG><a name="[44]"></a>main</STRONG> (Thumb, 132 bytes, Stack size 56 bytes, main.o(i.main))
+<BR><BR>[Stack]<UL><LI>Max Depth = 304<LI>Call Chain = main &rArr; Menu_Render &rArr; Menu_ShowMenuPage &rArr; Menu_DrawMenuIcon &rArr; Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
 </UL>
-<BR>[Calls]<UL><LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
+<BR>[Calls]<UL><LI><a href="#[ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_Init
 <LI><a href="#[4f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_GetMillis
-<LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
-<LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetTime
-<LI><a href="#[7d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_AdvanceMilliseconds
-<LI><a href="#[69]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
-<LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
+<LI><a href="#[c0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
+<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetTime
+<LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_AdvanceMilliseconds
+<LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Init
+<LI><a href="#[aa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Update
+<LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+<LI><a href="#[d5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_NeedsRender
+<LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Init
+<LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Init
 <LI><a href="#[5e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_Init
 <LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Encoder_Get
 <LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_Init
 <LI><a href="#[4d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_GetEvent
-<LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_RenderScreen
-<LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_MoveHomeOption
 </UL>
 <BR>[Called By]<UL><LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry_main
 </UL>
@@ -844,56 +1048,44 @@ Global Symbols
 <H3>
 Local Symbols
 </H3>
-<P><STRONG><a name="[8f]"></a>Watch_FormatDateString</STRONG> (Thumb, 178 bytes, Stack size 8 bytes, main.o(i.Watch_FormatDateString))
-<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Watch_FormatDateString
+<P><STRONG><a name="[ad]"></a>OLED_DrawCharScaled</STRONG> (Thumb, 122 bytes, Stack size 48 bytes, oled.o(i.OLED_DrawCharScaled))
+<BR><BR>[Stack]<UL><LI>Max Depth = 64<LI>Call Chain = OLED_DrawCharScaled &rArr; OLED_DrawPixel
 </UL>
-<BR>[Called By]<UL><LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowHomePage
+<BR>[Calls]<UL><LI><a href="#[b0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawPixel
+<LI><a href="#[ae]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_GetScaledDimension
+<LI><a href="#[af]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_GetCharPixel
 </UL>
-
-<P><STRONG><a name="[90]"></a>Watch_FormatTimeString</STRONG> (Thumb, 90 bytes, Stack size 8 bytes, main.o(i.Watch_FormatTimeString))
-<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Watch_FormatTimeString
-</UL>
-<BR>[Called By]<UL><LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowHomePage
+<BR>[Called By]<UL><LI><a href="#[a8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawStringScaled
 </UL>
 
-<P><STRONG><a name="[91]"></a>Watch_MoveHomeOption</STRONG> (Thumb, 26 bytes, Stack size 0 bytes, main.o(i.Watch_MoveHomeOption))
-<BR><BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+<P><STRONG><a name="[af]"></a>OLED_GetCharPixel</STRONG> (Thumb, 68 bytes, Stack size 12 bytes, oled.o(i.OLED_GetCharPixel))
+<BR><BR>[Stack]<UL><LI>Max Depth = 12<LI>Call Chain = OLED_GetCharPixel
+</UL>
+<BR>[Called By]<UL><LI><a href="#[ad]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCharScaled
 </UL>
 
-<P><STRONG><a name="[8c]"></a>Watch_RenderScreen</STRONG> (Thumb, 46 bytes, Stack size 24 bytes, main.o(i.Watch_RenderScreen))
-<BR><BR>[Stack]<UL><LI>Max Depth = 168<LI>Call Chain = Watch_RenderScreen &rArr; Watch_ShowHomePage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+<P><STRONG><a name="[ae]"></a>OLED_GetScaledDimension</STRONG> (Thumb, 26 bytes, Stack size 8 bytes, oled.o(i.OLED_GetScaledDimension))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = OLED_GetScaledDimension
 </UL>
-<BR>[Calls]<UL><LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Clear
-<LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowPlaceholderPage
-<LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_ShowHomePage
-</UL>
-<BR>[Called By]<UL><LI><a href="#[44]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+<BR>[Called By]<UL><LI><a href="#[a7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_GetStringWidth
+<LI><a href="#[a8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawStringScaled
+<LI><a href="#[ad]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCharScaled
 </UL>
 
-<P><STRONG><a name="[8d]"></a>Watch_ShowHomePage</STRONG> (Thumb, 110 bytes, Stack size 40 bytes, main.o(i.Watch_ShowHomePage))
-<BR><BR>[Stack]<UL><LI>Max Depth = 144<LI>Call Chain = Watch_ShowHomePage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
-</UL>
-<BR>[Calls]<UL><LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
-<LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
-<LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigString
-<LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_FormatTimeString
-<LI><a href="#[8f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_FormatDateString
-</UL>
-<BR>[Called By]<UL><LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_RenderScreen
-</UL>
-
-<P><STRONG><a name="[8e]"></a>Watch_ShowPlaceholderPage</STRONG> (Thumb, 70 bytes, Stack size 8 bytes, main.o(i.Watch_ShowPlaceholderPage))
-<BR><BR>[Stack]<UL><LI>Max Depth = 112<LI>Call Chain = Watch_ShowPlaceholderPage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
-</UL>
-<BR>[Calls]<UL><LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
-</UL>
-<BR>[Called By]<UL><LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Watch_RenderScreen
-</UL>
-
-<P><STRONG><a name="[6c]"></a>OLED_ScaleByte</STRONG> (Thumb, 38 bytes, Stack size 8 bytes, oled.o(i.OLED_ScaleByte))
+<P><STRONG><a name="[ba]"></a>OLED_ScaleByte</STRONG> (Thumb, 38 bytes, Stack size 8 bytes, oled.o(i.OLED_ScaleByte))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = OLED_ScaleByte
 </UL>
-<BR>[Called By]<UL><LI><a href="#[6b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
+<BR>[Called By]<UL><LI><a href="#[b9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigChar
+</UL>
+
+<P><STRONG><a name="[bd]"></a>OLED_WriteDataBurst</STRONG> (Thumb, 46 bytes, Stack size 16 bytes, oled.o(i.OLED_WriteDataBurst))
+<BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = OLED_WriteDataBurst &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Stop
+<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_Start
+<LI><a href="#[b3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_I2C_SendByte
+</UL>
+<BR>[Called By]<UL><LI><a href="#[95]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_Update
 </UL>
 
 <P><STRONG><a name="[57]"></a>Encoder_EXTIInit</STRONG> (Thumb, 128 bytes, Stack size 16 bytes, encoder.o(i.Encoder_EXTIInit))
@@ -936,77 +1128,505 @@ Local Symbols
 <LI><a href="#[4d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Button_GetEvent
 </UL>
 
-<P><STRONG><a name="[83]"></a>Timer_UpdateOverflow</STRONG> (Thumb, 34 bytes, Stack size 8 bytes, timer.o(i.Timer_UpdateOverflow))
+<P><STRONG><a name="[cc]"></a>Timer_UpdateOverflow</STRONG> (Thumb, 34 bytes, Stack size 8 bytes, timer.o(i.Timer_UpdateOverflow))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Timer_UpdateOverflow
 </UL>
-<BR>[Calls]<UL><LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_GetFlagStatus
-<LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_ClearFlag
+<BR>[Calls]<UL><LI><a href="#[d4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_GetFlagStatus
+<LI><a href="#[d1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TIM_ClearFlag
 </UL>
 <BR>[Called By]<UL><LI><a href="#[4f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Timer_GetMillis
 </UL>
 
-<P><STRONG><a name="[71]"></a>RTC_EpochToTime</STRONG> (Thumb, 174 bytes, Stack size 24 bytes, rtc.o(i.RTC_EpochToTime))
+<P><STRONG><a name="[be]"></a>RTC_EpochToTime</STRONG> (Thumb, 174 bytes, Stack size 24 bytes, rtc.o(i.RTC_EpochToTime))
 <BR><BR>[Stack]<UL><LI>Max Depth = 52<LI>Call Chain = RTC_EpochToTime &rArr; RTC_CalculateWeekday
 </UL>
-<BR>[Calls]<UL><LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
-<LI><a href="#[74]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_CalculateWeekday
-<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
+<BR>[Calls]<UL><LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
+<LI><a href="#[8f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_CalculateWeekday
+<LI><a href="#[bf]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
 </UL>
-<BR>[Called By]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetTime
+<BR>[Called By]<UL><LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetTime
 </UL>
 
-<P><STRONG><a name="[73]"></a>RTC_GetMonthDays</STRONG> (Thumb, 30 bytes, Stack size 8 bytes, rtc.o(i.RTC_GetMonthDays))
+<P><STRONG><a name="[bf]"></a>RTC_GetMonthDays</STRONG> (Thumb, 30 bytes, Stack size 8 bytes, rtc.o(i.RTC_GetMonthDays))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = RTC_GetMonthDays
 </UL>
-<BR>[Calls]<UL><LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
+<BR>[Calls]<UL><LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
 </UL>
-<BR>[Called By]<UL><LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_TimeToEpoch
-<LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsTimeValid
-<LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
+<BR>[Called By]<UL><LI><a href="#[c4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_TimeToEpoch
+<LI><a href="#[c2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsTimeValid
+<LI><a href="#[be]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_EpochToTime
 </UL>
 
-<P><STRONG><a name="[79]"></a>RTC_IsTimeValid</STRONG> (Thumb, 80 bytes, Stack size 8 bytes, rtc.o(i.RTC_IsTimeValid))
+<P><STRONG><a name="[c2]"></a>RTC_IsTimeValid</STRONG> (Thumb, 80 bytes, Stack size 8 bytes, rtc.o(i.RTC_IsTimeValid))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = RTC_IsTimeValid &rArr; RTC_GetMonthDays
 </UL>
-<BR>[Calls]<UL><LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
+<BR>[Calls]<UL><LI><a href="#[bf]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
 </UL>
-<BR>[Called By]<UL><LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
+<BR>[Called By]<UL><LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
 </UL>
 
-<P><STRONG><a name="[77]"></a>RTC_LoadBuildTime</STRONG> (Thumb, 206 bytes, Stack size 32 bytes, rtc.o(i.RTC_LoadBuildTime))
+<P><STRONG><a name="[c1]"></a>RTC_LoadBuildTime</STRONG> (Thumb, 206 bytes, Stack size 32 bytes, rtc.o(i.RTC_LoadBuildTime))
 <BR><BR>[Stack]<UL><LI>Max Depth = 60<LI>Call Chain = RTC_LoadBuildTime &rArr; RTC_CalculateWeekday
 </UL>
-<BR>[Calls]<UL><LI><a href="#[74]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_CalculateWeekday
-<LI><a href="#[7a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_ParseMonth
+<BR>[Calls]<UL><LI><a href="#[8f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_CalculateWeekday
+<LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_ParseMonth
 </UL>
-<BR>[Called By]<UL><LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
-</UL>
-
-<P><STRONG><a name="[7a]"></a>RTC_ParseMonth</STRONG> (Thumb, 182 bytes, Stack size 0 bytes, rtc.o(i.RTC_ParseMonth))
-<BR><BR>[Called By]<UL><LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_LoadBuildTime
+<BR>[Called By]<UL><LI><a href="#[c0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_Init
 </UL>
 
-<P><STRONG><a name="[7b]"></a>RTC_TimeToEpoch</STRONG> (Thumb, 110 bytes, Stack size 24 bytes, rtc.o(i.RTC_TimeToEpoch))
+<P><STRONG><a name="[c3]"></a>RTC_ParseMonth</STRONG> (Thumb, 182 bytes, Stack size 0 bytes, rtc.o(i.RTC_ParseMonth))
+<BR><BR>[Called By]<UL><LI><a href="#[c1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_LoadBuildTime
+</UL>
+
+<P><STRONG><a name="[c4]"></a>RTC_TimeToEpoch</STRONG> (Thumb, 110 bytes, Stack size 24 bytes, rtc.o(i.RTC_TimeToEpoch))
 <BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = RTC_TimeToEpoch &rArr; RTC_GetMonthDays
 </UL>
-<BR>[Calls]<UL><LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
-<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
+<BR>[Calls]<UL><LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
+<LI><a href="#[bf]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetMonthDays
 </UL>
-<BR>[Called By]<UL><LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
+<BR>[Called By]<UL><LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
 </UL>
 
-<P><STRONG><a name="[7e]"></a>SetSysClock</STRONG> (Thumb, 8 bytes, Stack size 8 bytes, system_stm32f10x.o(i.SetSysClock))
+<P><STRONG><a name="[7e]"></a>Menu_AbsInt16</STRONG> (Thumb, 16 bytes, Stack size 0 bytes, menu.o(i.Menu_AbsInt16))
+<BR><BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+<LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIndicators
+</UL>
+
+<P><STRONG><a name="[68]"></a>Menu_AdjustDateSettingField</STRONG> (Thumb, 122 bytes, Stack size 16 bytes, menu.o(i.Menu_AdjustDateSettingField))
+<BR><BR>[Stack]<UL><LI>Max Depth = 68<LI>Call Chain = Menu_AdjustDateSettingField &rArr; Menu_ClampSettingDate &rArr; Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RefreshSettingWeekday
+<LI><a href="#[6c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMonthDays
+<LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ClampSettingDate
+<LI><a href="#[69]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustWrappedYear
+<LI><a href="#[6b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustWrappedValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleEncoder
+</UL>
+
+<P><STRONG><a name="[6f]"></a>Menu_AdjustTimeSettingField</STRONG> (Thumb, 90 bytes, Stack size 16 bytes, menu.o(i.Menu_AdjustTimeSettingField))
+<BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = Menu_AdjustTimeSettingField &rArr; Menu_AdjustWrappedValue
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[6b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustWrappedValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleEncoder
+</UL>
+
+<P><STRONG><a name="[6b]"></a>Menu_AdjustWrappedValue</STRONG> (Thumb, 38 bytes, Stack size 16 bytes, menu.o(i.Menu_AdjustWrappedValue))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Menu_AdjustWrappedValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustTimeSettingField
+<LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+
+<P><STRONG><a name="[69]"></a>Menu_AdjustWrappedYear</STRONG> (Thumb, 38 bytes, Stack size 16 bytes, menu.o(i.Menu_AdjustWrappedYear))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Menu_AdjustWrappedYear
+</UL>
+<BR>[Called By]<UL><LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+
+<P><STRONG><a name="[70]"></a>Menu_ChangeState</STRONG> (Thumb, 34 bytes, Stack size 16 bytes, menu.o(i.Menu_ChangeState))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Menu_ChangeState
+</UL>
+<BR>[Calls]<UL><LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SyncMenuAnimation
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+<LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_EnterSettingSelect
+</UL>
+
+<P><STRONG><a name="[6a]"></a>Menu_ClampSettingDate</STRONG> (Thumb, 30 bytes, Stack size 16 bytes, menu.o(i.Menu_ClampSettingDate))
+<BR><BR>[Stack]<UL><LI>Max Depth = 52<LI>Call Chain = Menu_ClampSettingDate &rArr; Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RefreshSettingWeekday
+<LI><a href="#[6c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMonthDays
+</UL>
+<BR>[Called By]<UL><LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_OpenTimeSetting
+<LI><a href="#[86]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_OpenDateSetting
+<LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_EnterSettingSelect
+<LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+
+<P><STRONG><a name="[72]"></a>Menu_DrawBackIcon</STRONG> (Thumb, 218 bytes, Stack size 72 bytes, menu.o(i.Menu_DrawBackIcon))
+<BR><BR>[Stack]<UL><LI>Max Depth = 160<LI>Call Chain = Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[74]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawRect
+<LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawLine
+<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ScaleValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIcon
+</UL>
+
+<P><STRONG><a name="[76]"></a>Menu_DrawLightIcon</STRONG> (Thumb, 378 bytes, Stack size 40 bytes, menu.o(i.Menu_DrawLightIcon))
+<BR><BR>[Stack]<UL><LI>Max Depth = 100<LI>Call Chain = Menu_DrawLightIcon &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawLine
+<LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawFilledRect
+<LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCircle
+<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ScaleValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIcon
+</UL>
+
+<P><STRONG><a name="[79]"></a>Menu_DrawMenuIcon</STRONG> (Thumb, 84 bytes, Stack size 24 bytes, menu.o(i.Menu_DrawMenuIcon))
+<BR><BR>[Stack]<UL><LI>Max Depth = 184<LI>Call Chain = Menu_DrawMenuIcon &rArr; Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[7a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawStopwatchIcon
+<LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawSettingsIcon
+<LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawLightIcon
+<LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawBackIcon
+</UL>
+<BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[7c]"></a>Menu_DrawMenuIndicators</STRONG> (Thumb, 108 bytes, Stack size 40 bytes, menu.o(i.Menu_DrawMenuIndicators))
+<BR><BR>[Stack]<UL><LI>Max Depth = 88<LI>Call Chain = Menu_DrawMenuIndicators &rArr; OLED_DrawFilledRect &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawFilledRect
+<LI><a href="#[7d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMenuRelativePosition
+<LI><a href="#[7e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AbsInt16
+</UL>
+<BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[7b]"></a>Menu_DrawSettingsIcon</STRONG> (Thumb, 280 bytes, Stack size 40 bytes, menu.o(i.Menu_DrawSettingsIcon))
+<BR><BR>[Stack]<UL><LI>Max Depth = 88<LI>Call Chain = Menu_DrawSettingsIcon &rArr; OLED_DrawFilledRect &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawFilledRect
+<LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCircle
+<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ScaleValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIcon
+</UL>
+
+<P><STRONG><a name="[7a]"></a>Menu_DrawStopwatchIcon</STRONG> (Thumb, 228 bytes, Stack size 56 bytes, menu.o(i.Menu_DrawStopwatchIcon))
+<BR><BR>[Stack]<UL><LI>Max Depth = 116<LI>Call Chain = Menu_DrawStopwatchIcon &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawLine
+<LI><a href="#[78]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawFilledRect
+<LI><a href="#[77]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawCircle
+<LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ScaleValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIcon
+</UL>
+
+<P><STRONG><a name="[7f]"></a>Menu_EnterSettingSelect</STRONG> (Thumb, 48 bytes, Stack size 16 bytes, menu.o(i.Menu_EnterSettingSelect))
+<BR><BR>[Stack]<UL><LI>Max Depth = 68<LI>Call Chain = Menu_EnterSettingSelect &rArr; Menu_ClampSettingDate &rArr; Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ClampSettingDate
+<LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ChangeState
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[80]"></a>Menu_FormatDateString</STRONG> (Thumb, 170 bytes, Stack size 16 bytes, menu.o(i.Menu_FormatDateString))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Menu_FormatDateString
+</UL>
+<BR>[Calls]<UL><LI><a href="#[81]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetWeekdayText
+</UL>
+<BR>[Called By]<UL><LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowHomePage
+</UL>
+
+<P><STRONG><a name="[a9]"></a>Menu_FormatStopwatchString</STRONG> (Thumb, 142 bytes, Stack size 20 bytes, menu.o(i.Menu_FormatStopwatchString))
+<BR><BR>[Stack]<UL><LI>Max Depth = 20<LI>Call Chain = Menu_FormatStopwatchString
+</UL>
+<BR>[Called By]<UL><LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchValue
+</UL>
+
+<P><STRONG><a name="[a2]"></a>Menu_FormatTimeString</STRONG> (Thumb, 90 bytes, Stack size 8 bytes, menu.o(i.Menu_FormatTimeString))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Menu_FormatTimeString
+</UL>
+<BR>[Called By]<UL><LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowHomePage
+</UL>
+
+<P><STRONG><a name="[9f]"></a>Menu_FormatTwoDigitValue</STRONG> (Thumb, 30 bytes, Stack size 0 bytes, menu.o(i.Menu_FormatTwoDigitValue))
+<BR><BR>[Called By]<UL><LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowTimeSettingPage
+<LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
+</UL>
+
+<P><STRONG><a name="[9e]"></a>Menu_FormatYearString</STRONG> (Thumb, 80 bytes, Stack size 8 bytes, menu.o(i.Menu_FormatYearString))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Menu_FormatYearString
+</UL>
+<BR>[Called By]<UL><LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
+</UL>
+
+<P><STRONG><a name="[a6]"></a>Menu_GetFocusScale</STRONG> (Thumb, 40 bytes, Stack size 12 bytes, menu.o(i.Menu_GetFocusScale))
+<BR><BR>[Stack]<UL><LI>Max Depth = 12<LI>Call Chain = Menu_GetFocusScale
+</UL>
+<BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[a5]"></a>Menu_GetMenuLabel</STRONG> (Thumb, 36 bytes, Stack size 0 bytes, menu.o(i.Menu_GetMenuLabel))
+<BR><BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+</UL>
+
+<P><STRONG><a name="[7d]"></a>Menu_GetMenuRelativePosition</STRONG> (Thumb, 56 bytes, Stack size 24 bytes, menu.o(i.Menu_GetMenuRelativePosition))
+<BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = Menu_GetMenuRelativePosition
+</UL>
+<BR>[Calls]<UL><LI><a href="#[82]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetWrappedMenuPosition
+</UL>
+<BR>[Called By]<UL><LI><a href="#[94]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowMenuPage
+<LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIndicators
+</UL>
+
+<P><STRONG><a name="[6c]"></a>Menu_GetMonthDays</STRONG> (Thumb, 40 bytes, Stack size 16 bytes, menu.o(i.Menu_GetMonthDays))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Menu_GetMonthDays
+</UL>
+<BR>[Calls]<UL><LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_IsLeapYear
+</UL>
+<BR>[Called By]<UL><LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ClampSettingDate
+<LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+
+<P><STRONG><a name="[81]"></a>Menu_GetWeekdayText</STRONG> (Thumb, 16 bytes, Stack size 0 bytes, menu.o(i.Menu_GetWeekdayText))
+<BR><BR>[Called By]<UL><LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowDateSettingPage
+<LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatDateString
+</UL>
+
+<P><STRONG><a name="[82]"></a>Menu_GetWrappedMenuPosition</STRONG> (Thumb, 28 bytes, Stack size 0 bytes, menu.o(i.Menu_GetWrappedMenuPosition))
+<BR><BR>[Called By]<UL><LI><a href="#[7d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMenuRelativePosition
+</UL>
+
+<P><STRONG><a name="[84]"></a>Menu_HandleButton</STRONG> (Thumb, 442 bytes, Stack size 16 bytes, menu.o(i.Menu_HandleButton))
+<BR><BR>[Stack]<UL><LI>Max Depth = 100<LI>Call Chain = Menu_HandleButton &rArr; Menu_SaveTimeSetting &rArr; RTC_GetTime &rArr; RTC_EpochToTime &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[66]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_On
+<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_Off
+<LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_GetState
+<LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveTimeSetting
+<LI><a href="#[8a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_SaveDateSetting
+<LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_OpenTimeSetting
+<LI><a href="#[86]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_OpenDateSetting
+<LI><a href="#[87]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_IsTimeSettingField
+<LI><a href="#[89]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_IsDateSettingField
+<LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_EnterSettingSelect
+<LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ChangeState
+</UL>
+<BR>[Called By]<UL><LI><a href="#[aa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Update
+</UL>
+
+<P><STRONG><a name="[8b]"></a>Menu_HandleEncoder</STRONG> (Thumb, 284 bytes, Stack size 24 bytes, menu.o(i.Menu_HandleEncoder))
+<BR><BR>[Stack]<UL><LI>Max Depth = 92<LI>Call Chain = Menu_HandleEncoder &rArr; Menu_AdjustDateSettingField &rArr; Menu_ClampSettingDate &rArr; Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_NormalizeIndex
+<LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_MoveSelection
+<LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustTimeSettingField
+<LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+<BR>[Called By]<UL><LI><a href="#[aa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Update
+</UL>
+
+<P><STRONG><a name="[89]"></a>Menu_IsDateSettingField</STRONG> (Thumb, 14 bytes, Stack size 0 bytes, menu.o(i.Menu_IsDateSettingField))
+<BR><BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[87]"></a>Menu_IsTimeSettingField</STRONG> (Thumb, 14 bytes, Stack size 0 bytes, menu.o(i.Menu_IsTimeSettingField))
+<BR><BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[8c]"></a>Menu_MoveSelection</STRONG> (Thumb, 18 bytes, Stack size 16 bytes, menu.o(i.Menu_MoveSelection))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Menu_MoveSelection
+</UL>
+<BR>[Calls]<UL><LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_NormalizeIndex
+</UL>
+<BR>[Called By]<UL><LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleEncoder
+</UL>
+
+<P><STRONG><a name="[8d]"></a>Menu_NormalizeIndex</STRONG> (Thumb, 22 bytes, Stack size 0 bytes, menu.o(i.Menu_NormalizeIndex))
+<BR><BR>[Called By]<UL><LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_MoveSelection
+<LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleEncoder
+</UL>
+
+<P><STRONG><a name="[86]"></a>Menu_OpenDateSetting</STRONG> (Thumb, 44 bytes, Stack size 16 bytes, menu.o(i.Menu_OpenDateSetting))
+<BR><BR>[Stack]<UL><LI>Max Depth = 68<LI>Call Chain = Menu_OpenDateSetting &rArr; Menu_ClampSettingDate &rArr; Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ClampSettingDate
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[85]"></a>Menu_OpenTimeSetting</STRONG> (Thumb, 44 bytes, Stack size 16 bytes, menu.o(i.Menu_OpenTimeSetting))
+<BR><BR>[Stack]<UL><LI>Max Depth = 68<LI>Call Chain = Menu_OpenTimeSetting &rArr; Menu_ClampSettingDate &rArr; Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+<LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ClampSettingDate
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[6d]"></a>Menu_RefreshSettingWeekday</STRONG> (Thumb, 18 bytes, Stack size 8 bytes, menu.o(i.Menu_RefreshSettingWeekday))
+<BR><BR>[Stack]<UL><LI>Max Depth = 36<LI>Call Chain = Menu_RefreshSettingWeekday &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[8f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_CalculateWeekday
+</UL>
+<BR>[Called By]<UL><LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ClampSettingDate
+<LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+
+<P><STRONG><a name="[6e]"></a>Menu_RequestRender</STRONG> (Thumb, 10 bytes, Stack size 0 bytes, menu.o(i.Menu_RequestRender))
+<BR><BR>[Called By]<UL><LI><a href="#[aa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Update
+<LI><a href="#[ab]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_UpdateStopwatch
+<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_OpenTimeSetting
+<LI><a href="#[86]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_OpenDateSetting
+<LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleEncoder
+<LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+<LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustTimeSettingField
+<LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AdjustDateSettingField
+</UL>
+
+<P><STRONG><a name="[8a]"></a>Menu_SaveDateSetting</STRONG> (Thumb, 60 bytes, Stack size 16 bytes, menu.o(i.Menu_SaveDateSetting))
+<BR><BR>[Stack]<UL><LI>Max Depth = 84<LI>Call Chain = Menu_SaveDateSetting &rArr; RTC_GetTime &rArr; RTC_EpochToTime &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
+<LI><a href="#[8f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_CalculateWeekday
+<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetTime
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[88]"></a>Menu_SaveTimeSetting</STRONG> (Thumb, 40 bytes, Stack size 16 bytes, menu.o(i.Menu_SaveTimeSetting))
+<BR><BR>[Stack]<UL><LI>Max Depth = 84<LI>Call Chain = Menu_SaveTimeSetting &rArr; RTC_GetTime &rArr; RTC_EpochToTime &rArr; RTC_CalculateWeekday
+</UL>
+<BR>[Calls]<UL><LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_SetTime
+<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RTC_GetTime
+</UL>
+<BR>[Called By]<UL><LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_HandleButton
+</UL>
+
+<P><STRONG><a name="[73]"></a>Menu_ScaleValue</STRONG> (Thumb, 26 bytes, Stack size 8 bytes, menu.o(i.Menu_ScaleValue))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = Menu_ScaleValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[7a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawStopwatchIcon
+<LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawSettingsIcon
+<LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawLightIcon
+<LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawBackIcon
+</UL>
+
+<P><STRONG><a name="[9a]"></a>Menu_ShowDateSettingPage</STRONG> (Thumb, 384 bytes, Stack size 64 bytes, menu.o(i.Menu_ShowDateSettingPage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 168<LI>Call Chain = Menu_ShowDateSettingPage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+<LI><a href="#[81]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetWeekdayText
+<LI><a href="#[9e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatYearString
+<LI><a href="#[9f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatTwoDigitValue
+<LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_memcpy4
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[97]"></a>Menu_ShowFlashlightPage</STRONG> (Thumb, 138 bytes, Stack size 16 bytes, menu.o(i.Menu_ShowFlashlightPage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 120<LI>Call Chain = Menu_ShowFlashlightPage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+<LI><a href="#[61]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;LED_GetState
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[93]"></a>Menu_ShowHomePage</STRONG> (Thumb, 112 bytes, Stack size 40 bytes, menu.o(i.Menu_ShowHomePage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 144<LI>Call Chain = Menu_ShowHomePage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+<LI><a href="#[a3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigString
+<LI><a href="#[a2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatTimeString
+<LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatDateString
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[94]"></a>Menu_ShowMenuPage</STRONG> (Thumb, 160 bytes, Stack size 48 bytes, menu.o(i.Menu_ShowMenuPage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 232<LI>Call Chain = Menu_ShowMenuPage &rArr; Menu_DrawMenuIcon &rArr; Menu_DrawBackIcon &rArr; OLED_DrawRect &rArr; OLED_DrawLine &rArr; OLED_DrawPixel
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_GetStringWidth
+<LI><a href="#[a8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_DrawStringScaled
+<LI><a href="#[a4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ClearBuffer
+<LI><a href="#[7d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMenuRelativePosition
+<LI><a href="#[a5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetMenuLabel
+<LI><a href="#[a6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_GetFocusScale
+<LI><a href="#[7c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIndicators
+<LI><a href="#[79]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_DrawMenuIcon
+<LI><a href="#[7e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_AbsInt16
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[98]"></a>Menu_ShowSettingSelectPage</STRONG> (Thumb, 114 bytes, Stack size 8 bytes, menu.o(i.Menu_ShowSettingSelectPage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 112<LI>Call Chain = Menu_ShowSettingSelectPage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[96]"></a>Menu_ShowStopwatchPage</STRONG> (Thumb, 110 bytes, Stack size 8 bytes, menu.o(i.Menu_ShowStopwatchPage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 128<LI>Call Chain = Menu_ShowStopwatchPage &rArr; Menu_ShowStopwatchValue &rArr; OLED_ShowBigString &rArr; OLED_ShowBigChar &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+<LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[92]"></a>Menu_ShowStopwatchValue</STRONG> (Thumb, 24 bytes, Stack size 24 bytes, menu.o(i.Menu_ShowStopwatchValue))
+<BR><BR>[Stack]<UL><LI>Max Depth = 120<LI>Call Chain = Menu_ShowStopwatchValue &rArr; OLED_ShowBigString &rArr; OLED_ShowBigChar &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowBigString
+<LI><a href="#[a9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatStopwatchString
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+<LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ShowStopwatchPage
+</UL>
+
+<P><STRONG><a name="[99]"></a>Menu_ShowTimeSettingPage</STRONG> (Thumb, 284 bytes, Stack size 32 bytes, menu.o(i.Menu_ShowTimeSettingPage))
+<BR><BR>[Stack]<UL><LI>Max Depth = 136<LI>Call Chain = Menu_ShowTimeSettingPage &rArr; OLED_ShowString &rArr; OLED_ShowStringMode &rArr; OLED_ShowCharMode &rArr; OLED_SetCursor &rArr; OLED_WriteCommand &rArr; OLED_I2C_SendByte
+</UL>
+<BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowStringMode
+<LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OLED_ShowString
+<LI><a href="#[9f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_FormatTwoDigitValue
+</UL>
+<BR>[Called By]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Render
+</UL>
+
+<P><STRONG><a name="[71]"></a>Menu_SyncMenuAnimation</STRONG> (Thumb, 14 bytes, Stack size 0 bytes, menu.o(i.Menu_SyncMenuAnimation))
+<BR><BR>[Called By]<UL><LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Init
+<LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_ChangeState
+</UL>
+
+<P><STRONG><a name="[ac]"></a>Menu_UpdateMenuAnimation</STRONG> (Thumb, 114 bytes, Stack size 12 bytes, menu.o(i.Menu_UpdateMenuAnimation))
+<BR><BR>[Stack]<UL><LI>Max Depth = 12<LI>Call Chain = Menu_UpdateMenuAnimation
+</UL>
+<BR>[Called By]<UL><LI><a href="#[aa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Update
+</UL>
+
+<P><STRONG><a name="[ab]"></a>Menu_UpdateStopwatch</STRONG> (Thumb, 96 bytes, Stack size 24 bytes, menu.o(i.Menu_UpdateStopwatch))
+<BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = Menu_UpdateStopwatch
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_RequestRender
+</UL>
+<BR>[Called By]<UL><LI><a href="#[aa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Menu_Update
+</UL>
+
+<P><STRONG><a name="[c7]"></a>SetSysClock</STRONG> (Thumb, 8 bytes, Stack size 8 bytes, system_stm32f10x.o(i.SetSysClock))
 <BR><BR>[Stack]<UL><LI>Max Depth = 20<LI>Call Chain = SetSysClock &rArr; SetSysClockTo72
 </UL>
-<BR>[Calls]<UL><LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetSysClockTo72
+<BR>[Calls]<UL><LI><a href="#[c8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetSysClockTo72
 </UL>
 <BR>[Called By]<UL><LI><a href="#[38]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SystemInit
 </UL>
 
-<P><STRONG><a name="[7f]"></a>SetSysClockTo72</STRONG> (Thumb, 214 bytes, Stack size 12 bytes, system_stm32f10x.o(i.SetSysClockTo72))
+<P><STRONG><a name="[c8]"></a>SetSysClockTo72</STRONG> (Thumb, 214 bytes, Stack size 12 bytes, system_stm32f10x.o(i.SetSysClockTo72))
 <BR><BR>[Stack]<UL><LI>Max Depth = 12<LI>Call Chain = SetSysClockTo72
 </UL>
-<BR>[Called By]<UL><LI><a href="#[7e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetSysClock
+<BR>[Called By]<UL><LI><a href="#[c7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetSysClock
 </UL>
 <P>
 <H3>

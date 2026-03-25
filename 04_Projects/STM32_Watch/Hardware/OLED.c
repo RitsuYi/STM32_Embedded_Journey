@@ -1,6 +1,8 @@
 #include "OLED.h"
 #include "OLED_Font.h"
 
+static uint8_t OLED_Buffer[OLED_HEIGHT / 8U][OLED_WIDTH];
+
 /*引脚配置*/
 #define OLED_W_SCL(x)		GPIO_WriteBit(GPIOB, GPIO_Pin_8, (BitAction)(x))
 #define OLED_W_SDA(x)		GPIO_WriteBit(GPIOB, GPIO_Pin_9, (BitAction)(x))
@@ -93,6 +95,20 @@ void OLED_WriteData(uint8_t Data)
 	OLED_I2C_Stop();
 }
 
+static void OLED_WriteDataBurst(const uint8_t *Data, uint16_t Count)
+{
+	uint16_t Index;
+
+	OLED_I2C_Start();
+	OLED_I2C_SendByte(0x78);
+	OLED_I2C_SendByte(0x40);
+	for (Index = 0; Index < Count; Index++)
+	{
+		OLED_I2C_SendByte(Data[Index]);
+	}
+	OLED_I2C_Stop();
+}
+
 /**
   * @brief  OLED设置光标位置
   * @param  Y 以左上角为原点，向下方向的坐标，范围：0~7
@@ -112,16 +128,9 @@ void OLED_SetCursor(uint8_t Y, uint8_t X)
   * @retval 无
   */
 void OLED_Clear(void)
-{  
-	uint8_t i, j;
-	for (j = 0; j < 8; j++)
-	{
-		OLED_SetCursor(j, 0);
-		for(i = 0; i < 128; i++)
-		{
-			OLED_WriteData(0x00);
-		}
-	}
+{
+	OLED_ClearBuffer();
+	OLED_Update();
 }
 
 static uint16_t OLED_ScaleByte(uint8_t Data)
@@ -138,6 +147,65 @@ static uint16_t OLED_ScaleByte(uint8_t Data)
 	}
 	
 	return Result;
+}
+
+static uint8_t OLED_GetScaledDimension(uint8_t BaseValue, uint8_t ScalePercent)
+{
+	uint16_t ScaledValue = ((uint16_t)BaseValue * ScalePercent + 99U) / 100U;
+
+	if (ScaledValue == 0U)
+	{
+		ScaledValue = 1U;
+	}
+
+	return (uint8_t)ScaledValue;
+}
+
+static uint8_t OLED_GetCharPixel(char Char, uint8_t X, uint8_t Y)
+{
+	const uint8_t *Glyph;
+
+	if ((Char < ' ') || (Char > '~') || (X >= 8U) || (Y >= 16U))
+	{
+		return 0U;
+	}
+
+	Glyph = OLED_F8x16[(uint8_t)(Char - ' ')];
+	if (Y < 8U)
+	{
+		return (Glyph[X] >> Y) & 0x01U;
+	}
+
+	return (Glyph[X + 8U] >> (Y - 8U)) & 0x01U;
+}
+
+static void OLED_DrawCharScaled(int16_t X, int16_t Y, char Char, uint8_t ScalePercent, uint8_t Color)
+{
+	uint8_t DestWidth;
+	uint8_t DestHeight;
+	uint8_t DestX;
+	uint8_t DestY;
+
+	if ((Char < ' ') || (Char > '~'))
+	{
+		return;
+	}
+
+	DestWidth = OLED_GetScaledDimension(8U, ScalePercent);
+	DestHeight = OLED_GetScaledDimension(16U, ScalePercent);
+
+	for (DestY = 0; DestY < DestHeight; DestY++)
+	{
+		uint8_t SourceY = (uint8_t)((uint16_t)DestY * 16U / DestHeight);
+		for (DestX = 0; DestX < DestWidth; DestX++)
+		{
+			uint8_t SourceX = (uint8_t)((uint16_t)DestX * 8U / DestWidth);
+			if (OLED_GetCharPixel(Char, SourceX, SourceY) != 0U)
+			{
+				OLED_DrawPixel(X + DestX, Y + DestY, Color);
+			}
+		}
+	}
 }
 
 /**
@@ -250,6 +318,196 @@ void OLED_ShowBigString(uint8_t Page, uint8_t X, char *String)
 	for (i = 0; String[i] != '\0'; i++)
 	{
 		OLED_ShowBigChar(Page, X + i * 16, String[i]);
+	}
+}
+
+void OLED_ClearBuffer(void)
+{
+	uint8_t Page;
+	uint8_t Column;
+
+	for (Page = 0; Page < (OLED_HEIGHT / 8U); Page++)
+	{
+		for (Column = 0; Column < OLED_WIDTH; Column++)
+		{
+			OLED_Buffer[Page][Column] = 0x00U;
+		}
+	}
+}
+
+void OLED_Update(void)
+{
+	uint8_t Page;
+
+	for (Page = 0; Page < (OLED_HEIGHT / 8U); Page++)
+	{
+		OLED_SetCursor(Page, 0U);
+		OLED_WriteDataBurst(OLED_Buffer[Page], OLED_WIDTH);
+	}
+}
+
+void OLED_DrawPixel(int16_t X, int16_t Y, uint8_t Color)
+{
+	uint8_t Page;
+	uint8_t BitMask;
+
+	if ((X < 0) || (Y < 0) || (X >= (int16_t)OLED_WIDTH) || (Y >= (int16_t)OLED_HEIGHT))
+	{
+		return;
+	}
+
+	Page = (uint8_t)((uint16_t)Y >> 3);
+	BitMask = (uint8_t)(1U << ((uint16_t)Y & 0x07U));
+	if (Color != 0U)
+	{
+		OLED_Buffer[Page][X] |= BitMask;
+	}
+	else
+	{
+		OLED_Buffer[Page][X] &= (uint8_t)(~BitMask);
+	}
+}
+
+void OLED_DrawLine(int16_t X0, int16_t Y0, int16_t X1, int16_t Y1, uint8_t Color)
+{
+	int16_t DeltaX;
+	int16_t DeltaY;
+	int16_t StepX;
+	int16_t StepY;
+	int16_t Error;
+	int16_t DoubleError;
+
+	DeltaX = (X0 < X1) ? (X1 - X0) : (X0 - X1);
+	DeltaY = (Y0 < Y1) ? (Y1 - Y0) : (Y0 - Y1);
+	StepX = (X0 < X1) ? 1 : -1;
+	StepY = (Y0 < Y1) ? 1 : -1;
+	Error = DeltaX - DeltaY;
+
+	while (1)
+	{
+		OLED_DrawPixel(X0, Y0, Color);
+		if ((X0 == X1) && (Y0 == Y1))
+		{
+			break;
+		}
+
+		DoubleError = (int16_t)(Error << 1);
+		if (DoubleError > -DeltaY)
+		{
+			Error -= DeltaY;
+			X0 += StepX;
+		}
+		if (DoubleError < DeltaX)
+		{
+			Error += DeltaX;
+			Y0 += StepY;
+		}
+	}
+}
+
+void OLED_DrawRect(int16_t X, int16_t Y, uint8_t Width, uint8_t Height, uint8_t Color)
+{
+	if ((Width == 0U) || (Height == 0U))
+	{
+		return;
+	}
+
+	OLED_DrawLine(X, Y, X + Width - 1, Y, Color);
+	OLED_DrawLine(X, Y + Height - 1, X + Width - 1, Y + Height - 1, Color);
+	OLED_DrawLine(X, Y, X, Y + Height - 1, Color);
+	OLED_DrawLine(X + Width - 1, Y, X + Width - 1, Y + Height - 1, Color);
+}
+
+void OLED_DrawFilledRect(int16_t X, int16_t Y, uint8_t Width, uint8_t Height, uint8_t Color)
+{
+	uint8_t OffsetX;
+	uint8_t OffsetY;
+
+	for (OffsetY = 0; OffsetY < Height; OffsetY++)
+	{
+		for (OffsetX = 0; OffsetX < Width; OffsetX++)
+		{
+			OLED_DrawPixel(X + OffsetX, Y + OffsetY, Color);
+		}
+	}
+}
+
+void OLED_DrawCircle(int16_t X0, int16_t Y0, uint8_t Radius, uint8_t Color)
+{
+	int16_t X = Radius;
+	int16_t Y = 0;
+	int16_t Error = 1 - X;
+
+	while (X >= Y)
+	{
+		OLED_DrawPixel(X0 + X, Y0 + Y, Color);
+		OLED_DrawPixel(X0 + Y, Y0 + X, Color);
+		OLED_DrawPixel(X0 - Y, Y0 + X, Color);
+		OLED_DrawPixel(X0 - X, Y0 + Y, Color);
+		OLED_DrawPixel(X0 - X, Y0 - Y, Color);
+		OLED_DrawPixel(X0 - Y, Y0 - X, Color);
+		OLED_DrawPixel(X0 + Y, Y0 - X, Color);
+		OLED_DrawPixel(X0 + X, Y0 - Y, Color);
+		Y++;
+		if (Error < 0)
+		{
+			Error += (Y << 1) + 1;
+		}
+		else
+		{
+			X--;
+			Error += ((Y - X) << 1) + 1;
+		}
+	}
+}
+
+uint16_t OLED_GetStringWidth(const char *String, uint8_t ScalePercent)
+{
+	uint8_t CharacterWidth;
+	uint8_t CharacterGap;
+	uint16_t Width = 0U;
+
+	if (String == 0)
+	{
+		return 0U;
+	}
+
+	CharacterWidth = OLED_GetScaledDimension(8U, ScalePercent);
+	CharacterGap = (ScalePercent > 100U) ? 2U : 1U;
+	while (*String != '\0')
+	{
+		Width += CharacterWidth;
+		String++;
+		if (*String != '\0')
+		{
+			Width += CharacterGap;
+		}
+	}
+
+	return Width;
+}
+
+void OLED_DrawStringScaled(int16_t X, int16_t Y, const char *String, uint8_t ScalePercent, uint8_t Color)
+{
+	uint8_t CharacterWidth;
+	uint8_t CharacterGap;
+
+	if (String == 0)
+	{
+		return;
+	}
+
+	CharacterWidth = OLED_GetScaledDimension(8U, ScalePercent);
+	CharacterGap = (ScalePercent > 100U) ? 2U : 1U;
+	while (*String != '\0')
+	{
+		OLED_DrawCharScaled(X, Y, *String, ScalePercent, Color);
+		X += CharacterWidth;
+		if (*(String + 1) != '\0')
+		{
+			X += CharacterGap;
+		}
+		String++;
 	}
 }
 
