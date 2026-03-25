@@ -1,68 +1,80 @@
-#include "stm32f10x.h"                  // Device header
-#include "Delay.h"
-#include "OLED.h"
-#include "Timer.h"
-#include "Encoder.h"
+#include "stm32f10x.h"
 #include "Button.h"
+#include "Encoder.h"
 #include "LED.h"
+#include "OLED.h"
 #include "RTC.h"
-#include <stdio.h>
+#include "Timer.h"
 
-int16_t Encoder_Count;
-Time_t g_Time;
+static void Watch_ShowDebugPage(const Time_t *time, int16_t encoderTotal, uint16_t buttonCount, uint8_t ledState)
+{
+    OLED_ShowString(1, 1, "DATE");
+    OLED_ShowNum(1, 6, time->year, 4);
+    OLED_ShowChar(1, 10, '-');
+    OLED_ShowNum(1, 11, time->month, 2);
+    OLED_ShowChar(1, 13, '-');
+    OLED_ShowNum(1, 14, time->day, 2);
 
-// 星期数组
-static const char *g_WeekDay[] = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+    OLED_ShowString(2, 1, "TIME");
+    OLED_ShowNum(2, 6, time->hour, 2);
+    OLED_ShowChar(2, 8, ':');
+    OLED_ShowNum(2, 9, time->minute, 2);
+    OLED_ShowChar(2, 11, ':');
+    OLED_ShowNum(2, 12, time->second, 2);
+
+    OLED_ShowString(3, 1, "WK");
+    OLED_ShowNum(3, 3, time->weekday, 1);
+    OLED_ShowString(3, 5, "ENC");
+    OLED_ShowSignedNum(3, 9, encoderTotal, 3);
+
+    OLED_ShowString(4, 1, "BTN");
+    OLED_ShowNum(4, 4, buttonCount % 100U, 2);
+    OLED_ShowString(4, 7, "LED");
+    OLED_ShowNum(4, 10, ledState, 1);
+}
 
 int main(void)
 {
-	OLED_Init();
-	Timer_Init();
-	Encoder_Init();
-	Button_Init();
-	LED_Init();
-	RTC_Init();
+    Time_t currentTime;
+    uint32_t lastRefreshTick = 0;
+    int16_t encoderTotal = 0;
+    uint16_t buttonCount = 0;
+    uint8_t ledState = 0;
 
-	OLED_Clear();
+    OLED_Init();
+    LED_Init();
+    Button_Init();
+    Encoder_Init();
+    Timer_Init();
+    RTC_Init();
+    OLED_Clear();
 
-	while (1)
-	{
-		// 获取编码器增量
-		Encoder_Count = Encoder_Get();
+    RTC_GetTime(&currentTime);
+    Watch_ShowDebugPage(&currentTime, encoderTotal, buttonCount, ledState);
 
-		// 获取当前时间
-		RTC_GetTime(&g_Time);
+    while (1)
+    {
+        int16_t encoderStep = Encoder_Get();
+        uint8_t buttonEvent = Button_GetEvent();
 
-		// 显示日期和星期
-		OLED_ShowString(0, 0, "20");
-		OLED_ShowNum(16, 0, g_Time.year, 2);
-		OLED_ShowChar(32, 0, '.');
-		OLED_ShowNum(40, 0, g_Time.month, 2);
-		OLED_ShowChar(56, 0, '.');
-		OLED_ShowNum(64, 0, g_Time.day, 2);
-		OLED_ShowString(80, 0, " ");
+        if (encoderStep != 0)
+        {
+            encoderTotal += encoderStep;
+            RTC_AdjustSeconds(encoderStep);
+        }
 
-		// 显示星期
-		OLED_ShowString(88, 0, (char*)g_WeekDay[g_Time.weekday]);
+        if (buttonEvent != 0U)
+        {
+            buttonCount++;
+            LED_Toggle();
+        }
 
-		// 显示时间（大字体）
-		OLED_ShowNum(16, 2, g_Time.hour, 2);
-		OLED_ShowChar(32, 2, ':');
-		OLED_ShowNum(40, 2, g_Time.minute, 2);
-		OLED_ShowChar(56, 2, ':');
-		OLED_ShowNum(64, 2, g_Time.second, 2);
-
-		// 显示编码器数值（测试用）
-		OLED_ShowString(0, 4, "Enc:");
-		OLED_ShowSignedNum(24, 4, Encoder_Count, 5);
-
-		// 检测按键
-		if (Button_Pressed())
-		{
-			LED1_Turn();  // 按键按下，切换LED1状态
-		}
-
-		// 延时避免刷新过快
-		Delay_ms(50);
-	}
+        if ((Timer_GetMillis() - lastRefreshTick >= 200U) || (encoderStep != 0) || (buttonEvent != 0U))
+        {
+            lastRefreshTick = Timer_GetMillis();
+            ledState = LED_GetState();
+            RTC_GetTime(&currentTime);
+            Watch_ShowDebugPage(&currentTime, encoderTotal, buttonCount, ledState);
+        }
+    }
 }
