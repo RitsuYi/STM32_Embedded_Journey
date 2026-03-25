@@ -29,4 +29,4 @@
 .\objects\button.o: .\Library\stm32f10x_usart.h
 .\objects\button.o: .\Library\stm32f10x_wwdg.h
 .\objects\button.o: .\Library\misc.h
-.\objects\button.o: .\System\Delay.h
+.\objects\button.o: .\System\Timer.h

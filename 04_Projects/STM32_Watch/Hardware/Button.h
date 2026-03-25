@@ -5,6 +5,5 @@
 
 void Button_Init(void);
 uint8_t Button_GetEvent(void);
-uint8_t Button_IsPressed(void);
 
 #endif

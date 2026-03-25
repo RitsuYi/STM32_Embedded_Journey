@@ -172,12 +172,21 @@ void RTC_Init(void)
 
 void RTC_Tick1ms(void)
 {
-    RTC_MillisecondCounter++;
-    if (RTC_MillisecondCounter >= 1000U)
+    RTC_AdvanceMilliseconds(1U);
+}
+
+void RTC_AdvanceMilliseconds(uint32_t elapsedMs)
+{
+    uint32_t totalMilliseconds;
+
+    if (elapsedMs == 0U)
     {
-        RTC_MillisecondCounter = 0;
-        RTC_EpochSeconds++;
+        return;
     }
+
+    totalMilliseconds = RTC_MillisecondCounter + elapsedMs;
+    RTC_EpochSeconds += totalMilliseconds / 1000U;
+    RTC_MillisecondCounter = (uint16_t)(totalMilliseconds % 1000U);
 }
 
 void RTC_SetTime(const Time_t *time)

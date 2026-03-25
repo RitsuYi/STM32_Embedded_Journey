@@ -37,30 +37,39 @@ int main(void)
 {
     Time_t currentTime;
     uint32_t lastRefreshTick = 0;
+    uint32_t lastRtcTick = 0;
     int16_t encoderTotal = 0;
     uint16_t buttonCount = 0;
     uint8_t ledState = 0;
 
     OLED_Init();
     LED_Init();
+    Timer_Init();
     Button_Init();
     Encoder_Init();
-    Timer_Init();
     RTC_Init();
     OLED_Clear();
 
+    lastRtcTick = Timer_GetMillis();
     RTC_GetTime(&currentTime);
     Watch_ShowDebugPage(&currentTime, encoderTotal, buttonCount, ledState);
 
     while (1)
     {
+        uint32_t currentMillis = Timer_GetMillis();
+        uint32_t elapsedMs = currentMillis - lastRtcTick;
         int16_t encoderStep = Encoder_Get();
         uint8_t buttonEvent = Button_GetEvent();
+
+        if (elapsedMs != 0U)
+        {
+            lastRtcTick = currentMillis;
+            RTC_AdvanceMilliseconds(elapsedMs);
+        }
 
         if (encoderStep != 0)
         {
             encoderTotal += encoderStep;
-            RTC_AdjustSeconds(encoderStep);
         }
 
         if (buttonEvent != 0U)
@@ -69,9 +78,9 @@ int main(void)
             LED_Toggle();
         }
 
-        if ((Timer_GetMillis() - lastRefreshTick >= 200U) || (encoderStep != 0) || (buttonEvent != 0U))
+        if ((currentMillis - lastRefreshTick >= 200U) || (encoderStep != 0) || (buttonEvent != 0U))
         {
-            lastRefreshTick = Timer_GetMillis();
+            lastRefreshTick = currentMillis;
             ledState = LED_GetState();
             RTC_GetTime(&currentTime);
             Watch_ShowDebugPage(&currentTime, encoderTotal, buttonCount, ledState);

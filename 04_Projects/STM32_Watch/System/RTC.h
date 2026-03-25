@@ -16,6 +16,7 @@ typedef struct
 
 void RTC_Init(void);
 void RTC_Tick1ms(void);
+void RTC_AdvanceMilliseconds(uint32_t elapsedMs);
 void RTC_SetTime(const Time_t *time);
 void RTC_GetTime(Time_t *time);
 void RTC_AdjustSeconds(int32_t offsetSeconds);
