@@ -1,7 +1,7 @@
 #include "stm32f10x.h"                  // Device header
 #include "Delay.h"
 
-uint8_t Key_Num;
+uint8_t Key_Num;//Pin1按下返回1，Pin11按下返回2
 
 void Key_Init(void)
 {
@@ -55,7 +55,7 @@ void Key_Tick(void)
 		PrevState = CurrState;
 		CurrState = Key_GetState();
 
-		if (CurrState == 0 && PrevState != 0)
+		if (CurrState == 0 && PrevState != 0)//上次按下这次没按下，松手瞬间
 		{
 			Key_Num = PrevState;
 		}
