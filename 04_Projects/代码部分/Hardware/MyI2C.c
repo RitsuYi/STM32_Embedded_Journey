@@ -3,20 +3,20 @@
 
 void MyI2C_W_SCL(uint8_t BitValue)
 {
-	GPIO_WriteBit(GPIOB, GPIO_Pin_4, (BitAction)BitValue);
+	GPIO_WriteBit(GPIOB, GPIO_Pin_6, (BitAction)BitValue);
 	Delay_us(10);
 }
 
 void MyI2C_W_SDA(uint8_t BitValue)
 {
-	GPIO_WriteBit(GPIOB, GPIO_Pin_3, (BitAction)BitValue);
+	GPIO_WriteBit(GPIOB, GPIO_Pin_7, (BitAction)BitValue);
 	Delay_us(10);
 }
 
 uint8_t MyI2C_R_SDA(void)
 {
 	uint8_t BitValue;
-	BitValue = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_3);
+	BitValue = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_7);
 	Delay_us(10);
 	return BitValue;
 }
@@ -27,13 +27,11 @@ void MyI2C_Init(void)
 	
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
-  GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);//关闭JTAG功能(PB3/4)，只使用SWD(PA13/14)调试
-	GPIO_SetBits(GPIOB, GPIO_Pin_3 | GPIO_Pin_4);	
+	GPIO_SetBits(GPIOB, GPIO_Pin_6 | GPIO_Pin_7);	
 }
 
 void MyI2C_Start(void)

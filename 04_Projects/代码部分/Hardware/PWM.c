@@ -10,7 +10,7 @@ void PWM_Init(void)
 	
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
@@ -32,16 +32,17 @@ void PWM_Init(void)
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = 0;		//CCR
 	
-	TIM_CtrlPWMOutputs(TIM1,ENABLE);	//MOE Ö÷Êä³öÊ¹ÄÜ	
+	TIM_CtrlPWMOutputs(TIM1,ENABLE);	//MOE ä¸»è¾“å‡ºä½¿èƒ½	
 
-	TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);  //CH1Ô¤×°ÔØÊ¹ÄÜ	 
+	TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);  //CH1é¢„è£…è½½ä½¿èƒ½
+	TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);  //CH2é¢„è£…è½½ä½¿èƒ½
 	
-	TIM_ARRPreloadConfig(TIM1, ENABLE); //Ê¹ÄÜTIMxÔÚARRÉÏµÄÔ¤×°ÔØ¼Ä´æÆ÷
+	TIM_ARRPreloadConfig(TIM1, ENABLE); //ä½¿èƒ½TIMxåœ¨ARRä¸Šçš„é¢„è£…è½½å¯„å­˜å™¨
 	
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 		
 	TIM_OC1Init(TIM1, &TIM_OCInitStructure); // CH1 (PA8)
-	TIM_OC4Init(TIM1, &TIM_OCInitStructure); // CH4 (PA11)
+	TIM_OC2Init(TIM1, &TIM_OCInitStructure); // CH2 (PA9)
 		
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 	TIM_Cmd(TIM1, ENABLE);
@@ -52,7 +53,7 @@ void PWM_SetCompare1(uint16_t Compare)
 	TIM_SetCompare1(TIM1, Compare);
 }
 
-void PWM_SetCompare4(uint16_t Compare)
+void PWM_SetCompare2(uint16_t Compare)
 {
-	TIM_SetCompare4(TIM1, Compare);
+	TIM_SetCompare2(TIM1, Compare);
 }
