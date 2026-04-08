@@ -1,7 +1,7 @@
 .\objects\timer.o: SYSTEM\Timer.c
 .\objects\timer.o: .\Start\stm32f10x.h
 .\objects\timer.o: .\Start\core_cm3.h
-.\objects\timer.o: D:\Kile5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\timer.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\timer.o: .\Start\system_stm32f10x.h
 .\objects\timer.o: .\User\stm32f10x_conf.h
 .\objects\timer.o: .\Library\stm32f10x_adc.h

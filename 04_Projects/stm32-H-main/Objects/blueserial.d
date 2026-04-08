@@ -1,7 +1,7 @@
 .\objects\blueserial.o: Hardware\BlueSerial.c
 .\objects\blueserial.o: .\Start\stm32f10x.h
 .\objects\blueserial.o: .\Start\core_cm3.h
-.\objects\blueserial.o: D:\Kile5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\blueserial.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\blueserial.o: .\Start\system_stm32f10x.h
 .\objects\blueserial.o: .\User\stm32f10x_conf.h
 .\objects\blueserial.o: .\Library\stm32f10x_adc.h
@@ -28,5 +28,5 @@
 .\objects\blueserial.o: .\Library\stm32f10x_usart.h
 .\objects\blueserial.o: .\Library\stm32f10x_wwdg.h
 .\objects\blueserial.o: .\Library\misc.h
-.\objects\blueserial.o: D:\Kile5\ARM\ARMCC\Bin\..\include\stdio.h
-.\objects\blueserial.o: D:\Kile5\ARM\ARMCC\Bin\..\include\stdarg.h
+.\objects\blueserial.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\blueserial.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdarg.h
