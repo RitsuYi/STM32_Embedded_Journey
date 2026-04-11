@@ -9,8 +9,6 @@
 
 # Keil 临时文件
 *.uvguix
-*.uvoptx
-*.uvprojx
 *.pack
 *.scvd
 
