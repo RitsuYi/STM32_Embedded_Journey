@@ -10,6 +10,8 @@
                 "e:\\c++\\STM32_Embedded_Journey\\04_Projects\\代码部分\\Hardware",
                 "e:\\c++\\STM32_Embedded_Journey\\04_Projects\\代码部分\\Control",
                 "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include",
+                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\arm_linux",
+                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\arm_linux_compat",
                 "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\rw"
             ],
             "defines": [
