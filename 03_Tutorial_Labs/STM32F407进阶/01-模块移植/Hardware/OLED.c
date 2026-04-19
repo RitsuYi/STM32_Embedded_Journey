@@ -61,6 +61,12 @@
   * 才会将显存数组的数据发送到OLED硬件，进行显示
   */
 uint8_t OLED_DisplayBuf[8][128];
+static volatile uint32_t OLED_I2C_LastErrorFlags = 0;
+static volatile uint32_t OLED_I2C_ErrorCount = 0;
+
+static void OLED_I2C_Delay(void)
+{
+}
 
 static void OLED_GPIO_ClockCmd(GPIO_TypeDef *GPIOx, FunctionalState NewState)
 {
@@ -102,11 +108,161 @@ static void OLED_GPIO_ClockCmd(GPIO_TypeDef *GPIOx, FunctionalState NewState)
 	}
 }
 
-static void OLED_I2C_Delay(void)
+static ErrorStatus OLED_I2C_WaitBusyReset(void)
 {
-#if OLED_I2C_DELAY_US > 0
-	Delay_us(OLED_I2C_DELAY_US);
-#endif
+	uint32_t Timeout = OLED_I2C_TIMEOUT;
+	
+	while (I2C_GetFlagStatus(OLED_I2C_INSTANCE, I2C_FLAG_BUSY) == SET)
+	{
+		if (Timeout-- == 0)
+		{
+			OLED_I2C_LastErrorFlags = OLED_I2C_ERROR_BUSY_TIMEOUT;
+			OLED_I2C_ErrorCount++;
+			return ERROR;
+		}
+	}
+	
+	return SUCCESS;
+}
+
+static uint32_t OLED_I2C_GetErrorFlags(void)
+{
+	uint32_t Flags = 0;
+	
+	if (I2C_GetFlagStatus(OLED_I2C_INSTANCE, I2C_FLAG_AF) == SET)
+	{
+		Flags |= I2C_FLAG_AF;
+	}
+	if (I2C_GetFlagStatus(OLED_I2C_INSTANCE, I2C_FLAG_BERR) == SET)
+	{
+		Flags |= I2C_FLAG_BERR;
+	}
+	if (I2C_GetFlagStatus(OLED_I2C_INSTANCE, I2C_FLAG_ARLO) == SET)
+	{
+		Flags |= I2C_FLAG_ARLO;
+	}
+	if (I2C_GetFlagStatus(OLED_I2C_INSTANCE, I2C_FLAG_OVR) == SET)
+	{
+		Flags |= I2C_FLAG_OVR;
+	}
+	
+	return Flags;
+}
+
+static void OLED_I2C_ClearErrorFlags(uint32_t Flags)
+{
+	if ((Flags & I2C_FLAG_AF) != 0)
+	{
+		I2C_ClearFlag(OLED_I2C_INSTANCE, I2C_FLAG_AF);
+	}
+	if ((Flags & I2C_FLAG_BERR) != 0)
+	{
+		I2C_ClearFlag(OLED_I2C_INSTANCE, I2C_FLAG_BERR);
+	}
+	if ((Flags & I2C_FLAG_ARLO) != 0)
+	{
+		I2C_ClearFlag(OLED_I2C_INSTANCE, I2C_FLAG_ARLO);
+	}
+	if ((Flags & I2C_FLAG_OVR) != 0)
+	{
+		I2C_ClearFlag(OLED_I2C_INSTANCE, I2C_FLAG_OVR);
+	}
+}
+
+static void OLED_I2C_RecoverBus(void)
+{
+	I2C_InitTypeDef I2C_InitStructure;
+	
+	I2C_Cmd(OLED_I2C_INSTANCE, DISABLE);
+	I2C_DeInit(OLED_I2C_INSTANCE);
+	
+	I2C_InitStructure.I2C_ClockSpeed = OLED_I2C_CLOCK_SPEED;
+	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+	I2C_InitStructure.I2C_OwnAddress1 = 0x00;
+	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+	I2C_Init(OLED_I2C_INSTANCE, &I2C_InitStructure);
+	I2C_Cmd(OLED_I2C_INSTANCE, ENABLE);
+}
+
+static ErrorStatus OLED_I2C_WaitEvent(uint32_t Event)
+{
+	uint32_t Timeout = OLED_I2C_TIMEOUT;
+	
+	while (I2C_CheckEvent(OLED_I2C_INSTANCE, Event) != SUCCESS)
+	{
+		uint32_t ErrorFlags = OLED_I2C_GetErrorFlags();
+		
+		if (ErrorFlags != 0)
+		{
+			OLED_I2C_LastErrorFlags = ErrorFlags;
+			OLED_I2C_ErrorCount++;
+			return ERROR;
+		}
+		if (Timeout-- == 0)
+		{
+			OLED_I2C_LastErrorFlags = OLED_I2C_ERROR_TIMEOUT;
+			OLED_I2C_ErrorCount++;
+			return ERROR;
+		}
+	}
+	
+	return SUCCESS;
+}
+
+static ErrorStatus OLED_I2C_Write(uint8_t ControlByte, const uint8_t *Data, uint16_t Count)
+{
+	uint16_t i;
+	uint32_t ErrorFlags;
+	
+	OLED_I2C_LastErrorFlags = 0;
+	
+	if (OLED_I2C_WaitBusyReset() != SUCCESS)
+	{
+		OLED_I2C_RecoverBus();
+		return ERROR;
+	}
+	
+	I2C_GenerateSTART(OLED_I2C_INSTANCE, ENABLE);
+	if (OLED_I2C_WaitEvent(I2C_EVENT_MASTER_MODE_SELECT) != SUCCESS)
+	{
+		goto stop_transfer;
+	}
+	
+	I2C_Send7bitAddress(OLED_I2C_INSTANCE, OLED_I2C_ADDRESS, I2C_Direction_Transmitter);
+	if (OLED_I2C_WaitEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != SUCCESS)
+	{
+		goto stop_transfer;
+	}
+	
+	I2C_SendData(OLED_I2C_INSTANCE, ControlByte);
+	if (OLED_I2C_WaitEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED) != SUCCESS)
+	{
+		goto stop_transfer;
+	}
+	
+	for (i = 0; i < Count; i ++)
+	{
+		I2C_SendData(OLED_I2C_INSTANCE, Data[i]);
+		if (OLED_I2C_WaitEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED) != SUCCESS)
+		{
+			goto stop_transfer;
+		}
+	}
+	
+	I2C_GenerateSTOP(OLED_I2C_INSTANCE, ENABLE);
+	return SUCCESS;
+	
+stop_transfer:
+	I2C_GenerateSTOP(OLED_I2C_INSTANCE, ENABLE);
+	ErrorFlags = OLED_I2C_GetErrorFlags();
+	if (ErrorFlags != 0)
+	{
+		OLED_I2C_ClearErrorFlags(ErrorFlags);
+	}
+	OLED_I2C_RecoverBus();
+	return ERROR;
 }
 
 /*********************全局变量*/
@@ -128,6 +284,16 @@ void OLED_W_SCL(uint8_t BitValue)
 	
 	/*如果单片机速度过快，可在此添加适量延时，以避免超出I2C通信的最大速度*/
 	OLED_I2C_Delay();
+}
+
+uint32_t OLED_GetI2CLastError(void)
+{
+	return OLED_I2C_LastErrorFlags;
+}
+
+uint32_t OLED_GetI2CErrorCount(void)
+{
+	return OLED_I2C_ErrorCount;
 }
 
 /**
@@ -156,6 +322,9 @@ void OLED_W_SDA(uint8_t BitValue)
   */
 void OLED_GPIO_Init(void)
 {
+	GPIO_InitTypeDef GPIO_InitStructure;
+	I2C_InitTypeDef I2C_InitStructure;
+	
 	/* Use a fixed delay so power-on timing survives optimization and MCU changes. */
 	Delay_ms(OLED_POWER_ON_DELAY_MS);
 	
@@ -167,9 +336,12 @@ void OLED_GPIO_Init(void)
 	{
 		OLED_GPIO_ClockCmd(OLED_SDA_PORT, ENABLE);
 	}
+	RCC_APB1PeriphClockCmd(OLED_I2C_RCC_APB1_PERIPH, ENABLE);
 	
-	GPIO_InitTypeDef GPIO_InitStructure;
- 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_PinAFConfig(OLED_SCL_PORT, OLED_SCL_PINSOURCE, OLED_I2C_GPIO_AF);
+	GPIO_PinAFConfig(OLED_SDA_PORT, OLED_SDA_PINSOURCE, OLED_I2C_GPIO_AF);
+	
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -179,8 +351,17 @@ void OLED_GPIO_Init(void)
  	GPIO_Init(OLED_SDA_PORT, &GPIO_InitStructure);
 	
 	/*释放SCL和SDA*/
-	OLED_W_SCL(1);
-	OLED_W_SDA(1);
+	I2C_Cmd(OLED_I2C_INSTANCE, DISABLE);
+	I2C_DeInit(OLED_I2C_INSTANCE);
+	
+	I2C_InitStructure.I2C_ClockSpeed = OLED_I2C_CLOCK_SPEED;
+	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+	I2C_InitStructure.I2C_OwnAddress1 = 0x00;
+	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+	I2C_Init(OLED_I2C_INSTANCE, &I2C_InitStructure);
+	I2C_Cmd(OLED_I2C_INSTANCE, ENABLE);
 }
 
 /*********************引脚配置*/
@@ -243,6 +424,10 @@ void OLED_I2C_SendByte(uint8_t Byte)
   */
 void OLED_WriteCommand(uint8_t Command)
 {
+	if (OLED_I2C_Write(0x00, &Command, 1) != SUCCESS)
+	{
+		return;
+	}
 	OLED_I2C_Start();				//I2C起始
 	OLED_I2C_SendByte(0x78);		//发送OLED的I2C从机地址
 	OLED_I2C_SendByte(0x00);		//控制字节，给0x00，表示即将写命令
@@ -256,9 +441,14 @@ void OLED_WriteCommand(uint8_t Command)
   * 参    数：Count 要写入数据的数量
   * 返 回 值：无
   */
-void OLED_WriteData(uint8_t *Data, uint8_t Count)
+void OLED_WriteData(const uint8_t *Data, uint8_t Count)
 {
 	uint8_t i;
+	if (OLED_I2C_Write(0x40, Data, Count) != SUCCESS)
+	{
+		return;
+	}
+	return;
 	
 	OLED_I2C_Start();				//I2C起始
 	OLED_I2C_SendByte(0x78);		//发送OLED的I2C从机地址
@@ -284,6 +474,8 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
   */
 void OLED_Init(void)
 {
+	OLED_I2C_LastErrorFlags = 0;
+	OLED_I2C_ErrorCount = 0;
 	OLED_GPIO_Init();			//先调用底层的端口初始化
 	
 	/*写入一系列的命令，对OLED进行初始化配置*/
@@ -338,6 +530,7 @@ void OLED_Init(void)
   */
 void OLED_SetCursor(uint8_t Page, uint8_t X)
 {
+	X += OLED_COLUMN_OFFSET;
 	/*如果使用此程序驱动1.3寸的OLED显示屏，则需要解除此注释*/
 	/*因为1.3寸的OLED驱动芯片（SH1106）有132列*/
 	/*屏幕的起始列接在了第2列，而不是第0列*/
@@ -407,11 +600,13 @@ uint8_t OLED_pnpoly(uint8_t nvert, int16_t *vertx, int16_t *verty, int16_t testx
 uint8_t OLED_IsInAngle(int16_t X, int16_t Y, int16_t StartAngle, int16_t EndAngle)
 {
 	int16_t PointAngle;
+	int16_t PointAngleAccurate;
+	PointAngleAccurate = (int16_t)(atan2((double)Y, (double)X) * 57.29577951308232);
 	PointAngle = atan2(Y, X) / 3.14 * 180;	//计算指定点的弧度，并转换为角度表示
 	if (StartAngle < EndAngle)	//起始角度小于终止角度的情况
 	{
 		/*如果指定角度在起始终止角度之间，则判定指定点在指定角度*/
-		if (PointAngle >= StartAngle && PointAngle <= EndAngle)
+		if (PointAngleAccurate >= StartAngle && PointAngleAccurate <= EndAngle)
 		{
 			return 1;
 		}
@@ -419,7 +614,7 @@ uint8_t OLED_IsInAngle(int16_t X, int16_t Y, int16_t StartAngle, int16_t EndAngl
 	else			//起始角度大于于终止角度的情况
 	{
 		/*如果指定角度大于起始角度或者小于终止角度，则判定指定点在指定角度*/
-		if (PointAngle >= StartAngle || PointAngle <= EndAngle)
+		if (PointAngleAccurate >= StartAngle || PointAngleAccurate <= EndAngle)
 		{
 			return 1;
 		}
@@ -470,8 +665,29 @@ void OLED_Update(void)
   */
 void OLED_UpdateArea(int16_t X, int16_t Y, uint8_t Width, uint8_t Height)
 {
+	int16_t XStart, XEnd;
 	int16_t j;
 	int16_t Page, Page1;
+	uint8_t SendWidth;
+
+	if (Width == 0 || Height == 0)
+	{
+		return;
+	}
+
+	XStart = (X < 0) ? 0 : X;
+	XEnd = X + Width - 1;
+	if (XEnd > 127)
+	{
+		XEnd = 127;
+	}
+	if (XStart > XEnd)
+	{
+		return;
+	}
+	SendWidth = (uint8_t)(XEnd - XStart + 1);
+	X = XStart;
+	Width = SendWidth;
 	
 	/*负数坐标在计算页地址时需要加一个偏移*/
 	/*(Y + Height - 1) / 8 + 1的目的是(Y + Height) / 8并向上取整*/
@@ -782,7 +998,7 @@ void OLED_ShowSignedNum(int16_t X, int16_t Y, int32_t Number, uint8_t Length, ui
 	else									//数字小于0
 	{
 		OLED_ShowChar(X, Y, '-', FontSize);	//显示-号
-		Number1 = -Number;					//Number1等于Number取负
+		Number1 = (uint32_t)(-(int64_t)Number);	//Number1等于Number取负
 	}
 	
 	for (i = 0; i < Length; i++)			//遍历数字的每一位								
