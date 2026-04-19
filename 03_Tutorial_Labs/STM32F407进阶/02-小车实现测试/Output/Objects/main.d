@@ -35,7 +35,7 @@
 .\output\objects\main.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h
 .\output\objects\main.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h
 .\output\objects\main.o: .\Hardware\ADC_Bat.h
-.\output\objects\main.o: Core\AppTask.h
+.\output\objects\main.o: .\App\AppTask.h
 .\output\objects\main.o: .\Hardware\Encoder.h
 .\output\objects\main.o: .\Hardware\Key.h
 .\output\objects\main.o: .\Hardware\MPU6050.h

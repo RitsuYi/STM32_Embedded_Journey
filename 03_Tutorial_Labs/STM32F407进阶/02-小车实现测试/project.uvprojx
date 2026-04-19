@@ -415,12 +415,12 @@
             <File>
               <FileName>AppTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Core\AppTask.c</FilePath>
+              <FilePath>.\App\AppTask.c</FilePath>
             </File>
             <File>
               <FileName>AppTask.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Core\AppTask.h</FilePath>
+              <FilePath>.\App\AppTask.h</FilePath>
             </File>
             <File>
               <FileName>PID.c</FileName>

@@ -9,7 +9,7 @@
  * 2. 带单位的命名约定：
  *    _HZ   : 频率，单位 Hz
  *    _MS   : 时间，单位 ms
- *    _CPS  : 编码器计数速度，单位 count/s
+ *    _RPM  : 转速，单位 rpm（转/分钟）
  *    _MV   : 电压，单位 mV
  *    _DPS  : 角速度，单位 deg/s
  * 3. 标注“可调参数”的宏，都是后续调车时最常改的内容。
@@ -334,7 +334,7 @@
 
 /*
  * BOARD_CAR_MOVE_TARGET_SPEED_RPM:
- * 小车前进 / 后退时的基础目标速度，单位为编码器计数每秒。
+ * 小车前进 / 后退时的基础目标速度，单位为 RPM（转/分钟）。
  * 该值是速度环的默认设定值，可通过蓝牙在运行时调整。
  */
 #define BOARD_CAR_MOVE_TARGET_SPEED_RPM          300
@@ -348,7 +348,7 @@
 
 /*
  * BOARD_CAR_TURN_TARGET_SPEED_RPM:
- * 左转 / 右转时左右轮差速控制的默认目标速度。
+ * 左转 / 右转时左右轮差速控制的默认目标速度，单位为 RPM（转/分钟）。
  * 本次改造后，转向同样走速度闭环，不再走纯 PWM 直推。
  */
 #define BOARD_CAR_TURN_TARGET_SPEED_RPM          150
@@ -370,7 +370,7 @@
 /*
  * BOARD_HEADING_PID_KP / KI / KD:
  * 航向外环 PID 默认参数。
- * 这个外环的输出单位是“左右轮速度补偿量”，单位为 CPS。
+ * 这个外环的输出单位是“左右轮速度补偿量”，单位为 RPM（转/分钟）。
  * 建议先从小 Kp 起步，Ki 和 Kd 保守设置。
  */
 #define BOARD_HEADING_PID_KP                     0.58f
@@ -385,7 +385,7 @@
 
 /*
  * BOARD_HEADING_PID_OUTPUT_LIMIT_RPM:
- * 航向纠偏量限幅，限制左右轮目标速度的最大补偿幅度。
+ * 航向纠偏量限幅，限制左右轮目标速度的最大补偿幅度，单位为 RPM（转/分钟）。
  * 建议不超过基础速度的 1/2。
  */
 #define BOARD_HEADING_PID_OUTPUT_LIMIT_RPM       14.5f

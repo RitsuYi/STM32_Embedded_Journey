@@ -1,5 +1,5 @@
-.\output\objects\apptask.o: Core\AppTask.c
-.\output\objects\apptask.o: Core\AppTask.h
+.\output\objects\apptask.o: App\AppTask.c
+.\output\objects\apptask.o: App\AppTask.h
 .\output\objects\apptask.o: .\Hardware\BlueSerial.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Include\core_cm4.h
@@ -40,7 +40,7 @@
 .\output\objects\apptask.o: .\Hardware\Key.h
 .\output\objects\apptask.o: .\Hardware\MPU6050.h
 .\output\objects\apptask.o: .\Hardware\Motor.h
-.\output\objects\apptask.o: .\App\PID.h
+.\output\objects\apptask.o: App\PID.h
 .\output\objects\apptask.o: .\Hardware\Serial.h
 .\output\objects\apptask.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdio.h
 .\output\objects\apptask.o: .\System\Timer.h
