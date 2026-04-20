@@ -328,25 +328,32 @@ void Encoder_UpdateSpeed(void)
 		}
 
 		/* 更新窗口内容与窗口总和。 */
-		g_encoderDeltaHistory[i][g_encoderHistoryIndex] = delta;
+		g_encoderDeltaHistory[i][g_encoderHistoryIndex] = delta;//先提取后写入
 		g_encoderDeltaWindowSum[i] += delta - oldDelta;
 
 		/* 实际测速时间窗 = 采样周期 * 当前有效样本数。
 		 * 上电早期样本数不足时，用真实样本数能让速度尽快收敛到合理值。 */
 		windowMs = (int32_t)BOARD_ENCODER_SAMPLE_MS * (int32_t)g_encoderValidSamples[i];
 
-		/* RPM 换算分母：
+		/* RPM 换算
+		 * ((g_encoderDeltaWindowSum[i]/windowMs)*60000)/BOARD_ENCODER_COUNTS_PER_OUTPUT_REV
+		 * 窗口内总脉冲数除以窗口时间毫秒数，得到每毫秒的脉冲数
+		 * 再乘以 60000 得到每分钟的脉冲数
+		 * 最后除以每输出轴一圈对应的编码器计数，得到转速 RPM。
+		 * 优化后按如下计算
+		 * 分母：
 		 * 时间窗(ms) * 每输出轴一圈对应的编码器计数。 */
 		denominator = (int64_t)windowMs * (int64_t)BOARD_ENCODER_COUNTS_PER_OUTPUT_REV;
 
 		/* RPM = 窗口计数 * 60000 / (窗口时间ms * 每圈计数)。 */
 		g_encoderSpeedRpm[i] = Encoder_DivRoundClosest((int64_t)g_encoderDeltaWindowSum[i] * 60000LL,
 													   denominator);
+
 	}
 
 	/* 历史窗口指针循环前进。 */
 	g_encoderHistoryIndex++;
-	if (g_encoderHistoryIndex >= BOARD_ENCODER_SPEED_AVG_SAMPLES)
+	if (g_encoderHistoryIndex >= BOARD_ENCODER_SPEED_AVG_SAMPLES)//如果大于设定平滑值清零
 	{
 		g_encoderHistoryIndex = 0U;
 	}

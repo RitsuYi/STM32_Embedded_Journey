@@ -1,22 +1,18 @@
 {
     "configurations": [
         {
-            "name": "Project",
+            "name": "Target 1",
             "includePath": [
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Core",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\App",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\System",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Hardware",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Include",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\STM32F4xx_StdPeriph_Driver",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\UserConfig",
+                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\04_Projects\\state machine\\Start",
+                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\04_Projects\\state machine\\Library",
+                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\04_Projects\\state machine\\User",
+                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\04_Projects\\state machine\\System",
+                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\04_Projects\\state machine\\Hardware",
                 "C:\\Keil_v5\\ARM\\ARMCC\\include",
                 "C:\\Keil_v5\\ARM\\ARMCC\\include\\rw"
             ],
             "defines": [
                 "USE_STDPERIPH_DRIVER",
-                "STM32F40_41xxx",
                 "__CC_ARM",
                 "__arm__",
                 "__align(x)=",

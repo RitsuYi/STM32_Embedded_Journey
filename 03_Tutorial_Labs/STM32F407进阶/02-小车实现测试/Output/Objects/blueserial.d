@@ -2,7 +2,7 @@
 .\output\objects\blueserial.o: Hardware\BlueSerial.h
 .\output\objects\blueserial.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\blueserial.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\blueserial.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\blueserial.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\blueserial.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\blueserial.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\blueserial.o: .\Drivers\CMSIS\Include\core_cmSimd.h
@@ -36,5 +36,5 @@
 .\output\objects\blueserial.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h
 .\output\objects\blueserial.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h
 .\output\objects\blueserial.o: Hardware\Serial.h
-.\output\objects\blueserial.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdio.h
-.\output\objects\blueserial.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdarg.h
+.\output\objects\blueserial.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\output\objects\blueserial.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
