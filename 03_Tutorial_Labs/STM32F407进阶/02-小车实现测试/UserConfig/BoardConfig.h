@@ -301,11 +301,18 @@
 
 /*
  * BOARD_ENCODER_SPEED_AVG_SAMPLES:
- * 閫熷害浼扮畻鐨勬粴鍔ㄥ钩鍧囩獥鍙ｉ暱搴︺€? * 鏇存柊鑺傛媿浠嶇劧鏄?20ms锛屼絾鐢ㄥ娆￠噰鏍锋眰骞冲潎鏉ユ彁楂?OLED
- * 鏄剧ず鍜岄€熷害鐜弽棣堢殑鍒嗚鲸鐜囥€? * 鍊艰秺澶э紝鏁版嵁瓒婂钩绋筹紝浣嗗搷搴斾篃浼氱◢鎱€? */
-#define BOARD_ENCODER_SPEED_AVG_SAMPLES          4U
+ * 速度估算的滑动平均窗口长度。
+ * 更新节拍仍然是 20ms，但会对多次采样结果做平均，以提高速度显示和速度闭环反馈的稳定性。
+ * 数值越大，速度数据越平滑，但响应也会更慢。
+ */
+#define BOARD_ENCODER_SPEED_AVG_SAMPLES          1U
 
-/* Output shaft counts per revolution: 13 PPR x 4x decoder x 20:1 gear ratio = 1040 */
+/*
+ * BOARD_ENCODER_COUNTS_PER_OUTPUT_REV:
+ * 输出轴每转一圈对应的编码器总计数。
+ * 计算方式：编码器原始 PPR × 四倍频系数 × 电机减速比。
+ * 当前配置为：13 × 4 × 20 = 1040。
+ */
 #define BOARD_ENCODER_PPR                        13U
 #define BOARD_ENCODER_QUADRATURE_MULTIPLIER      4U
 #define BOARD_MOTOR_GEAR_RATIO                   20U
