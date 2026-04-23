@@ -2,7 +2,7 @@
 .\output\objects\imu_fusion.o: Hardware\IMU_Fusion.h
 .\output\objects\imu_fusion.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\imu_fusion.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\imu_fusion.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\imu_fusion.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\imu_fusion.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\imu_fusion.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\imu_fusion.o: .\Drivers\CMSIS\Include\core_cmSimd.h
@@ -38,4 +38,4 @@
 .\output\objects\imu_fusion.o: .\UserConfig\BoardConfig.h
 .\output\objects\imu_fusion.o: Hardware\HMC5883L.h
 .\output\objects\imu_fusion.o: Hardware\MPU6050.h
-.\output\objects\imu_fusion.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\math.h
+.\output\objects\imu_fusion.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

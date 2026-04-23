@@ -52,6 +52,10 @@ static int16_t g_outputCommand[MOTOR_COUNT];
 /* 小车直行和转向时的默认目标速度。 */
 static int32_t g_moveTargetSpeedRpm = BOARD_CAR_MOVE_TARGET_SPEED_RPM;
 static int32_t g_turnTargetSpeedRpm = BOARD_CAR_TURN_TARGET_SPEED_RPM;
+static int32_t g_baseSpeedRpm = 0;
+static int32_t g_steerCorrectionRpm = 0;
+static int32_t g_steerCorrectionMaxRpm = BOARD_CAR_TURN_TARGET_SPEED_MAX_RPM;
+static uint8_t g_directDifferentialModeEnabled = 0U;
 /* 闭环控制使能标志：
  * 为 0 时，Motor_ControlTask() 直接返回，不参与 PID 调速。 */
 static uint8_t g_closedLoopEnabled = 0U;
@@ -134,6 +138,77 @@ static int16_t Motor_LimitCommand(int16_t speed)
 }
 
 /* 初始化单个方向控制引脚。 */
+static int32_t Motor_LimitSignedValue(int32_t value, int32_t absMax)
+{
+	if (absMax < 0)
+	{
+		absMax = -absMax;
+	}
+
+	if (value > absMax)
+	{
+		return absMax;
+	}
+
+	if (value < -absMax)
+	{
+		return -absMax;
+	}
+
+	return value;
+}
+
+static void Motor_LimitDifferentialCommand(int32_t *baseSpeedRpm, int32_t *steerCorrectionRpm)
+{
+	int32_t baseSpeed;
+	int32_t steerCorrection;
+	int32_t baseAbs;
+
+	if ((baseSpeedRpm == 0) || (steerCorrectionRpm == 0))
+	{
+		return;
+	}
+
+	baseSpeed = Motor_LimitSignedValue(*baseSpeedRpm, BOARD_CAR_MOVE_TARGET_SPEED_MAX_RPM);
+	steerCorrection = Motor_LimitSignedValue(*steerCorrectionRpm, g_steerCorrectionMaxRpm);
+
+	baseAbs = baseSpeed;
+	if (baseAbs < 0)
+	{
+		baseAbs = -baseAbs;
+	}
+
+	steerCorrection = Motor_LimitSignedValue(steerCorrection, baseAbs);
+
+	*baseSpeedRpm = baseSpeed;
+	*steerCorrectionRpm = steerCorrection;
+}
+
+static Motor_CarState_t Motor_GetCarStateByDifferentialCommand(int32_t baseSpeedRpm, int32_t steerCorrectionRpm)
+{
+	if (baseSpeedRpm > 0)
+	{
+		if (steerCorrectionRpm > 0)
+		{
+			return CAR_LEFT;
+		}
+
+		if (steerCorrectionRpm < 0)
+		{
+			return CAR_RIGHT;
+		}
+
+		return CAR_FORWARD;
+	}
+
+	if (baseSpeedRpm < 0)
+	{
+		return CAR_BACKWARD;
+	}
+
+	return CAR_STOP;
+}
+
 static void Motor_InitPin(GPIO_TypeDef *port, uint16_t pin)
 {
 	GPIO_InitTypeDef gpioInitStructure;
@@ -253,10 +328,20 @@ static void Motor_SyncPidProfiles(void)
 static void Motor_DisableClosedLoop(void)
 {
 	g_closedLoopEnabled = 0U;
+	g_directDifferentialModeEnabled = 0U;
+	g_baseSpeedRpm = 0;
+	g_steerCorrectionRpm = 0;
 	Motor_ResetControlLoops();
 }
 
 /* 一次性设置左右两侧轮子的目标速度。 */
+static void Motor_SetDifferentialCommand(int32_t baseSpeedRpm, int32_t steerCorrectionRpm)
+{
+	Motor_LimitDifferentialCommand(&baseSpeedRpm, &steerCorrectionRpm);
+	g_baseSpeedRpm = baseSpeedRpm;
+	g_steerCorrectionRpm = steerCorrectionRpm;
+}
+
 static void Motor_SetLeftRightTargets(int32_t leftTarget, int32_t rightTarget)
 {
 	g_targetSpeedRpm[g_carWheelMotorMap[CAR_WHEEL_LEFT_FRONT]] = leftTarget;
@@ -266,46 +351,69 @@ static void Motor_SetLeftRightTargets(int32_t leftTarget, int32_t rightTarget)
 }
 
 /* 根据当前整车状态，刷新四个轮子的目标速度。 */
-static void Motor_UpdateTargetsByState(void)
+/* 根据当前整车状态，生成基础速度和转向修正量。 */
+static void Motor_UpdateCommandByState(void)
 {
-	int32_t baseTarget;
+	int32_t baseSpeed;
+	int32_t steerCorrection;
+
+	baseSpeed = 0;
+	steerCorrection = 0;
 
 	switch (g_carState)
 	{
 		case CAR_FORWARD:
 			/* 前进时左右同速正转。 */
-			baseTarget = g_moveTargetSpeedRpm;
-			Motor_SetLeftRightTargets(baseTarget, baseTarget);
+			baseSpeed = g_moveTargetSpeedRpm;
 			break;
 
 		case CAR_BACKWARD:
 			/* 后退时左右同速反转。 */
-			baseTarget = -g_moveTargetSpeedRpm;
-			Motor_SetLeftRightTargets(baseTarget, baseTarget);
+			baseSpeed = -g_moveTargetSpeedRpm;
 			break;
 
 		case CAR_LEFT:
 			/* 原地左转：左侧反转，右侧正转。 */
-			Motor_SetLeftRightTargets(-g_turnTargetSpeedRpm, g_turnTargetSpeedRpm);
-			return;
+			/* 左转改为前进中的差速转弯。 */
+			baseSpeed = g_moveTargetSpeedRpm;
+			steerCorrection = g_turnTargetSpeedRpm;
+			break;
 
 		case CAR_RIGHT:
 			/* 原地右转：左侧正转，右侧反转。 */
-			Motor_SetLeftRightTargets(g_turnTargetSpeedRpm, -g_turnTargetSpeedRpm);
-			return;
+			/* 右转改为前进中的差速转弯。 */
+			baseSpeed = g_moveTargetSpeedRpm;
+			steerCorrection = -g_turnTargetSpeedRpm;
+			break;
 
 		case CAR_STOP:
 		default:
 			/* 停止状态下四轮目标速度全部为 0。 */
-			Motor_SetLeftRightTargets(0, 0);
-			return;
+			break;
 	}
+
+	Motor_SetDifferentialCommand(baseSpeed, steerCorrection);
+}
+
+/* 进入某个闭环运动状态。 */
+/* 根据基础速度和转向修正量，换算左右轮目标速度。 */
+static void Motor_UpdateTargetsByCommand(void)
+{
+	int32_t leftTarget;
+	int32_t rightTarget;
+
+	Motor_SetDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
+
+	leftTarget = g_baseSpeedRpm - g_steerCorrectionRpm;
+	rightTarget = g_baseSpeedRpm + g_steerCorrectionRpm;
+	Motor_SetLeftRightTargets(leftTarget, rightTarget);
 }
 
 /* 进入某个闭环运动状态。 */
 static void Motor_EnableClosedLoop(Motor_CarState_t state)
 {
 	g_carState = state;
+	g_directDifferentialModeEnabled = 0U;
 	g_closedLoopEnabled = 1U;
 
 	/* 每次切换状态时重置控制器，避免上一个状态残留积分影响新的动作。 */
@@ -450,6 +558,35 @@ void Motor_CarStop(void)
 	Motor_StopAll();
 }
 
+void Motor_CarDriveDifferential(int32_t baseSpeedRpm, int32_t steerCorrectionRpm)
+{
+	uint8_t needImmediateControl;
+
+	needImmediateControl = (uint8_t)((g_closedLoopEnabled == 0U) ||
+									 (g_directDifferentialModeEnabled == 0U));
+
+	g_directDifferentialModeEnabled = 1U;
+	g_closedLoopEnabled = 1U;
+	Motor_SetDifferentialCommand(baseSpeedRpm, steerCorrectionRpm);
+	g_carState = Motor_GetCarStateByDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
+
+	if (needImmediateControl != 0U)
+	{
+		Motor_ResetControlLoops();
+		Motor_SyncPidProfiles();
+		Motor_ControlTask();
+	}
+	else
+	{
+		Motor_UpdateTargetsByCommand();
+	}
+}
+
+void Motor_SetSteerCorrectionRpm(int32_t correctionRpm)
+{
+	Motor_CarDriveDifferential(g_baseSpeedRpm, correctionRpm);
+}
+
 void Motor_SetCarState(Motor_CarState_t state)
 {
 	/* 把外部给出的整车状态转换成具体动作入口。 */
@@ -549,7 +686,11 @@ void Motor_ControlTask(void)
 	}
 
 	/* 先根据当前整车状态刷新 4 个轮子的目标速度。 */
-	Motor_UpdateTargetsByState();
+	if (g_directDifferentialModeEnabled == 0U)
+	{
+		Motor_UpdateCommandByState();
+	}
+	Motor_UpdateTargetsByCommand();
 
 	for (index = 0U; index < MOTOR_COUNT; index++)
 	{
@@ -607,6 +748,22 @@ void Motor_SetTurnTargetSpeedRpm(int32_t speedRpm)
 	g_turnTargetSpeedRpm = speedRpm;
 }
 
+void Motor_SetSteerCorrectionMaxRpm(int32_t maxCorrectionRpm)
+{
+	if (maxCorrectionRpm < 0)
+	{
+		maxCorrectionRpm = -maxCorrectionRpm;
+	}
+
+	if (maxCorrectionRpm > BOARD_CAR_MOVE_TARGET_SPEED_MAX_RPM)
+	{
+		maxCorrectionRpm = BOARD_CAR_MOVE_TARGET_SPEED_MAX_RPM;
+	}
+
+	g_steerCorrectionMaxRpm = maxCorrectionRpm;
+	Motor_SetDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
+}
+
 void Motor_SetHeadingAssistEnabled(uint8_t enable)
 {
 	/* 预留接口：当前工程暂未实现航向辅助，因此仅消除未使用参数告警。 */
@@ -623,6 +780,11 @@ int32_t Motor_GetTurnTargetSpeedRpm(void)
 {
 	/* 获取当前保存的默认转向目标速度。 */
 	return g_turnTargetSpeedRpm;
+}
+
+int32_t Motor_GetSteerCorrectionRpm(void)
+{
+	return g_steerCorrectionRpm;
 }
 
 int32_t Motor_GetTargetSpeedRpm(Motor_Id_t motor)

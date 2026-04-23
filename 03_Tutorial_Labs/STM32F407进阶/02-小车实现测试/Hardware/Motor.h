@@ -33,7 +33,10 @@ void Motor_CarForward(uint16_t speed);
 void Motor_CarBackward(uint16_t speed);
 void Motor_CarTurnLeft(uint16_t speed);
 void Motor_CarTurnRight(uint16_t speed);
+void Motor_CarDriveDifferential(int32_t baseSpeedRpm, int32_t steerCorrectionRpm);
 void Motor_CarStop(void);
+void Motor_SetSteerCorrectionRpm(int32_t correctionRpm);
+void Motor_SetSteerCorrectionMaxRpm(int32_t maxCorrectionRpm);
 
 void Motor_SetCarState(Motor_CarState_t state);
 Motor_CarState_t Motor_GetCarState(void);
@@ -48,6 +51,7 @@ void Motor_SetTurnTargetSpeedRpm(int32_t speedRpm);
 void Motor_SetHeadingAssistEnabled(uint8_t enable);
 int32_t Motor_GetMoveTargetSpeedRpm(void);
 int32_t Motor_GetTurnTargetSpeedRpm(void);
+int32_t Motor_GetSteerCorrectionRpm(void);
 
 int32_t Motor_GetTargetSpeedRpm(Motor_Id_t motor);
 int32_t Motor_GetActualSpeedRpm(Motor_Id_t motor);

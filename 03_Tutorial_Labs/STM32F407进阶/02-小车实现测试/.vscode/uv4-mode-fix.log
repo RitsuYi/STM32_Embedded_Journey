@@ -1,0 +1,7 @@
+*** Using Compiler 'V5.06 update 5 (build 528)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'Project'
+compiling BlueSerial.c...
+linking...
+Program Size: Code=33070 RO-data=3090 RW-data=328 ZI-data=7656  
+".\Output\Objects\Project.axf" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:03

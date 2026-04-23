@@ -16,6 +16,138 @@ static volatile uint8_t g_blueSerialFieldCount = 0U;
 char BlueSerial_String[BLUE_SERIAL_MAX_FRAME_LENGTH];
 char BlueSerial_StringArray[BLUE_SERIAL_MAX_FIELDS][32];
 
+static uint8_t BlueSerial_IsDigit(char ch)
+{
+	return (uint8_t)((ch >= '0') && (ch <= '9'));
+}
+
+static uint8_t BlueSerial_IsAsciiSpace(char ch)
+{
+	return (uint8_t)((ch == ' ') || (ch == '\t') || (ch == '\r') || (ch == '\n'));
+}
+
+static void BlueSerial_TrimField(char *field)
+{
+	uint8_t startIndex;
+	uint8_t endIndex;
+	uint8_t writeIndex;
+
+	if (field == 0)
+	{
+		return;
+	}
+
+	startIndex = 0U;
+	while ((field[startIndex] != '\0') && (BlueSerial_IsAsciiSpace(field[startIndex]) != 0U))
+	{
+		startIndex++;
+	}
+
+	endIndex = startIndex;
+	while (field[endIndex] != '\0')
+	{
+		endIndex++;
+	}
+
+	while ((endIndex > startIndex) && (BlueSerial_IsAsciiSpace(field[endIndex - 1U]) != 0U))
+	{
+		endIndex--;
+	}
+
+	writeIndex = 0U;
+	while (startIndex < endIndex)
+	{
+		field[writeIndex] = field[startIndex];
+		writeIndex++;
+		startIndex++;
+	}
+
+	field[writeIndex] = '\0';
+}
+
+static uint8_t BlueSerial_GetSeparatorLength(const char *text, uint16_t index)
+{
+	char currentChar;
+	char prevChar;
+	char nextChar;
+
+	if (text == 0)
+	{
+		return 0U;
+	}
+
+	currentChar = text[index];
+	prevChar = (index > 0U) ? text[index - 1U] : '\0';
+	nextChar = text[index + 1U];
+
+	if (currentChar == ',')
+	{
+		return 1U;
+	}
+
+	if (currentChar == '.')
+	{
+		/* Keep decimal points inside numbers, but allow [TEL.ON] / [MODE.STOP]. */
+		if ((BlueSerial_IsDigit(prevChar) != 0U) && (BlueSerial_IsDigit(nextChar) != 0U))
+		{
+			return 0U;
+		}
+
+		return 1U;
+	}
+
+	if ((uint8_t)currentChar == 0xEFU)
+	{
+		if (text[index + 1U] == '\0')
+		{
+			return 0U;
+		}
+		if (text[index + 2U] == '\0')
+		{
+			return 0U;
+		}
+
+		if (((uint8_t)text[index + 1U] == 0xBCU) && ((uint8_t)text[index + 2U] == 0x8CU))
+		{
+			return 3U;
+		}
+
+		if (((uint8_t)text[index + 1U] == 0xBCU) && ((uint8_t)text[index + 2U] == 0x8EU))
+		{
+			if ((BlueSerial_IsDigit(prevChar) != 0U) && (BlueSerial_IsDigit(text[index + 3U]) != 0U))
+			{
+				return 0U;
+			}
+
+			return 3U;
+		}
+	}
+
+	if ((uint8_t)currentChar == 0xE3U)
+	{
+		if (text[index + 1U] == '\0')
+		{
+			return 0U;
+		}
+		if (text[index + 2U] == '\0')
+		{
+			return 0U;
+		}
+
+		if (((uint8_t)text[index + 1U] == 0x80U) && ((uint8_t)text[index + 2U] == 0x82U))
+		{
+			if ((BlueSerial_IsDigit(prevChar) != 0U) && (BlueSerial_IsDigit(text[index + 3U]) != 0U))
+			{
+				return 0U;
+			}
+
+			return 3U;
+		}
+	}
+
+	return 0U;
+}
+
 void BlueSerial_Init(void)
 {
 	BlueSerial_ClearBuffer();
@@ -151,6 +283,7 @@ void BlueSerial_Receive(void)
 	uint8_t fieldIndex;
 	uint8_t fieldCharIndex;
 	uint8_t frameStarted;
+	uint8_t separatorLength;
 
 	BlueSerial_String[0] = '\0';
 	for (fieldIndex = 0U; fieldIndex < BLUE_SERIAL_MAX_FIELDS; fieldIndex++)
@@ -190,29 +323,38 @@ void BlueSerial_Receive(void)
 	BlueSerial_String[stringIndex] = '\0';
 	fieldIndex = 0U;
 	fieldCharIndex = 0U;
-	for (stringIndex = 0U; BlueSerial_String[stringIndex] != '\0'; stringIndex++)
+	for (stringIndex = 0U; BlueSerial_String[stringIndex] != '\0';)
 	{
 		if (fieldIndex >= BLUE_SERIAL_MAX_FIELDS)
 		{
 			break;
 		}
 
-		if (BlueSerial_String[stringIndex] == ',')
+		separatorLength = BlueSerial_GetSeparatorLength(BlueSerial_String, stringIndex);
+		if (separatorLength != 0U)
 		{
 			BlueSerial_StringArray[fieldIndex][fieldCharIndex] = '\0';
+			BlueSerial_TrimField(BlueSerial_StringArray[fieldIndex]);
 			fieldIndex++;
 			fieldCharIndex = 0U;
+			stringIndex += separatorLength;
 		}
-		else if (fieldCharIndex < BLUE_SERIAL_MAX_FIELD_LENGTH)
+		else
 		{
-			BlueSerial_StringArray[fieldIndex][fieldCharIndex] = BlueSerial_String[stringIndex];
-			fieldCharIndex++;
+			if (fieldCharIndex < BLUE_SERIAL_MAX_FIELD_LENGTH)
+			{
+				BlueSerial_StringArray[fieldIndex][fieldCharIndex] = BlueSerial_String[stringIndex];
+				fieldCharIndex++;
+			}
+
+			stringIndex++;
 		}
 	}
 
 	if ((frameStarted != 0U) && (fieldIndex < BLUE_SERIAL_MAX_FIELDS))
 	{
 		BlueSerial_StringArray[fieldIndex][fieldCharIndex] = '\0';
+		BlueSerial_TrimField(BlueSerial_StringArray[fieldIndex]);
 		g_blueSerialFieldCount = (uint8_t)(fieldIndex + 1U);
 	}
 }

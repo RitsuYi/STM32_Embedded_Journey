@@ -2,7 +2,7 @@
 .\output\objects\hmc5883l.o: Hardware\HMC5883L.h
 .\output\objects\hmc5883l.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\hmc5883l.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\hmc5883l.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\hmc5883l.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\hmc5883l.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\hmc5883l.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\hmc5883l.o: .\Drivers\CMSIS\Include\core_cmSimd.h
@@ -38,4 +38,4 @@
 .\output\objects\hmc5883l.o: .\UserConfig\BoardConfig.h
 .\output\objects\hmc5883l.o: Hardware\BoardI2C.h
 .\output\objects\hmc5883l.o: .\System\Timer.h
-.\output\objects\hmc5883l.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\math.h
+.\output\objects\hmc5883l.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

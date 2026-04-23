@@ -2,7 +2,7 @@
 .\output\objects\stm32f4xx_dsi.o: Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dsi.h
 .\output\objects\stm32f4xx_dsi.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\stm32f4xx_dsi.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\stm32f4xx_dsi.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\stm32f4xx_dsi.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\stm32f4xx_dsi.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\stm32f4xx_dsi.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\stm32f4xx_dsi.o: .\Drivers\CMSIS\Include\core_cmSimd.h

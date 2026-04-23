@@ -571,7 +571,7 @@
  * 更新节拍仍然是 20ms，但会对多次采样结果做平均，以提高速度显示和速度闭环反馈的稳定性。
  * 数值越大，速度数据越平滑，但响应也会更慢。
  */
-#define BOARD_ENCODER_SPEED_AVG_SAMPLES          5U
+#define BOARD_ENCODER_SPEED_AVG_SAMPLES          4U
 
 /*
  * BOARD_ENCODER_COUNTS_PER_OUTPUT_REV:

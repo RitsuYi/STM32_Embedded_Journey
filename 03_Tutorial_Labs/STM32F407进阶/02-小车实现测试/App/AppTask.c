@@ -136,6 +136,36 @@ static uint8_t AppTask_IsMoveTargetSliderName(const char *name)
 					  AppTask_StringEqualsIgnoreCase(name, "TARGET"));
 }
 
+static uint8_t AppTask_TrySetCarStateByName(const char *name)
+{
+	if (AppTask_StringEqualsIgnoreCase(name, "FORWARD"))
+	{
+		Motor_SetCarState(CAR_FORWARD);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(name, "BACKWARD"))
+	{
+		Motor_SetCarState(CAR_BACKWARD);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(name, "LEFT"))
+	{
+		Motor_SetCarState(CAR_LEFT);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(name, "RIGHT"))
+	{
+		Motor_SetCarState(CAR_RIGHT);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(name, "STOP"))
+	{
+		Motor_SetCarState(CAR_STOP);
+	}
+	else
+	{
+		return 1U;
+	}
+
+	return 0U;
+}
+
 static int32_t AppTask_RoundFloatToInt32(float value)
 {
 	if (value >= 0.0f)
@@ -656,27 +686,7 @@ static void AppTask_HandleStateCommand(uint8_t fieldCount)
 
 	if ((fieldCount == 3U) && AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[1], "SET"))
 	{
-		if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[2], "FORWARD"))
-		{
-			Motor_SetCarState(CAR_FORWARD);
-		}
-		else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[2], "BACKWARD"))
-		{
-			Motor_SetCarState(CAR_BACKWARD);
-		}
-		else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[2], "LEFT"))
-		{
-			Motor_SetCarState(CAR_LEFT);
-		}
-		else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[2], "RIGHT"))
-		{
-			Motor_SetCarState(CAR_RIGHT);
-		}
-		else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[2], "STOP"))
-		{
-			Motor_SetCarState(CAR_STOP);
-		}
-		else
+		if (AppTask_TrySetCarStateByName(BlueSerial_StringArray[2]) != 0U)
 		{
 			AppTask_SendError("STATE_CMD");
 			return;
@@ -688,6 +698,24 @@ static void AppTask_HandleStateCommand(uint8_t fieldCount)
 	}
 
 	AppTask_SendError("STATE_CMD");
+}
+
+static void AppTask_HandleModeCommand(uint8_t fieldCount)
+{
+	if (fieldCount != 2U)
+	{
+		AppTask_SendError("MODE_CMD");
+		return;
+	}
+
+	if (AppTask_TrySetCarStateByName(BlueSerial_StringArray[1]) != 0U)
+	{
+		AppTask_SendError("MODE_CMD");
+		return;
+	}
+
+	AppTask_SendOk("MODE", Motor_GetCarStateName(Motor_GetCarState()));
+	AppTask_SendStateFrame();
 }
 
 static void AppTask_HandleMpuCommand(uint8_t fieldCount)
@@ -767,6 +795,10 @@ static void AppTask_DispatchBluetoothFrame(void)
 	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "STATE"))
 	{
 		AppTask_HandleStateCommand(fieldCount);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "MODE"))
+	{
+		AppTask_HandleModeCommand(fieldCount);
 	}
 	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "MPU"))
 	{
