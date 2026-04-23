@@ -34,6 +34,7 @@ void Motor_CarBackward(uint16_t speed);
 void Motor_CarTurnLeft(uint16_t speed);
 void Motor_CarTurnRight(uint16_t speed);
 void Motor_CarDriveDifferential(int32_t baseSpeedRpm, int32_t steerCorrectionRpm);
+void Motor_CarDriveJoystick(int32_t xPercent, int32_t yPercent);
 void Motor_CarStop(void);
 void Motor_SetSteerCorrectionRpm(int32_t correctionRpm);
 void Motor_SetSteerCorrectionMaxRpm(int32_t maxCorrectionRpm);

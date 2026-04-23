@@ -613,6 +613,27 @@ static void AppTask_HandleSliderCommand(uint8_t fieldCount)
 	g_lastSliderUpdateTick = Timer_GetTick();
 }
 
+static void AppTask_HandleJoystickCommand(uint8_t fieldCount)
+{
+	int32_t xValue;
+	int32_t yValue;
+
+	if (fieldCount != 5U)
+	{
+		AppTask_SendError("JOYSTICK_CMD");
+		return;
+	}
+
+	if ((AppTask_ParseInt32(BlueSerial_StringArray[3], &xValue) != 0U) ||
+		(AppTask_ParseInt32(BlueSerial_StringArray[4], &yValue) != 0U))
+	{
+		AppTask_SendError("BAD_NUMBER");
+		return;
+	}
+
+	Motor_CarDriveJoystick(xValue, yValue);
+}
+
 static void AppTask_HandleCtrlCommand(uint8_t fieldCount)
 {
 	int32_t value;
@@ -820,6 +841,10 @@ static void AppTask_DispatchBluetoothFrame(void)
 			 AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "s"))
 	{
 		AppTask_HandleSliderCommand(fieldCount);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "joystick"))
+	{
+		AppTask_HandleJoystickCommand(fieldCount);
 	}
 	else
 	{

@@ -18,6 +18,7 @@
 #include "Encoder.h"
 #include "PID.h"
 #include "PWM.h"
+#include <math.h>
 
 /* 单个电机的硬件资源描述：
  * - IN1/IN2 用于控制 H 桥方向。
@@ -56,6 +57,11 @@ static int32_t g_baseSpeedRpm = 0;
 static int32_t g_steerCorrectionRpm = 0;
 static int32_t g_steerCorrectionMaxRpm = BOARD_CAR_TURN_TARGET_SPEED_MAX_RPM;
 static uint8_t g_directDifferentialModeEnabled = 0U;
+static int32_t g_directLeftTargetRpm = 0;
+static int32_t g_directRightTargetRpm = 0;
+static uint8_t g_joystickDriveEnabled = 0U;
+static int32_t g_joystickXPercent = 0;
+static int32_t g_joystickYPercent = 0;
 /* 闭环控制使能标志：
  * 为 0 时，Motor_ControlTask() 直接返回，不参与 PID 调速。 */
 static uint8_t g_closedLoopEnabled = 0U;
@@ -91,6 +97,11 @@ static const Encoder_Id_t g_motorEncoderMap[MOTOR_COUNT] =
 	[BOARD_CAR_LEFT_REAR_MOTOR] = (Encoder_Id_t)BOARD_CAR_LEFT_REAR_ENCODER,
 	[BOARD_CAR_RIGHT_REAR_MOTOR] = (Encoder_Id_t)BOARD_CAR_RIGHT_REAR_ENCODER
 };
+
+static void Motor_ResetControlLoops(void);
+static void Motor_SyncPidProfiles(void);
+static void Motor_UpdateTargetsByCommand(void);
+static Motor_CarState_t Motor_GetCarStateByDifferentialCommand(int32_t baseSpeedRpm, int32_t steerCorrectionRpm);
 
 /* 根据 GPIO 端口实例打开对应的 GPIO 时钟。 */
 static void Motor_GPIOClockCmd(GPIO_TypeDef *gpiox, FunctionalState newState)
@@ -158,6 +169,26 @@ static int32_t Motor_LimitSignedValue(int32_t value, int32_t absMax)
 	return value;
 }
 
+static int32_t Motor_AbsInt32(int32_t value)
+{
+	if (value < 0)
+	{
+		return -value;
+	}
+
+	return value;
+}
+
+static int32_t Motor_RoundFloatToInt32(float value)
+{
+	if (value >= 0.0f)
+	{
+		return (int32_t)(value + 0.5f);
+	}
+
+	return (int32_t)(value - 0.5f);
+}
+
 static void Motor_LimitDifferentialCommand(int32_t *baseSpeedRpm, int32_t *steerCorrectionRpm)
 {
 	int32_t baseSpeed;
@@ -182,6 +213,137 @@ static void Motor_LimitDifferentialCommand(int32_t *baseSpeedRpm, int32_t *steer
 
 	*baseSpeedRpm = baseSpeed;
 	*steerCorrectionRpm = steerCorrection;
+}
+
+static void Motor_ClearJoystickCommand(void)
+{
+	g_joystickDriveEnabled = 0U;
+	g_joystickXPercent = 0;
+	g_joystickYPercent = 0;
+}
+
+static void Motor_LimitWheelTargets(int32_t *leftTargetRpm, int32_t *rightTargetRpm, int32_t absLimitRpm)
+{
+	int32_t leftAbs;
+	int32_t rightAbs;
+	int32_t maxAbs;
+	float scale;
+
+	if ((leftTargetRpm == 0) || (rightTargetRpm == 0))
+	{
+		return;
+	}
+
+	absLimitRpm = Motor_AbsInt32(absLimitRpm);
+	if (absLimitRpm == 0)
+	{
+		*leftTargetRpm = 0;
+		*rightTargetRpm = 0;
+		return;
+	}
+
+	leftAbs = Motor_AbsInt32(*leftTargetRpm);
+	rightAbs = Motor_AbsInt32(*rightTargetRpm);
+	maxAbs = (leftAbs > rightAbs) ? leftAbs : rightAbs;
+	if (maxAbs > absLimitRpm)
+	{
+		scale = (float)absLimitRpm / (float)maxAbs;
+		*leftTargetRpm = Motor_RoundFloatToInt32((float)(*leftTargetRpm) * scale);
+		*rightTargetRpm = Motor_RoundFloatToInt32((float)(*rightTargetRpm) * scale);
+	}
+
+	*leftTargetRpm = Motor_LimitSignedValue(*leftTargetRpm, absLimitRpm);
+	*rightTargetRpm = Motor_LimitSignedValue(*rightTargetRpm, absLimitRpm);
+}
+
+static void Motor_SetDirectLeftRightTargets(int32_t leftTargetRpm, int32_t rightTargetRpm)
+{
+	g_directLeftTargetRpm = leftTargetRpm;
+	g_directRightTargetRpm = rightTargetRpm;
+	g_baseSpeedRpm = (leftTargetRpm + rightTargetRpm) / 2;
+	g_steerCorrectionRpm = (rightTargetRpm - leftTargetRpm) / 2;
+}
+
+static void Motor_NormalizeJoystickInput(int32_t *xPercent, int32_t *yPercent)
+{
+	float magnitude;
+	float scale;
+
+	if ((xPercent == 0) || (yPercent == 0))
+	{
+		return;
+	}
+
+	*xPercent = Motor_LimitSignedValue(*xPercent, 100);
+	*yPercent = Motor_LimitSignedValue(*yPercent, 100);
+	magnitude = sqrtf((float)((*xPercent * *xPercent) + (*yPercent * *yPercent)));
+	if (magnitude > 100.0f)
+	{
+		scale = 100.0f / magnitude;
+		*xPercent = Motor_RoundFloatToInt32((float)(*xPercent) * scale);
+		*yPercent = Motor_RoundFloatToInt32((float)(*yPercent) * scale);
+	}
+}
+
+static void Motor_ApplyStoredJoystickCommand(void)
+{
+	int32_t speedLimitRpm;
+	int32_t baseSpeedRpm;
+	int32_t turnOffsetRpm;
+	int32_t leftTargetRpm;
+	int32_t rightTargetRpm;
+	uint8_t needImmediateControl;
+
+	if (g_joystickDriveEnabled == 0U)
+	{
+		return;
+	}
+
+	Motor_NormalizeJoystickInput(&g_joystickXPercent, &g_joystickYPercent);
+	if (g_joystickYPercent == 0)
+	{
+		Motor_CarStop();
+		return;
+	}
+
+	speedLimitRpm = Motor_AbsInt32(g_moveTargetSpeedRpm);
+	speedLimitRpm = Motor_LimitSignedValue(speedLimitRpm, BOARD_CAR_MOVE_TARGET_SPEED_MAX_RPM);
+	if (speedLimitRpm == 0)
+	{
+		Motor_CarStop();
+		return;
+	}
+
+	baseSpeedRpm = Motor_RoundFloatToInt32(((float)speedLimitRpm * (float)g_joystickYPercent) / 100.0f);
+	if (baseSpeedRpm == 0)
+	{
+		Motor_CarStop();
+		return;
+	}
+
+	turnOffsetRpm = Motor_RoundFloatToInt32(((float)Motor_AbsInt32(baseSpeedRpm) * (float)g_joystickXPercent) / 100.0f);
+	leftTargetRpm = baseSpeedRpm + turnOffsetRpm;
+	rightTargetRpm = baseSpeedRpm - turnOffsetRpm;
+	Motor_LimitWheelTargets(&leftTargetRpm, &rightTargetRpm, speedLimitRpm);
+
+	needImmediateControl = (uint8_t)((g_closedLoopEnabled == 0U) ||
+									 (g_directDifferentialModeEnabled == 0U));
+
+	g_directDifferentialModeEnabled = 1U;
+	g_closedLoopEnabled = 1U;
+	Motor_SetDirectLeftRightTargets(leftTargetRpm, rightTargetRpm);
+	g_carState = Motor_GetCarStateByDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
+
+	if (needImmediateControl != 0U)
+	{
+		Motor_ResetControlLoops();
+		Motor_SyncPidProfiles();
+		Motor_ControlTask();
+	}
+	else
+	{
+		Motor_UpdateTargetsByCommand();
+	}
 }
 
 static Motor_CarState_t Motor_GetCarStateByDifferentialCommand(int32_t baseSpeedRpm, int32_t steerCorrectionRpm)
@@ -329,8 +491,11 @@ static void Motor_DisableClosedLoop(void)
 {
 	g_closedLoopEnabled = 0U;
 	g_directDifferentialModeEnabled = 0U;
+	g_directLeftTargetRpm = 0;
+	g_directRightTargetRpm = 0;
 	g_baseSpeedRpm = 0;
 	g_steerCorrectionRpm = 0;
+	Motor_ClearJoystickCommand();
 	Motor_ResetControlLoops();
 }
 
@@ -402,10 +567,18 @@ static void Motor_UpdateTargetsByCommand(void)
 	int32_t leftTarget;
 	int32_t rightTarget;
 
-	Motor_SetDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
+	if (g_directDifferentialModeEnabled != 0U)
+	{
+		leftTarget = g_directLeftTargetRpm;
+		rightTarget = g_directRightTargetRpm;
+	}
+	else
+	{
+		Motor_SetDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
+		leftTarget = g_baseSpeedRpm - g_steerCorrectionRpm;
+		rightTarget = g_baseSpeedRpm + g_steerCorrectionRpm;
+	}
 
-	leftTarget = g_baseSpeedRpm - g_steerCorrectionRpm;
-	rightTarget = g_baseSpeedRpm + g_steerCorrectionRpm;
 	Motor_SetLeftRightTargets(leftTarget, rightTarget);
 }
 
@@ -414,6 +587,9 @@ static void Motor_EnableClosedLoop(Motor_CarState_t state)
 {
 	g_carState = state;
 	g_directDifferentialModeEnabled = 0U;
+	g_directLeftTargetRpm = 0;
+	g_directRightTargetRpm = 0;
+	Motor_ClearJoystickCommand();
 	g_closedLoopEnabled = 1U;
 
 	/* 每次切换状态时重置控制器，避免上一个状态残留积分影响新的动作。 */
@@ -560,14 +736,20 @@ void Motor_CarStop(void)
 
 void Motor_CarDriveDifferential(int32_t baseSpeedRpm, int32_t steerCorrectionRpm)
 {
+	int32_t leftTargetRpm;
+	int32_t rightTargetRpm;
 	uint8_t needImmediateControl;
 
 	needImmediateControl = (uint8_t)((g_closedLoopEnabled == 0U) ||
 									 (g_directDifferentialModeEnabled == 0U));
 
+	Motor_ClearJoystickCommand();
 	g_directDifferentialModeEnabled = 1U;
 	g_closedLoopEnabled = 1U;
 	Motor_SetDifferentialCommand(baseSpeedRpm, steerCorrectionRpm);
+	leftTargetRpm = g_baseSpeedRpm - g_steerCorrectionRpm;
+	rightTargetRpm = g_baseSpeedRpm + g_steerCorrectionRpm;
+	Motor_SetDirectLeftRightTargets(leftTargetRpm, rightTargetRpm);
 	g_carState = Motor_GetCarStateByDifferentialCommand(g_baseSpeedRpm, g_steerCorrectionRpm);
 
 	if (needImmediateControl != 0U)
@@ -580,6 +762,14 @@ void Motor_CarDriveDifferential(int32_t baseSpeedRpm, int32_t steerCorrectionRpm
 	{
 		Motor_UpdateTargetsByCommand();
 	}
+}
+
+void Motor_CarDriveJoystick(int32_t xPercent, int32_t yPercent)
+{
+	g_joystickDriveEnabled = 1U;
+	g_joystickXPercent = xPercent;
+	g_joystickYPercent = yPercent;
+	Motor_ApplyStoredJoystickCommand();
 }
 
 void Motor_SetSteerCorrectionRpm(int32_t correctionRpm)
@@ -729,6 +919,10 @@ void Motor_SetMoveTargetSpeedRpm(int32_t speedRpm)
 	}
 
 	g_moveTargetSpeedRpm = speedRpm;
+	if (g_joystickDriveEnabled != 0U)
+	{
+		Motor_ApplyStoredJoystickCommand();
+	}
 }
 
 void Motor_SetTurnTargetSpeedRpm(int32_t speedRpm)
