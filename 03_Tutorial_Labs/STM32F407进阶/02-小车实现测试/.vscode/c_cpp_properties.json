@@ -3,16 +3,18 @@
         {
             "name": "Project",
             "includePath": [
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Core",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\App",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\System",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Hardware",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Include",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\STM32F4xx_StdPeriph_Driver",
-                "c:\\Users\\HP\\Documents\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\UserConfig",
-                "C:\\Keil_v5\\ARM\\ARMCC\\include",
-                "C:\\Keil_v5\\ARM\\ARMCC\\include\\rw"
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Core",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\App",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\System",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Hardware",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Include",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\STM32F4xx_StdPeriph_Driver",
+                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\UserConfig",
+                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include",
+                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\arm_linux",
+                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\arm_linux_compat",
+                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\rw"
             ],
             "defines": [
                 "USE_STDPERIPH_DRIVER",

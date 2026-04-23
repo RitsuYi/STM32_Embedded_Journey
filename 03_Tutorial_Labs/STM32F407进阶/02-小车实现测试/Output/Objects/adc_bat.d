@@ -2,7 +2,7 @@
 .\output\objects\adc_bat.o: Hardware\ADC_Bat.h
 .\output\objects\adc_bat.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\adc_bat.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\adc_bat.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\adc_bat.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\adc_bat.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\adc_bat.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\adc_bat.o: .\Drivers\CMSIS\Include\core_cmSimd.h

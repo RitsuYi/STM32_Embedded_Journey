@@ -1,6 +1,8 @@
 #include "AppTask.h"
 #include "BlueSerial.h"
 #include "BoardConfig.h"
+#include "HMC5883L.h"
+#include "IMU_Fusion.h"
 #include "Key.h"
 #include "MPU6050.h"
 #include "Motor.h"
@@ -406,6 +408,41 @@ static void AppTask_SendMpuFrame(void)
 	BlueSerial_SendString("]\r\n");
 }
 
+static void AppTask_SendImuDiagFrame(void)
+{
+	BlueSerial_SendString("[IMU,");
+	AppTask_SendFixedValue(MPU6050_GetPitchAccDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetRollAccDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetPitchTiltDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetRollTiltDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetAccelNormG(), 3U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetAccelYG(), 3U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(HMC5883L_GetFieldY(), 4U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(IMU_Fusion_GetMagHeadingRawDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(IMU_Fusion_GetMagHeadingTiltCompDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(IMU_Fusion_GetMagHeadingDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetYawGyroOnlyDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendFixedValue(MPU6050_GetYawDeg(), 2U);
+	BlueSerial_SendByte(',');
+	AppTask_SendUnsignedValue((uint32_t)IMU_Fusion_IsMagCorrectionValid());
+	BlueSerial_SendByte(',');
+	AppTask_SendUnsignedValue((uint32_t)MPU6050_IsAccelTiltValid());
+	BlueSerial_SendByte(',');
+	AppTask_SendUnsignedValue((uint32_t)IMU_Fusion_IsMagRecoveryPending());
+	BlueSerial_SendString("]\r\n");
+}
+
 static void AppTask_SendPlotFrame(void)
 {
 	Motor_Id_t leftFrontMotor;
@@ -672,6 +709,17 @@ static void AppTask_HandleMpuCommand(uint8_t fieldCount)
 	AppTask_SendError("MPU_CMD");
 }
 
+static void AppTask_HandleImuCommand(uint8_t fieldCount)
+{
+	if ((fieldCount == 2U) && AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[1], "GET"))
+	{
+		AppTask_SendImuDiagFrame();
+		return;
+	}
+
+	AppTask_SendError("IMU_CMD");
+}
+
 static void AppTask_HandleTelemetryCommand(uint8_t fieldCount)
 {
 	if ((fieldCount == 2U) && AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[1], "GET"))
@@ -723,6 +771,10 @@ static void AppTask_DispatchBluetoothFrame(void)
 	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "MPU"))
 	{
 		AppTask_HandleMpuCommand(fieldCount);
+	}
+	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "IMU"))
+	{
+		AppTask_HandleImuCommand(fieldCount);
 	}
 	else if (AppTask_StringEqualsIgnoreCase(BlueSerial_StringArray[0], "TEL"))
 	{

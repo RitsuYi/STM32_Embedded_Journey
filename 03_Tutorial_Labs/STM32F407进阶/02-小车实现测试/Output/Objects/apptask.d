@@ -3,7 +3,7 @@
 .\output\objects\apptask.o: .\Hardware\BlueSerial.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\apptask.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\apptask.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\apptask.o: .\Drivers\CMSIS\Include\core_cmSimd.h
@@ -37,10 +37,12 @@
 .\output\objects\apptask.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h
 .\output\objects\apptask.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h
 .\output\objects\apptask.o: .\UserConfig\BoardConfig.h
+.\output\objects\apptask.o: .\Hardware\HMC5883L.h
+.\output\objects\apptask.o: .\Hardware\IMU_Fusion.h
 .\output\objects\apptask.o: .\Hardware\Key.h
 .\output\objects\apptask.o: .\Hardware\MPU6050.h
 .\output\objects\apptask.o: .\Hardware\Motor.h
 .\output\objects\apptask.o: App\PID.h
 .\output\objects\apptask.o: .\Hardware\Serial.h
-.\output\objects\apptask.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\output\objects\apptask.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdio.h
 .\output\objects\apptask.o: .\System\Timer.h
