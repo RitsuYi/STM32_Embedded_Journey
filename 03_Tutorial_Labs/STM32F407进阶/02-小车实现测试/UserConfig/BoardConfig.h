@@ -568,28 +568,16 @@
 /*
  * BOARD_ENCODER_SPEED_AVG_SAMPLES:
  * 速度估算的滑动平均窗口长度。
-<<<<<<< HEAD
- * 更新节拍仍然是 20ms，但用多次采样求平均来提高 OLED
- * 显示和速度环反馈的分辨率。
- * 值越大，数据越平稳，但响应也会稍慢。
- */
-#define BOARD_ENCODER_SPEED_AVG_SAMPLES          5U
-
-/*
- * 编码器输出轴每圈计数：
- * 13 PPR x 4 倍频解码 x 20:1 减速比 = 1040
-=======
  * 更新节拍仍然是 20ms，但会对多次采样结果做平均，以提高速度显示和速度闭环反馈的稳定性。
  * 数值越大，速度数据越平滑，但响应也会更慢。
  */
-#define BOARD_ENCODER_SPEED_AVG_SAMPLES          1U
+#define BOARD_ENCODER_SPEED_AVG_SAMPLES          5U
 
 /*
  * BOARD_ENCODER_COUNTS_PER_OUTPUT_REV:
  * 输出轴每转一圈对应的编码器总计数。
  * 计算方式：编码器原始 PPR × 四倍频系数 × 电机减速比。
  * 当前配置为：13 × 4 × 20 = 1040。
->>>>>>> 689ba4dcffaba1c6887a01e73cf8dda815f01ba3
  */
 #define BOARD_ENCODER_PPR                        13U
 #define BOARD_ENCODER_QUADRATURE_MULTIPLIER      4U
