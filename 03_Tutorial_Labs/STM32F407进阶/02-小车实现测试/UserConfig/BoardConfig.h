@@ -162,6 +162,272 @@
  */
 #define BOARD_MPU6050_GYRO_Z_REVERSE             0U
 
+/* ==================== MPU6050 加速度计配置 ==================== */
+
+/*
+ * BOARD_MPU6050_ACCEL_CONFIG_VALUE:
+ * 加速度计量程配置寄存器值。
+ * 当前默认 0x00，对应 ±2g 量程。
+ */
+#define BOARD_MPU6050_ACCEL_CONFIG_VALUE         0x00U
+
+/*
+ * BOARD_MPU6050_ACCEL_SENSITIVITY_LSB:
+ * 加速度计在 ±2g 量程下的灵敏度，单位 LSB/g。
+ */
+#define BOARD_MPU6050_ACCEL_SENSITIVITY_LSB      16384.0f
+
+/*
+ * 加速度计安装方向修正：
+ * 先做 XY 交换，再做各轴反向，使输出统一对齐到车体坐标定义。
+ */
+#define BOARD_MPU6050_ACCEL_XY_SWAP              0U
+#define BOARD_MPU6050_ACCEL_X_REVERSE            0U
+#define BOARD_MPU6050_ACCEL_Y_REVERSE            0U
+#define BOARD_MPU6050_ACCEL_Z_REVERSE            0U
+
+/*
+ * 陀螺仪 X/Y 轴方向默认与加速度计保持一致。
+ * 如果后续确认 X/Y 轴角速度方向和倾角方向不一致，再单独微调这组宏。
+ */
+#define BOARD_MPU6050_GYRO_XY_SWAP               BOARD_MPU6050_ACCEL_XY_SWAP
+#define BOARD_MPU6050_GYRO_X_REVERSE             BOARD_MPU6050_ACCEL_X_REVERSE
+#define BOARD_MPU6050_GYRO_Y_REVERSE             BOARD_MPU6050_ACCEL_Y_REVERSE
+
+/*
+ * BOARD_MPU6050_ACCEL_NORM_MIN_G / MAX_G:
+ * 只有当加速度模长接近 1g 时，才认为当前加速度姿态可用于倾斜补偿。
+ */
+#define BOARD_MPU6050_ACCEL_NORM_MIN_G           0.85f
+#define BOARD_MPU6050_ACCEL_NORM_MAX_G           1.15f
+
+/*
+ * BOARD_MPU6050_TILT_CORRECTION_ALPHA:
+ * roll / pitch 采用“陀螺预测 + 加速度慢校正”的互补滤波，
+ * 该系数决定静稳时加速度校正的收敛速度。
+ */
+#define BOARD_MPU6050_TILT_CORRECTION_ALPHA      0.08f
+
+/*
+ * BOARD_MPU6050_TILT_CORRECTION_GYRO_DPS_THRESHOLD:
+ * 只有当 X/Y 轴转动不剧烈时，才允许使用加速度去纠正倾角。
+ * 这样可以避开“拿着传感器前端绕圈”时的线加速度污染。
+ */
+#define BOARD_MPU6050_TILT_CORRECTION_GYRO_DPS_THRESHOLD  18.0f
+
+/* ==================== HMC5883L 配置 ==================== */
+
+/*
+ * HMC5883L 与 OLED / MPU6050 共用同一组 I2C1 总线。
+ * 这里继续沿用板级统一的 I2C1 引脚和外设映射，避免重复初始化同一条总线。
+ */
+#define BOARD_HMC5883L_I2C_INSTANCE              OLED_I2C_INSTANCE
+#define BOARD_HMC5883L_I2C_GPIO_AF               OLED_I2C_GPIO_AF
+#define BOARD_HMC5883L_I2C_RCC_APB1_PERIPH       OLED_I2C_RCC_APB1_PERIPH
+#define BOARD_HMC5883L_SCL_PORT                  OLED_SCL_PORT
+#define BOARD_HMC5883L_SCL_PIN                   OLED_SCL_PIN
+#define BOARD_HMC5883L_SDA_PORT                  OLED_SDA_PORT
+#define BOARD_HMC5883L_SDA_PIN                   OLED_SDA_PIN
+#define BOARD_HMC5883L_SCL_PINSOURCE             OLED_SCL_PINSOURCE
+#define BOARD_HMC5883L_SDA_PINSOURCE             OLED_SDA_PINSOURCE
+
+/*
+ * BOARD_HMC5883L_I2C_ADDRESS:
+ * HMC5883L 的 8 位写地址，7 位地址 0x1E 对应的写地址是 0x3C。
+ */
+#define BOARD_HMC5883L_I2C_ADDRESS               0x3CU
+
+/*
+ * BOARD_HMC5883L_SAMPLE_MS:
+ * 磁力计建议以较低频率采样，减轻总线负担，同时与 15Hz / 30Hz 输出率匹配。
+ */
+#define BOARD_HMC5883L_SAMPLE_MS                 20U
+
+/*
+ * BOARD_HMC5883L_AVERAGE_SAMPLES:
+ * 配置寄存器 A 的平均次数设置，可选 1 / 2 / 4 / 8。
+ */
+#define BOARD_HMC5883L_AVERAGE_SAMPLES           8U
+
+/*
+ * BOARD_HMC5883L_OUTPUT_RATE_HZ:
+ * 配置寄存器 A 的输出数据率，常用 15Hz 或 30Hz。
+ */
+#define BOARD_HMC5883L_OUTPUT_RATE_HZ            15U
+
+/*
+ * BOARD_HMC5883L_GAIN_CONFIG:
+ * 配置寄存器 B 的增益设置，高 3 位有效。
+ * 默认 0x20 对应 1.3Ga 档位，和下方 1090 LSB/Ga 配套。
+ */
+#define BOARD_HMC5883L_GAIN_CONFIG               0x20U
+
+/*
+ * BOARD_HMC5883L_MODE_VALUE:
+ * 模式寄存器设置，0x00 为连续测量模式。
+ */
+#define BOARD_HMC5883L_MODE_VALUE                0x00U
+
+/*
+ * BOARD_HMC5883L_GAIN_LSB_PER_GAUSS:
+ * 当前增益配置下的灵敏度，用于把原始值换算为 Gauss。
+ */
+#define BOARD_HMC5883L_GAIN_LSB_PER_GAUSS        1090.0f
+
+/*
+ * BOARD_HMC5883L_HEADING_DECLINATION_DEG:
+ * 当地磁偏角补偿，单位度。
+ */
+#define BOARD_HMC5883L_HEADING_DECLINATION_DEG   0.0f
+
+/*
+ * 安装方向修正：
+ * XY 交换用于处理磁力计板子旋转 90 / 270 度安装的情况，
+ * X/Y/Z 反向用于处理某个轴方向与车体坐标定义相反的情况。
+ */
+#define BOARD_HMC5883L_XY_SWAP                   0U
+#define BOARD_HMC5883L_X_REVERSE                 0U
+#define BOARD_HMC5883L_Y_REVERSE                 0U
+#define BOARD_HMC5883L_Z_REVERSE                 0U
+
+/*
+ * 硬铁偏置，单位保持与原始磁场计数一致。
+ * 如果已经离线标定过，可以把标定得到的偏置直接填在这里。
+ */
+#define BOARD_HMC5883L_HARD_IRON_OFFSET_X        0.0f
+#define BOARD_HMC5883L_HARD_IRON_OFFSET_Y        0.0f
+#define BOARD_HMC5883L_HARD_IRON_OFFSET_Z        0.0f
+
+/*
+ * 软铁缩放系数，默认全为 1.0f。
+ * 如果已经离线标定过，可以把每个轴的缩放系数直接填在这里。
+ */
+#define BOARD_HMC5883L_SOFT_IRON_SCALE_X         1.0f
+#define BOARD_HMC5883L_SOFT_IRON_SCALE_Y         1.0f
+#define BOARD_HMC5883L_SOFT_IRON_SCALE_Z         1.0f
+
+/*
+ * BOARD_HMC5883L_MIN_VALID_FIELD_GAUSS:
+ * 二维水平磁场模长过小时，不参与航向计算，避免坏数据硬融合。
+ */
+#define BOARD_HMC5883L_MIN_VALID_FIELD_GAUSS     0.02f
+
+/*
+ * BOARD_HMC5883L_CALIBRATION_MIN_SPAN_RAW:
+ * 在线校准时，每个轴至少要扫到这么大的半径，才认为校准结果有效。
+ */
+#define BOARD_HMC5883L_CALIBRATION_MIN_SPAN_RAW  80.0f
+
+/* ==================== 航向融合参数 ==================== */
+
+/*
+ * BOARD_YAW_FUSION_ENABLE:
+ * 1 表示启用磁力计 + 陀螺的互补滤波融合；
+ * 0 表示只保留陀螺积分输出，便于对比调试。
+ */
+#define BOARD_YAW_FUSION_ENABLE                  1U
+
+/*
+ * BOARD_YAW_COMPLEMENTARY_ALPHA:
+ * 互补滤波中陀螺预测项的权重，越接近 1 越相信短时陀螺响应。
+ */
+#define BOARD_YAW_COMPLEMENTARY_ALPHA            0.98f
+
+/*
+ * BOARD_YAW_STATIC_GYRO_DPS_THRESHOLD:
+ * 当去偏后的角速度绝对值小于该阈值时，允许缓慢重估陀螺零偏。
+ */
+#define BOARD_YAW_STATIC_GYRO_DPS_THRESHOLD      1.2f
+
+/*
+ * BOARD_YAW_MAG_LPF_ALPHA:
+ * 磁航向低通系数，越小越稳，越大响应越快。
+ */
+#define BOARD_YAW_MAG_LPF_ALPHA                  0.25f
+
+/*
+ * BOARD_YAW_TILT_COMPENSATION_ENABLE:
+ * 1 表示启用基于加速度计姿态的倾斜补偿磁航向。
+ */
+#define BOARD_YAW_TILT_COMPENSATION_ENABLE       1U
+
+/*
+ * BOARD_YAW_MAG_MAX_TILT_DEG:
+ * 当 pitch / roll 超过该角度时，本次磁航向不参与融合校正。
+ */
+#define BOARD_YAW_MAG_MAX_TILT_DEG               35.0f
+
+/*
+ * BOARD_YAW_ACCEL_TILT_LPF_ALPHA:
+ * 加速度计姿态角低通系数，越大跟随越快，越小越平稳。
+ */
+#define BOARD_YAW_ACCEL_TILT_LPF_ALPHA           0.25f
+
+/*
+ * BOARD_YAW_MAG_HEADING_USE_TILT_COMP:
+ * 1 表示主用倾斜补偿后的磁航向；
+ * 0 表示保留二维磁航向，便于回退对比。
+ */
+#define BOARD_YAW_MAG_HEADING_USE_TILT_COMP      1U
+
+/*
+ * BOARD_YAW_MAG_REJECT_ON_BAD_ACCEL:
+ * 1 表示当加速度模长异常时，拒绝使用本次倾斜补偿磁航向。
+ */
+#define BOARD_YAW_MAG_REJECT_ON_BAD_ACCEL        1U
+
+/*
+ * BOARD_YAW_MAG_TRUST_WHEN_STATIC_ONLY:
+ * 1 表示只有角速度很小时才允许磁航向参与校正；
+ * 0 表示运动中也允许参与，但仍受倾角和加速度模长门限约束。
+ */
+#define BOARD_YAW_MAG_TRUST_WHEN_STATIC_ONLY     0U
+
+/*
+ * BOARD_YAW_MAG_STABLE_GYRO_DPS_THRESHOLD:
+ * 扰动恢复时判断“已经基本放稳”的角速度阈值。
+ * 只有小于该阈值并持续一段时间，才重新锁定磁参考。
+ */
+#define BOARD_YAW_MAG_STABLE_GYRO_DPS_THRESHOLD  6.0f
+
+/*
+ * BOARD_YAW_MAG_RECOVER_MAX_TILT_DEG:
+ * 进入扰动恢复模式后，只有回到接近平放的倾角范围，才允许重新接回磁参考。
+ * 对平面小车建议设得比普通磁航向可用倾角更严格。
+ */
+#define BOARD_YAW_MAG_RECOVER_MAX_TILT_DEG       12.0f
+
+/*
+ * BOARD_YAW_MAG_RECOVER_STABLE_MS:
+ * 从“扰动状态”回到“稳定状态”后，需要连续稳定这么久，才恢复磁航向校正。
+ */
+#define BOARD_YAW_MAG_RECOVER_STABLE_MS          300U
+
+/*
+ * BOARD_YAW_MAG_RECOVER_GAIN:
+ * 扰动恢复阶段对 yaw 误差使用更大的校正增益，加快回到绝对航向。
+ */
+#define BOARD_YAW_MAG_RECOVER_GAIN               0.18f
+
+/*
+ * BOARD_YAW_MAG_RECOVER_EXIT_ERROR_DEG:
+ * 当恢复阶段的 yaw 误差已经小于该阈值时，退出增强恢复模式。
+ */
+#define BOARD_YAW_MAG_RECOVER_EXIT_ERROR_DEG     2.5f
+
+/*
+ * BOARD_YAW_GYRO_REBIAS_ENABLE:
+ * 1 表示启用静止时陀螺零偏在线微调；
+ * 0 表示仅保留上电零偏校准。
+ */
+#define BOARD_YAW_GYRO_REBIAS_ENABLE             1U
+
+/*
+ * BOARD_YAW_GYRO_REBIAS_ALPHA:
+ * 陀螺零偏在线微调系数，建议非常小，避免把正常慢转误吸收到 bias。
+ */
+#define BOARD_YAW_GYRO_REBIAS_ALPHA              0.002f
+
 /* ==================== 蓝牙串口配置 ==================== */
 
 /* 蓝牙固定使用 USART3：PD8 -> TX，PD9 -> RX */

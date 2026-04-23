@@ -36,4 +36,8 @@
 .\output\objects\mpu6050.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h
 .\output\objects\mpu6050.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h
 .\output\objects\mpu6050.o: .\UserConfig\BoardConfig.h
+.\output\objects\mpu6050.o: Hardware\BoardI2C.h
 .\output\objects\mpu6050.o: .\System\Delay.h
+.\output\objects\mpu6050.o: Hardware\HMC5883L.h
+.\output\objects\mpu6050.o: Hardware\IMU_Fusion.h
+.\output\objects\mpu6050.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\math.h

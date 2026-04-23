@@ -37,6 +37,8 @@
 .\output\objects\apptask.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h
 .\output\objects\apptask.o: .\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h
 .\output\objects\apptask.o: .\UserConfig\BoardConfig.h
+.\output\objects\apptask.o: .\Hardware\HMC5883L.h
+.\output\objects\apptask.o: .\Hardware\IMU_Fusion.h
 .\output\objects\apptask.o: .\Hardware\Key.h
 .\output\objects\apptask.o: .\Hardware\MPU6050.h
 .\output\objects\apptask.o: .\Hardware\Motor.h

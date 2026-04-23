@@ -38,10 +38,10 @@ I (.\Hardware\ADC_Bat.h)(0x69E2729F)
 I (.\App\AppTask.h)(0x69E347CE)
 I (.\Hardware\Encoder.h)(0x69E48FF9)
 I (.\Hardware\Key.h)(0x69E2568D)
-I (.\Hardware\MPU6050.h)(0x69E34655)
+I (.\Hardware\MPU6050.h)(0x69E8EBDD)
 I (.\Hardware\Motor.h)(0x69E3ACF0)
 I (.\Hardware\OLED.h)(0x69E273D8)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 I (.\Hardware\OLED_Data.h)(0x69E10831)
 I (.\System\Timer.h)(0x69E273D8)
 F (.\Core\stm32f4xx_it.h)(0x69E2568D)()
@@ -118,7 +118,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
 F (.\Core\startup_stm32f40xx.s)(0x69E38FCC)(--cpu Cortex-M4.fp -g --apcs=interwork --pd "__MICROLIB SETA 1"-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"--pd "__UVISION_VERSION SETA 525" --pd "STM32F407xx SETA 1"--list .\output\listings\startup_stm32f40xx.lst --xref -o .\output\objects\startup_stm32f40xx.o --depend .\output\objects\startup_stm32f40xx.d)
-F (.\App\AppTask.c)(0x69E46E6B)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\apptask.o --omf_browse .\output\objects\apptask.crf --depend .\output\objects\apptask.d)
+F (.\App\AppTask.c)(0x69E8ED82)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\apptask.o --omf_browse .\output\objects\apptask.crf --depend .\output\objects\apptask.d)
 I (App\AppTask.h)(0x69E347CE)
 I (.\Hardware\BlueSerial.h)(0x69E346C8)
 I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h)(0x65E824C7)
@@ -155,9 +155,11 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
+I (.\Hardware\HMC5883L.h)(0x69E8B984)
+I (.\Hardware\IMU_Fusion.h)(0x69E8DB59)
 I (.\Hardware\Key.h)(0x69E2568D)
-I (.\Hardware\MPU6050.h)(0x69E34655)
+I (.\Hardware\MPU6050.h)(0x69E8EBDD)
 I (.\Hardware\Motor.h)(0x69E3ACF0)
 I (App\PID.h)(0x69E48FF9)
 I (.\Hardware\Serial.h)(0x69E346BB)
@@ -200,7 +202,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 F (.\App\PID.h)(0x69E48FF9)()
 F (.\System\Delay.c)(0x69E0F372)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\delay.o --omf_browse .\output\objects\delay.crf --depend .\output\objects\delay.d)
 I (System\Delay.h)(0x69E0F372)
@@ -275,10 +277,10 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 I (.\Hardware\ADC_Bat.h)(0x69E2729F)
 I (.\Hardware\Encoder.h)(0x69E48FF9)
-I (.\Hardware\MPU6050.h)(0x69E34655)
+I (.\Hardware\MPU6050.h)(0x69E8EBDD)
 I (.\Hardware\Motor.h)(0x69E3ACF0)
 I (.\Hardware\OLED.h)(0x69E273D8)
 I (.\Hardware\OLED_Data.h)(0x69E10831)
@@ -319,12 +321,12 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
 I (Hardware\OLED.h)(0x69E273D8)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 I (Hardware\OLED_Data.h)(0x69E10831)
 I (Hardware\ADC_Bat.h)(0x69E2729F)
 I (.\System\Delay.h)(0x69E0F372)
 I (Hardware\Encoder.h)(0x69E48FF9)
-I (Hardware\MPU6050.h)(0x69E34655)
+I (Hardware\MPU6050.h)(0x69E8EBDD)
 I (Hardware\Motor.h)(0x69E3ACF0)
 I (.\App\PID.h)(0x69E48FF9)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\string.h)(0x5E8E3CC2)
@@ -372,7 +374,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 I (.\System\Timer.h)(0x69E273D8)
 F (.\Hardware\Key.h)(0x69E2568D)()
 F (.\Hardware\PWM.c)(0x69E4C435)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\pwm.o --omf_browse .\output\objects\pwm.crf --depend .\output\objects\pwm.d)
@@ -411,7 +413,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 F (.\Hardware\PWM.h)(0x69E2568D)()
 F (.\Hardware\Encoder.c)(0x69E62D3A)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\encoder.o --omf_browse .\output\objects\encoder.crf --depend .\output\objects\encoder.d)
 I (Hardware\Encoder.h)(0x69E48FF9)
@@ -449,7 +451,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 F (.\Hardware\Encoder.h)(0x69E48FF9)()
 F (.\Hardware\Motor.c)(0x69E4C4B5)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\motor.o --omf_browse .\output\objects\motor.crf --depend .\output\objects\motor.d)
 I (Hardware\Motor.h)(0x69E3ACF0)
@@ -487,7 +489,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 I (Hardware\Encoder.h)(0x69E48FF9)
 I (.\App\PID.h)(0x69E48FF9)
 I (Hardware\PWM.h)(0x69E2568D)
@@ -528,7 +530,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 F (.\Hardware\ADC_Bat.h)(0x69E2729F)()
 F (.\Hardware\Serial.c)(0x69E38E92)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\serial.o --omf_browse .\output\objects\serial.crf --depend .\output\objects\serial.d)
 I (Hardware\Serial.h)(0x69E346BB)
@@ -568,7 +570,7 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdio.h)(0x5E8E3CC2)
 I (Hardware\BlueSerial.h)(0x69E346C8)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdarg.h)(0x5E8E3CC2)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\string.h)(0x5E8E3CC2)
 F (.\Hardware\Serial.h)(0x69E346BB)()
@@ -612,8 +614,8 @@ I (Hardware\Serial.h)(0x69E346BB)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdio.h)(0x5E8E3CC2)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdarg.h)(0x5E8E3CC2)
 F (.\Hardware\BlueSerial.h)(0x69E346C8)()
-F (.\Hardware\MPU6050.c)(0x69E348B3)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\mpu6050.o --omf_browse .\output\objects\mpu6050.crf --depend .\output\objects\mpu6050.d)
-I (Hardware\MPU6050.h)(0x69E34655)
+F (.\Hardware\MPU6050.c)(0x69E8F0AB)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\mpu6050.o --omf_browse .\output\objects\mpu6050.crf --depend .\output\objects\mpu6050.d)
+I (Hardware\MPU6050.h)(0x69E8EBDD)
 I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h)(0x65E824C7)
 I (.\Drivers\CMSIS\Include\core_cm4.h)(0x61F12857)
 I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdint.h)(0x5E8E3CC2)
@@ -648,9 +650,133 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
-I (.\UserConfig\BoardConfig.h)(0x69E63F1D)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
+I (Hardware\BoardI2C.h)(0x69E8B984)
 I (.\System\Delay.h)(0x69E0F372)
-F (.\Hardware\MPU6050.h)(0x69E34655)()
+I (Hardware\HMC5883L.h)(0x69E8B984)
+I (Hardware\IMU_Fusion.h)(0x69E8DB59)
+I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\math.h)(0x5E8E3CC2)
+F (.\Hardware\MPU6050.h)(0x69E8EBDD)()
+F (.\Hardware\BoardI2C.c)(0x69E8B984)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\boardi2c.o --omf_browse .\output\objects\boardi2c.crf --depend .\output\objects\boardi2c.d)
+I (Hardware\BoardI2C.h)(0x69E8B984)
+I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h)(0x65E824C7)
+I (.\Drivers\CMSIS\Include\core_cm4.h)(0x61F12857)
+I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdint.h)(0x5E8E3CC2)
+I (.\Drivers\CMSIS\Include\core_cmInstr.h)(0x61F12857)
+I (.\Drivers\CMSIS\Include\core_cmFunc.h)(0x61F12857)
+I (.\Drivers\CMSIS\Include\core_cmSimd.h)(0x61F12857)
+I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\system_stm32f4xx.h)(0x62051C84)
+I (.\UserConfig\stm32f4xx_conf.h)(0x6203D002)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_adc.h)(0x61F25A2D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_crc.h)(0x61F25A2F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dbgmcu.h)(0x61F25A30)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dma.h)(0x61F25A31)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_exti.h)(0x61F25A33)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_flash.h)(0x61F25A33)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_gpio.h)(0x61F25A36)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_i2c.h)(0x61F25A37)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_iwdg.h)(0x61F25A38)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_pwr.h)(0x61F25A39)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rcc.h)(0x61F25A3A)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rtc.h)(0x61F25A3B)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_sdio.h)(0x61F25A3C)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_spi.h)(0x61F25A3D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_syscfg.h)(0x61F25A3E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_tim.h)(0x61F25A3E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_usart.h)(0x61F7A884)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_wwdg.h)(0x61F25A3F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\misc.h)(0x61F25A2D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_cryp.h)(0x61F25A2F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_hash.h)(0x61F25A37)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rng.h)(0x61F25A3A)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
+F (.\Hardware\BoardI2C.h)(0x69E8B984)()
+F (.\Hardware\HMC5883L.c)(0x69E8B984)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\hmc5883l.o --omf_browse .\output\objects\hmc5883l.crf --depend .\output\objects\hmc5883l.d)
+I (Hardware\HMC5883L.h)(0x69E8B984)
+I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h)(0x65E824C7)
+I (.\Drivers\CMSIS\Include\core_cm4.h)(0x61F12857)
+I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdint.h)(0x5E8E3CC2)
+I (.\Drivers\CMSIS\Include\core_cmInstr.h)(0x61F12857)
+I (.\Drivers\CMSIS\Include\core_cmFunc.h)(0x61F12857)
+I (.\Drivers\CMSIS\Include\core_cmSimd.h)(0x61F12857)
+I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\system_stm32f4xx.h)(0x62051C84)
+I (.\UserConfig\stm32f4xx_conf.h)(0x6203D002)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_adc.h)(0x61F25A2D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_crc.h)(0x61F25A2F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dbgmcu.h)(0x61F25A30)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dma.h)(0x61F25A31)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_exti.h)(0x61F25A33)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_flash.h)(0x61F25A33)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_gpio.h)(0x61F25A36)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_i2c.h)(0x61F25A37)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_iwdg.h)(0x61F25A38)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_pwr.h)(0x61F25A39)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rcc.h)(0x61F25A3A)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rtc.h)(0x61F25A3B)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_sdio.h)(0x61F25A3C)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_spi.h)(0x61F25A3D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_syscfg.h)(0x61F25A3E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_tim.h)(0x61F25A3E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_usart.h)(0x61F7A884)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_wwdg.h)(0x61F25A3F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\misc.h)(0x61F25A2D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_cryp.h)(0x61F25A2F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_hash.h)(0x61F25A37)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rng.h)(0x61F25A3A)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
+I (Hardware\BoardI2C.h)(0x69E8B984)
+I (.\System\Timer.h)(0x69E273D8)
+I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\math.h)(0x5E8E3CC2)
+F (.\Hardware\HMC5883L.h)(0x69E8B984)()
+F (.\Hardware\IMU_Fusion.c)(0x69E8F0F5)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\imu_fusion.o --omf_browse .\output\objects\imu_fusion.crf --depend .\output\objects\imu_fusion.d)
+I (Hardware\IMU_Fusion.h)(0x69E8DB59)
+I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h)(0x65E824C7)
+I (.\Drivers\CMSIS\Include\core_cm4.h)(0x61F12857)
+I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\stdint.h)(0x5E8E3CC2)
+I (.\Drivers\CMSIS\Include\core_cmInstr.h)(0x61F12857)
+I (.\Drivers\CMSIS\Include\core_cmFunc.h)(0x61F12857)
+I (.\Drivers\CMSIS\Include\core_cmSimd.h)(0x61F12857)
+I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\system_stm32f4xx.h)(0x62051C84)
+I (.\UserConfig\stm32f4xx_conf.h)(0x6203D002)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_adc.h)(0x61F25A2D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_crc.h)(0x61F25A2F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dbgmcu.h)(0x61F25A30)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dma.h)(0x61F25A31)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_exti.h)(0x61F25A33)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_flash.h)(0x61F25A33)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_gpio.h)(0x61F25A36)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_i2c.h)(0x61F25A37)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_iwdg.h)(0x61F25A38)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_pwr.h)(0x61F25A39)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rcc.h)(0x61F25A3A)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rtc.h)(0x61F25A3B)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_sdio.h)(0x61F25A3C)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_spi.h)(0x61F25A3D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_syscfg.h)(0x61F25A3E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_tim.h)(0x61F25A3E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_usart.h)(0x61F7A884)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_wwdg.h)(0x61F25A3F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\misc.h)(0x61F25A2D)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_cryp.h)(0x61F25A2F)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_hash.h)(0x61F25A37)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_rng.h)(0x61F25A3A)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_can.h)(0x61F25A2E)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dac.h)(0x61F25A30)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
+I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
+I (.\UserConfig\BoardConfig.h)(0x69E8EBFB)
+I (Hardware\HMC5883L.h)(0x69E8B984)
+I (Hardware\MPU6050.h)(0x69E8EBDD)
+I (D:\Program Files (x86)\Keil5\ARM\ARMCC\include\math.h)(0x5E8E3CC2)
+F (.\Hardware\IMU_Fusion.h)(0x69E8DB59)()
 F (.\Hardware\LED.c)(0x69E0F3D0)(--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Core -I .\App -I .\System -I .\Hardware -I .\Drivers\CMSIS\Include -I .\Drivers\CMSIS\Device\ST\STM32F4xx\Include -I .\Drivers\STM32F4xx_StdPeriph_Driver -I .\UserConfig-I.\RTE\_Project-I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include"-I"D:\Program Files (x86)\Keil5\ARM\CMSIS\Include"-D__UVISION_VERSION="525" -DSTM32F407xx -DUSE_STDPERIPH_DRIVER -DSTM32F40_41xxx-o .\output\objects\led.o --omf_browse .\output\objects\led.crf --depend .\output\objects\led.d)
 I (Hardware\LED.h)(0x69E0F526)
 I (.\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h)(0x65E824C7)
@@ -2239,4 +2365,4 @@ I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_dcmi.h)(0x61F25A31)
 I (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_fsmc.h)(0x61F25A36)
 F (.\Drivers\STM32F4xx_StdPeriph_Driver\stm32f4xx_wwdg.h)(0x61F25A3F)()
 F (.\UserConfig\stm32f4xx_conf.h)(0x6203D002)()
-F (.\UserConfig\BoardConfig.h)(0x69E63F1D)()
+F (.\UserConfig\BoardConfig.h)(0x69E8EBFB)()

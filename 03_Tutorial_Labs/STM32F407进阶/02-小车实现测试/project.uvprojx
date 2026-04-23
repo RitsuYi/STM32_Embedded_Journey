@@ -563,6 +563,36 @@
               <FilePath>.\Hardware\MPU6050.h</FilePath>
             </File>
             <File>
+              <FileName>BoardI2C.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\BoardI2C.c</FilePath>
+            </File>
+            <File>
+              <FileName>BoardI2C.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\BoardI2C.h</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5883L.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\HMC5883L.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5883L.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\HMC5883L.h</FilePath>
+            </File>
+            <File>
+              <FileName>IMU_Fusion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\IMU_Fusion.c</FilePath>
+            </File>
+            <File>
+              <FileName>IMU_Fusion.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\IMU_Fusion.h</FilePath>
+            </File>
+            <File>
               <FileName>LED.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Hardware\LED.c</FilePath>
