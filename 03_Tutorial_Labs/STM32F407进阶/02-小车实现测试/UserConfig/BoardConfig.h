@@ -301,11 +301,17 @@
 
 /*
  * BOARD_ENCODER_SPEED_AVG_SAMPLES:
- * 閫熷害浼扮畻鐨勬粴鍔ㄥ钩鍧囩獥鍙ｉ暱搴︺€? * 鏇存柊鑺傛媿浠嶇劧鏄?20ms锛屼絾鐢ㄥ娆￠噰鏍锋眰骞冲潎鏉ユ彁楂?OLED
- * 鏄剧ず鍜岄€熷害鐜弽棣堢殑鍒嗚鲸鐜囥€? * 鍊艰秺澶э紝鏁版嵁瓒婂钩绋筹紝浣嗗搷搴斾篃浼氱◢鎱€? */
-#define BOARD_ENCODER_SPEED_AVG_SAMPLES          4U
+ * 速度估算的滑动平均窗口长度。
+ * 更新节拍仍然是 20ms，但用多次采样求平均来提高 OLED
+ * 显示和速度环反馈的分辨率。
+ * 值越大，数据越平稳，但响应也会稍慢。
+ */
+#define BOARD_ENCODER_SPEED_AVG_SAMPLES          5U
 
-/* Output shaft counts per revolution: 13 PPR x 4x decoder x 20:1 gear ratio = 1040 */
+/*
+ * 编码器输出轴每圈计数：
+ * 13 PPR x 4 倍频解码 x 20:1 减速比 = 1040
+ */
 #define BOARD_ENCODER_PPR                        13U
 #define BOARD_ENCODER_QUADRATURE_MULTIPLIER      4U
 #define BOARD_MOTOR_GEAR_RATIO                   20U
@@ -337,7 +343,7 @@
  * 小车前进 / 后退时的基础目标速度，单位为 RPM（转/分钟）。
  * 该值是速度环的默认设定值，可通过蓝牙在运行时调整。
  */
-#define BOARD_CAR_MOVE_TARGET_SPEED_RPM          300
+#define BOARD_CAR_MOVE_TARGET_SPEED_RPM          200
 
 /*
  * BOARD_CAR_MOVE_TARGET_SPEED_MAX_RPM:
@@ -398,7 +404,7 @@
  */
 #define BOARD_SPEED_PID_KP                       0.10f
 #define BOARD_SPEED_PID_KI                       0.05f
-#define BOARD_SPEED_PID_KD                       0.01f
+#define BOARD_SPEED_PID_KD                       0.00f
 
 /*
  * BOARD_SPEED_PID_INTEGRAL_LIMIT:
