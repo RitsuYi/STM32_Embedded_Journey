@@ -126,7 +126,7 @@ static uint8_t AppTask_IsPidSliderName(const char *name, char axis)
 }
 
 static uint8_t AppTask_IsMoveTargetSliderName(const char *name)
-{
+ {
 	if (name == 0)
 	{
 		return 0U;
