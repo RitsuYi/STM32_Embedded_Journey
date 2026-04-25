@@ -2,6 +2,7 @@
 #include "ADC_Bat.h"
 #include "AppTask.h"
 #include "Encoder.h"
+#include "GraySensor.h"
 #include "Key.h"
 #include "MPU6050.h"
 #include "Motor.h"
@@ -17,6 +18,7 @@ int main(void)
 	MPU6050_Init();
 	Motor_Init();
 	Key_Init();
+	GraySensor_Init();
 	AppTask_Init();
 
 	Motor_SetCarState(CAR_STOP);

@@ -20,6 +20,7 @@
 ".\output\objects\boardi2c.o"
 ".\output\objects\hmc5883l.o"
 ".\output\objects\imu_fusion.o"
+".\output\objects\graysensor.o"
 ".\output\objects\led.o"
 ".\output\objects\misc.o"
 ".\output\objects\stm32f4xx_adc.o"

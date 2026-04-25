@@ -850,11 +850,11 @@ ARM Macro Assembler    Page 14
 
 
 erwork --depend=.\output\objects\startup_stm32f40xx.d -o.\output\objects\startu
-p_stm32f40xx.o -I.\RTE\_Project -IC:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.16.0
-\Drivers\CMSIS\Device\ST\STM32F4xx\Include -IC:\Keil_v5\ARM\CMSIS\Include --pre
-define="__MICROLIB SETA 1" --predefine="__UVISION_VERSION SETA 524" --predefine
-="STM32F407xx SETA 1" --list=.\output\listings\startup_stm32f40xx.lst Core\star
-tup_stm32f40xx.s
+p_stm32f40xx.o -I.\RTE\_Project -I"D:\Program Files (x86)\Keil5\ARM\PACK\Keil\S
+TM32F4xx_DFP\2.17.1\Drivers\CMSIS\Device\ST\STM32F4xx\Include" -I"D:\Program Fi
+les (x86)\Keil5\ARM\CMSIS\Include" --predefine="__MICROLIB SETA 1" --predefine=
+"__UVISION_VERSION SETA 525" --predefine="STM32F407xx SETA 1" --list=.\output\l
+istings\startup_stm32f40xx.lst Core\startup_stm32f40xx.s
 
 
 

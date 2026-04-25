@@ -547,6 +547,41 @@
  */
 #define BOARD_KEY_DEBOUNCE_MS                    20U
 
+/* ==================== Gray Sensor ==================== */
+
+/*
+ * Five-channel grayscale sensor input mapping for STM32F407VGT6.
+ * OUT1 -> PE0 -> left2
+ * OUT2 -> PE1 -> left1
+ * OUT3 -> PE2 -> center
+ * OUT4 -> PE3 -> right1
+ * OUT5 -> PE4 -> right2
+ *
+ * These pins are currently unused by the existing project and do not
+ * overlap with motor, encoder, key, ADC, OLED/I2C, or Bluetooth wiring.
+ */
+#define BOARD_GRAY_SENSOR_GPIO_RCC               RCC_AHB1Periph_GPIOE
+#define BOARD_GRAY_SENSOR_GPIO_PORT              GPIOE
+#define BOARD_GRAY_SENSOR_GPIO_PUPD              GPIO_PuPd_UP
+
+#define BOARD_GRAY_SENSOR_LEFT2_PIN              GPIO_Pin_0
+#define BOARD_GRAY_SENSOR_LEFT1_PIN              GPIO_Pin_1
+#define BOARD_GRAY_SENSOR_CENTER_PIN             GPIO_Pin_2
+#define BOARD_GRAY_SENSOR_RIGHT1_PIN             GPIO_Pin_3
+#define BOARD_GRAY_SENSOR_RIGHT2_PIN             GPIO_Pin_4
+
+#define BOARD_GRAY_SENSOR_ALL_PINS               (BOARD_GRAY_SENSOR_LEFT2_PIN | \
+                                                 BOARD_GRAY_SENSOR_LEFT1_PIN | \
+                                                 BOARD_GRAY_SENSOR_CENTER_PIN | \
+                                                 BOARD_GRAY_SENSOR_RIGHT1_PIN | \
+                                                 BOARD_GRAY_SENSOR_RIGHT2_PIN)
+
+/*
+ * Set to 0 when the sensor output goes low on line detection.
+ * Set to 1 when the sensor output goes high on line detection.
+ */
+#define BOARD_GRAY_SENSOR_ACTIVE_LEVEL           1U
+
 /* ==================== 系统节拍定时器 ==================== */
 
 #define BOARD_TICK_TIMER_RCC                     RCC_APB1Periph_TIM6

@@ -10,7 +10,7 @@
       <TargetName>Project</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pArmCC>5060528::V5.06 update 5 (build 528)::ARMCC</pArmCC>
+      <pArmCC>5060960::V5.06 update 7 (build 960)::ARMCC</pArmCC>
       <pCCUsed>5060528::V5.06 update 5 (build 528)::ARMCC</pCCUsed>
       <uAC6>0</uAC6>
       <TargetOption>
@@ -591,6 +591,16 @@
               <FileName>IMU_Fusion.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Hardware\IMU_Fusion.h</FilePath>
+            </File>
+            <File>
+              <FileName>GraySensor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\GraySensor.c</FilePath>
+            </File>
+            <File>
+              <FileName>GraySensor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\GraySensor.h</FilePath>
             </File>
             <File>
               <FileName>LED.c</FileName>
