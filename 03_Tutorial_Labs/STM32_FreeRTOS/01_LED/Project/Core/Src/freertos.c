@@ -48,6 +48,7 @@
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
+osThreadId counterTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -55,6 +56,7 @@ osThreadId defaultTaskHandle;
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
+void StartCounterTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -105,6 +107,10 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
+  /* definition and creation of counterTask */
+  osThreadDef(counterTask, StartCounterTask, osPriorityNormal, 0, 128);
+  counterTaskHandle = osThreadCreate(osThread(counterTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -125,9 +131,27 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
     HAL_GPIO_TogglePin(BoardLED_GPIO_Port, BoardLED_Pin);
-    osDelay(500);
+    osDelay(200);
   }
   /* USER CODE END StartDefaultTask */
+}
+
+/* USER CODE BEGIN Header_StartCounterTask */
+/**
+* @brief Function implementing the counterTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartCounterTask */
+void StartCounterTask(void const * argument)
+{
+  /* USER CODE BEGIN StartCounterTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCounterTask */
 }
 
 /* Private application code --------------------------------------------------*/
