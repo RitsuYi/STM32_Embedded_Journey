@@ -477,11 +477,11 @@ ork --depend=project\startup_stm32f103xb.d -oproject\startup_stm32f103xb.o -I..
 er/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlew
 ares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRT
 OS/Source/portable/RVDS/ARM_CM3 -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include 
--I../Drivers/CMSIS/Include -I.\RTE\_Project -I"D:\Program Files (x86)\Keil5\ARM
-\PACK\ARM\CMSIS\5.0.1\CMSIS\Include" -I"D:\Program Files (x86)\Keil5\ARM\PACK\K
-eil\STM32F1xx_DFP\2.2.0\Device\Include" --predefine="__UVISION_VERSION SETA 525
-" --predefine="_RTE_ SETA 1" --predefine="STM32F10X_MD SETA 1" --list=startup_s
-tm32f103xb.lst startup_stm32f103xb.s
+-I../Drivers/CMSIS/Include -I.\RTE\_Project -I"D:\Program Files\keil_v5\ARM\PAC
+K\ARM\CMSIS\5.0.1\CMSIS\Include" -I"D:\Program Files\keil_v5\ARM\PACK\Keil\STM3
+2F1xx_DFP\2.2.0\Device\Include" --predefine="__UVISION_VERSION SETA 525" --pred
+efine="_RTE_ SETA 1" --predefine="STM32F10X_MD SETA 1" --list=startup_stm32f103
+xb.lst startup_stm32f103xb.s
 
 
 
