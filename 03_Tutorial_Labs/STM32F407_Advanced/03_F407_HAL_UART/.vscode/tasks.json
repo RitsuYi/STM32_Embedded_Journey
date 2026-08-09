@@ -1,0 +1,114 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Configure",
+            "type": "process",
+            "command": "${env:CMAKE_ROOT}/bin/cmake.exe",
+            "args": [
+                "--preset",
+                "debug-armgcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "statusbar": {
+                    "detail": "配置 Debug 构建目录（CMake preset：debug-armgcc）"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "${env:CMAKE_ROOT}/bin/cmake.exe",
+            "args": [
+                "--build",
+                "--preset",
+                "build-debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "statusbar": {
+                    "detail": "编译 Debug 固件并生成 STM32F407 ELF 文件"
+                }
+            },
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Rebuild All",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Clean",
+                "Build"
+            ],
+            "options": {
+                "statusbar": {
+                    "detail": "先清理 Debug 构建产物，再执行一次完整编译"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean",
+            "type": "process",
+            "command": "${env:CMAKE_ROOT}/bin/cmake.exe",
+            "args": [
+                "--build",
+                "--preset",
+                "build-debug",
+                "--target",
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "statusbar": {
+                    "detail": "清理 Debug 构建目录中的编译产物"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "CubeMX",
+            "type": "process",
+            "command": "D:/Program Files/STMicroelectronics/STM32Cube/STM32CubeMX/STM32CubeMX.exe",
+            "args": [
+                "${workspaceFolder}/03_F407_HAL_UART.ioc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "statusbar": {
+                    "detail": "使用 STM32CubeMX 打开当前工程的 03_F407_HAL_UART.ioc"
+                }
+            },
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash",
+            "type": "process",
+            "command": "cmd.exe",
+            "args": [
+                "/d",
+                "/c",
+                "${workspaceFolder}\\.vscode\\scripts\\flash.cmd"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "statusbar": {
+                    "detail": "先编译，再通过 J-Link/SWD 烧录 STM32F407VG"
+                }
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": "Build",
+            "problemMatcher": []
+        }
+    ]
+}

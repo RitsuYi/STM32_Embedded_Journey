@@ -1,0 +1,2 @@
+D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/Core/Src/system_stm32f4xx.c:167:6:SystemInit	4	static
+D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/Core/Src/system_stm32f4xx.c:220:6:SystemCoreClockUpdate	32	static

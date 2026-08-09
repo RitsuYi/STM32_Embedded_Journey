@@ -1,0 +1,48 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "armgcc-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "environment": {
+                "PATH": "$env{ARM_GCC_ROOT}/bin;$penv{PATH}"
+            },
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": "$env{NINJA_ROOT}/ninja.exe",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "debug-armgcc",
+            "displayName": "Debug - GNU Arm GCC",
+            "inherits": "armgcc-base",
+            "binaryDir": "${sourceDir}/build/Debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release-armgcc",
+            "displayName": "Release - GNU Arm GCC",
+            "inherits": "armgcc-base",
+            "binaryDir": "${sourceDir}/build/Release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "build-debug",
+            "displayName": "Build Debug",
+            "configurePreset": "debug-armgcc"
+        },
+        {
+            "name": "build-release",
+            "displayName": "Build Release",
+            "configurePreset": "release-armgcc"
+        }
+    ]
+}
