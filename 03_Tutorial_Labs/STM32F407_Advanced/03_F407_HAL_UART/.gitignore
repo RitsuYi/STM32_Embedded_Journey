@@ -1,0 +1,5 @@
+# Left over from an earlier local verification; it is no longer used.
+.build/
+
+# Ignore additional generated files; existing tracked legacy files are retained.
+build/

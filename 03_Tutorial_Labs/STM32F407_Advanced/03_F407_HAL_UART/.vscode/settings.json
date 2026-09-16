@@ -1,14 +1,13 @@
 {
-    "cmake.cmakePath": "${env:CMAKE_ROOT}/bin/cmake.exe",
+    "cmake.cmakePath": "cmake",
     "cmake.useCMakePresets": "always",
     "cmake.configureOnOpen": true,
     "cmake.configurePreset": "debug-armgcc",
     "cmake.buildPreset": "build-debug",
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json",
-    "C_Cpp.default.compilerPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-gcc.exe",
+    "C_Cpp.default.compilerPath": "arm-none-eabi-gcc",
     "C_Cpp.default.intelliSenseMode": "gcc-arm",
-    "cortex-debug.armToolchainPath": "${env:ARM_GCC_ROOT}/bin",
-    "cortex-debug.gdbPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-gdb.exe",
-    "cortex-debug.objdumpPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-objdump.exe",
+    "cortex-debug.gdbPath": "arm-none-eabi-gdb",
+    "cortex-debug.objdumpPath": "arm-none-eabi-objdump",
     "cortex-debug.JLinkGDBServerPath.windows": "D:/Program Files/SEGGER/JLink_V958/JLinkGDBServerCL.exe"
 }

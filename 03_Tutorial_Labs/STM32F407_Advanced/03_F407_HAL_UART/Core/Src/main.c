@@ -36,12 +36,12 @@
 
 /* USER CODE END PD */
 
-/* Private macro -------------------------------------------------------------*/
+/* Private macro 宏相关内容-------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
 /* USER CODE END PM */
 
-/* Private variables ---------------------------------------------------------*/
+/* Private variables 私有变量 / 全局变量---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
 
@@ -49,11 +49,11 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-/* USER CODE BEGIN PFP */
+/* USER CODE BEGIN PFP函数声明 */
 
 /* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
+/* Private user code 自己定义的函数---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -88,7 +88,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  /* USER CODE BEGIN 2 */
+  /* USER CODE BEGIN 2外设全部初始化完成以后，只执行一次 */
 
   /* USER CODE END 2 */
 
@@ -148,7 +148,7 @@ void SystemClock_Config(void)
   }
 }
 
-/* USER CODE BEGIN 4 */
+/* USER CODE BEGIN 4 你写自己的函数用的地方*/
 
 /* USER CODE END 4 */
 

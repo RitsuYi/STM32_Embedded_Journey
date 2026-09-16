@@ -1,6 +1,6 @@
-D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/CMakeFiles/03_F407_HAL_UART.dir
-D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/CMakeFiles/edit_cache.dir
-D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/CMakeFiles/rebuild_cache.dir
-D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
-D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
-D:/.workspace/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
+E:/c++/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/CMakeFiles/03_F407_HAL_UART.dir
+E:/c++/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/CMakeFiles/edit_cache.dir
+E:/c++/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/CMakeFiles/rebuild_cache.dir
+E:/c++/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
+E:/c++/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+E:/c++/STM32_Embedded_Journey/03_Tutorial_Labs/STM32F407_Advanced/03_F407_HAL_UART/build/Debug/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
