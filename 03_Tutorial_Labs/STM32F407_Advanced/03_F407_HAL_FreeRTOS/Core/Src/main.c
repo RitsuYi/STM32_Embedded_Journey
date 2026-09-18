@@ -29,7 +29,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct
+{
+  GPIO_TypeDef *LED_GPIOx;
+  uint16_t LED_Pin;
+  uint32_t Period;
 
+}LEDBlinkInfo_TypeDef;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -45,7 +51,19 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+  static const LEDBlinkInfo_TypeDef LED1BlinkInfo =
+  {
+    .LED_GPIOx = LED1_GPIO_Port,
+    .LED_Pin = LED1_Pin,
+    .Period = 1000
+  };
 
+  static const LEDBlinkInfo_TypeDef LED3BlinkInfo =
+  {
+    .LED_GPIOx = LED3_GPIO_Port,
+    .LED_Pin = LED3_Pin,
+    .Period = 300
+  };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,7 +74,18 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static void prvLEDTask(void *pvParameters)
+{
+  LEDBlinkInfo_TypeDef *pxLEDInfo = (LEDBlinkInfo_TypeDef *)pvParameters;
+  
+  for(;;)
+  {
+    HAL_GPIO_WritePin(pxLEDInfo->LED_GPIOx, pxLEDInfo->LED_Pin, GPIO_PIN_SET);
+    vTaskDelay(pdMS_TO_TICKS(pxLEDInfo->Period / 2));
+    HAL_GPIO_WritePin(pxLEDInfo->LED_GPIOx, pxLEDInfo->LED_Pin, GPIO_PIN_RESET);
+    vTaskDelay(pdMS_TO_TICKS(pxLEDInfo->Period / 2));
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -90,8 +119,10 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-  HAL_Delay(500);
+  xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
+  xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
+
+  vTaskStartScheduler();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -101,8 +132,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-    HAL_Delay(500);
+
   }
   /* USER CODE END 3 */
 }
@@ -164,6 +194,28 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
   }
 }
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
