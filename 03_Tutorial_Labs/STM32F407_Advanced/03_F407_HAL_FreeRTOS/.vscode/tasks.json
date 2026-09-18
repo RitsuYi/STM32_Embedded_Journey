@@ -4,7 +4,7 @@
         {
             "label": "Configure",
             "type": "process",
-            "command": "cmake",
+            "command": "${env:CMAKE_ROOT}/bin/cmake.exe",
             "args": ["--preset", "debug-armgcc", "--fresh"],
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -15,7 +15,7 @@
         {
             "label": "Build",
             "type": "process",
-            "command": "cmake",
+            "command": "${env:CMAKE_ROOT}/bin/cmake.exe",
             "args": ["--build", "--preset", "build-debug"],
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -35,7 +35,7 @@
         {
             "label": "Clean",
             "type": "process",
-            "command": "cmake",
+            "command": "${env:CMAKE_ROOT}/bin/cmake.exe",
             "args": ["--build", "--preset", "build-debug", "--target", "clean"],
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -46,7 +46,7 @@
         {
             "label": "CubeMX",
             "type": "process",
-            "command": "D:/Program Files/STMicroelectronics/STM32Cube/STM32CubeMX/STM32CubeMX.exe",
+            "command": "${env:STM32CubeMX_PATH}/STM32CubeMX.exe",
             "args": ["${workspaceFolder}/03_F407_HAL_UART.ioc"],
             "options": {
                 "cwd": "${workspaceFolder}",

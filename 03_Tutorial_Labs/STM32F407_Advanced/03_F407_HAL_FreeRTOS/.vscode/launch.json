@@ -8,13 +8,13 @@
             "cwd": "${workspaceFolder}",
             "executable": "${command:cmake.launchTargetPath}",
             "servertype": "jlink",
-            "serverpath": "D:/Program Files/JLink_V958/JLinkGDBServerCL.exe",
+            "serverpath": "${env:JLINK_ROOT}/JLinkGDBServerCL.exe",
             "device": "STM32F407VG",
             "interface": "swd",
             "runToEntryPoint": "main",
             "preLaunchTask": "Build",
-            "gdbPath": "D:/ST/STM32CubeCLT_1.18.0/GNU-tools-for-STM32/bin/arm-none-eabi-gdb.exe",
-            "objdumpPath": "D:/ST/STM32CubeCLT_1.18.0/GNU-tools-for-STM32/bin/arm-none-eabi-objdump.exe"
+            "gdbPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-gdb.exe",
+            "objdumpPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-objdump.exe"
         }
     ]
 }

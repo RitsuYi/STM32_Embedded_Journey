@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 set "BUILD_DIR=%~dp0..\..\build\Debug"
-set "JLINK_EXE=D:\Program Files\JLink_V958\JLink.exe"
+set "JLINK_EXE=%JLINK_ROOT%\JLink.exe"
 
 if not exist "%JLINK_EXE%" (
     echo ERROR: J-Link Commander was not found:

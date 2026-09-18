@@ -6,7 +6,11 @@
             "hidden": true,
             "generator": "Ninja",
             "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "environment": {
+                "PATH": "$env{ARM_GCC_ROOT}/bin;$penv{PATH}"
+            },
             "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": "$env{NINJA_ROOT}/ninja.exe",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
         },

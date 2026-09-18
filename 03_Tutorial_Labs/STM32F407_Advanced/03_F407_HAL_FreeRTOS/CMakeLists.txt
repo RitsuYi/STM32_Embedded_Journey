@@ -44,12 +44,20 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
+    FreeRTOS/SRC/croutine.c
+    FreeRTOS/SRC/event_groups.c
+    FreeRTOS/SRC/heap_4.c
+    FreeRTOS/SRC/list.c
+    FreeRTOS/SRC/port.c
+    FreeRTOS/SRC/queue.c
+    FreeRTOS/SRC/stream_buffer.c
+    FreeRTOS/SRC/tasks.c
+    FreeRTOS/SRC/timers.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
+    FreeRTOS/INC
 )
 
 # Add project symbols (macros)
