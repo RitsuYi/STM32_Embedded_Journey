@@ -47,7 +47,7 @@
             "label": "CubeMX",
             "type": "process",
             "command": "${env:STM32CubeMX_PATH}/STM32CubeMX.exe",
-            "args": ["${workspaceFolder}/03_F407_HAL_UART.ioc"],
+            "args": ["${workspaceFolder}/03_F407_HAL_FreeRTOS.ioc"],
             "options": {
                 "cwd": "${workspaceFolder}",
                 "statusbar": { "detail": "Open the project in STM32CubeMX" }

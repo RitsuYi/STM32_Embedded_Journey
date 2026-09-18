@@ -217,7 +217,7 @@ D:/Program Files/SEGGER/JLink_V958/
 
 ## 8. CubeMX 中的配置位置
 
-双击 `03_F407_HAL_UART.ioc`，或在 VS Code 中运行 `CubeMX` 任务，可以查看图形化配置：
+双击 `03_F407_HAL_FreeRTOS.ioc`，或在 VS Code 中运行 `CubeMX` 任务，可以查看图形化配置：
 
 1. 在 Pinout 页面将 PA9 设为 `USART1_TX`，PA10 设为 `USART1_RX`；
 2. 在 USART1 参数中选择 Asynchronous，配置 115200、8N1、无流控；
@@ -249,7 +249,7 @@ D:/Program Files/SEGGER/JLink_V958/
 │  ├─ CMSIS/               Cortex-M4 和 STM32F407 设备定义
 │  └─ STM32F4xx_HAL_Driver/ HAL 驱动源码
 ├─ cmake/                  CMake 工具链及 CubeMX 生成的源文件列表
-├─ 03_F407_HAL_UART.ioc    STM32CubeMX 工程配置
+├─ 03_F407_HAL_FreeRTOS.ioc STM32CubeMX 工程配置
 ├─ STM32F407xx_FLASH.ld    Flash/RAM 链接脚本
 ├─ startup_stm32f407xx.s   启动文件和中断向量表
 └─ CMakeLists.txt          CMake 工程入口

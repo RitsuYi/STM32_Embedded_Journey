@@ -17,23 +17,11 @@ if not exist "%BUILD_DIR%\" (
     exit /b 1
 )
 
-set "ELF_COUNT=0"
-set "ELF_FILE="
-for /r "%BUILD_DIR%" %%F in (*.elf) do (
-    set /a ELF_COUNT+=1
-    if !ELF_COUNT! equ 1 set "ELF_FILE=%%~fF"
-)
-
-if %ELF_COUNT% equ 0 (
-    echo ERROR: No ELF file was found under:
-    echo   %BUILD_DIR%
+set "ELF_FILE=%BUILD_DIR%\03_F407_HAL_FreeRTOS.elf"
+if not exist "%ELF_FILE%" (
+    echo ERROR: Firmware ELF file was not found:
+    echo   %ELF_FILE%
     echo Run the Build task first.
-    exit /b 1
-)
-
-if %ELF_COUNT% gtr 1 (
-    echo ERROR: Multiple ELF files were found. Flashing was cancelled:
-    for /r "%BUILD_DIR%" %%F in (*.elf) do echo   %%~fF
     exit /b 1
 )
 
