@@ -42,8 +42,20 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
+# Collect driver sources directly under Drivers (excluding its subdirectories)
+file(GLOB USER_DRIVER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/*.c"
+)
+
+# Collect C sources in User and its subdirectories
+file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/User/*.c"
+)
+
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${USER_DRIVER_SOURCES}
+    ${USER_SOURCES}
     FreeRTOS/SRC/croutine.c
     FreeRTOS/SRC/event_groups.c
     FreeRTOS/SRC/heap_4.c
@@ -57,7 +69,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    Drivers
     FreeRTOS/INC
+    User
 )
 
 # Add project symbols (macros)
