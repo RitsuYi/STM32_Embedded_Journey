@@ -10,5 +10,6 @@
     "cortex-debug.armToolchainPath": "${env:ARM_GCC_ROOT}/bin",
     "cortex-debug.gdbPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-gdb.exe",
     "cortex-debug.objdumpPath": "${env:ARM_GCC_ROOT}/bin/arm-none-eabi-objdump.exe",
-    "cortex-debug.JLinkGDBServerPath.windows": "${env:JLINK_ROOT}/JLinkGDBServerCL.exe"
+    "cortex-debug.JLinkGDBServerPath.windows": "${env:JLINK_ROOT}/JLinkGDBServerCL.exe",
+    "cortex-debug.variableUseNaturalFormat": true
 }
