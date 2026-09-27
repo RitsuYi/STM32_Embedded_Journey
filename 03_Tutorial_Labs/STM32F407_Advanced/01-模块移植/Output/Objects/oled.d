@@ -1,7 +1,7 @@
 .\output\objects\oled.o: Hardware\OLED.c
 .\output\objects\oled.o: .\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
 .\output\objects\oled.o: .\Drivers\CMSIS\Include\core_cm4.h
-.\output\objects\oled.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\objects\oled.o: D:\Program Files\keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\output\objects\oled.o: .\Drivers\CMSIS\Include\core_cmInstr.h
 .\output\objects\oled.o: .\Drivers\CMSIS\Include\core_cmFunc.h
 .\output\objects\oled.o: .\Drivers\CMSIS\Include\core_cmSimd.h
@@ -37,7 +37,7 @@
 .\output\objects\oled.o: Hardware\OLED.h
 .\output\objects\oled.o: Hardware\OLED_Data.h
 .\output\objects\oled.o: .\System\Delay.h
-.\output\objects\oled.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\string.h
-.\output\objects\oled.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\math.h
-.\output\objects\oled.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdio.h
-.\output\objects\oled.o: D:\Program Files (x86)\Keil5\ARM\ARMCC\Bin\..\include\stdarg.h
+.\output\objects\oled.o: D:\Program Files\keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\output\objects\oled.o: D:\Program Files\keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\output\objects\oled.o: D:\Program Files\keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\output\objects\oled.o: D:\Program Files\keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h

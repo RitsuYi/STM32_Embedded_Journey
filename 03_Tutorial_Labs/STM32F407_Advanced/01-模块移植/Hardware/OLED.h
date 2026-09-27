@@ -11,7 +11,7 @@
 #endif
 
 #ifndef OLED_SCL_PIN
-#define OLED_SCL_PIN             GPIO_Pin_8
+#define OLED_SCL_PIN             GPIO_Pin_10
 #endif
 
 #ifndef OLED_SDA_PORT
@@ -19,16 +19,16 @@
 #endif
 
 #ifndef OLED_SDA_PIN
-#define OLED_SDA_PIN             GPIO_Pin_9
+#define OLED_SDA_PIN             GPIO_Pin_11
 #endif
 
-/* PB8/PB9 default to I2C1 on STM32F407. */
+/* PB10/PB11 map to I2C2 (AF4) on STM32F407. */
 #ifndef OLED_SCL_PINSOURCE
-#define OLED_SCL_PINSOURCE       GPIO_PinSource8
+#define OLED_SCL_PINSOURCE       GPIO_PinSource10
 #endif
 
 #ifndef OLED_SDA_PINSOURCE
-#define OLED_SDA_PINSOURCE       GPIO_PinSource9
+#define OLED_SDA_PINSOURCE       GPIO_PinSource11
 #endif
 
 /* StdPeriph expects the 8-bit write address, e.g. SSD1306 uses 0x78. */
@@ -48,15 +48,15 @@
 
 /* Hardware I2C options */
 #ifndef OLED_I2C_INSTANCE
-#define OLED_I2C_INSTANCE        I2C1
+#define OLED_I2C_INSTANCE        I2C2
 #endif
 
 #ifndef OLED_I2C_GPIO_AF
-#define OLED_I2C_GPIO_AF         GPIO_AF_I2C1
+#define OLED_I2C_GPIO_AF         GPIO_AF_I2C2
 #endif
 
 #ifndef OLED_I2C_RCC_APB1_PERIPH
-#define OLED_I2C_RCC_APB1_PERIPH RCC_APB1Periph_I2C1
+#define OLED_I2C_RCC_APB1_PERIPH RCC_APB1Periph_I2C2
 #endif
 
 #ifndef OLED_I2C_CLOCK_SPEED

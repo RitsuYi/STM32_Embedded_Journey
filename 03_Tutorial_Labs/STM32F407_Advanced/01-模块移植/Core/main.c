@@ -11,7 +11,7 @@ static void OLED_ShowTestPattern(void)
 	OLED_DrawLine(0, 0, 127, 63);
 	OLED_DrawLine(127, 0, 0, 63);
 	OLED_ShowString(28, 8, "OLED", OLED_8X16);
-	OLED_ShowString(12, 32, "PB8 SCL  PB9 SDA", OLED_6X8);
+	OLED_ShowString(12, 32, "PB10 SCL PB11 SDA", OLED_6X8);
 	OLED_ShowString(18, 44, "ADDR 0x78", OLED_6X8);
 	OLED_Update();
 }

@@ -42,20 +42,36 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
-# Collect driver sources directly under Drivers (excluding its subdirectories)
+# Collect sources and headers directly under Drivers (excluding its subdirectories)
 file(GLOB USER_DRIVER_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/*.c"
 )
+file(GLOB USER_DRIVER_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/*.h"
+)
 
-# Collect C sources in User and its subdirectories
+# Collect sources and headers in User and all of its subdirectories
 file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/User/*.c"
 )
+file(GLOB_RECURSE USER_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/User/*.h"
+)
+
+# Add every directory containing a User header to the header search path
+set(USER_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/User")
+foreach(USER_HEADER IN LISTS USER_HEADERS)
+    get_filename_component(USER_HEADER_DIR "${USER_HEADER}" DIRECTORY)
+    list(APPEND USER_INCLUDE_DIRS "${USER_HEADER_DIR}")
+endforeach()
+list(REMOVE_DUPLICATES USER_INCLUDE_DIRS)
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${USER_DRIVER_SOURCES}
+    ${USER_DRIVER_HEADERS}
     ${USER_SOURCES}
+    ${USER_HEADERS}
     FreeRTOS/SRC/croutine.c
     FreeRTOS/SRC/event_groups.c
     FreeRTOS/SRC/heap_4.c
@@ -71,7 +87,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers
     FreeRTOS/INC
-    User
+    ${USER_INCLUDE_DIRS}
 )
 
 # Add project symbols (macros)

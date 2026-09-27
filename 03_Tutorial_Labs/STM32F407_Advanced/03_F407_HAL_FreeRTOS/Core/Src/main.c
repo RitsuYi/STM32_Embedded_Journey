@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -25,6 +26,9 @@
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "OLED.h"
+#include "Key.h"
+#include "Key_Task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,6 +68,9 @@ typedef struct
     .LED_Pin = LED3_Pin,
     .Period = 300
   };
+
+  static volatile uint8_t g_oledReady;
+  static volatile uint32_t g_oledError;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -118,10 +125,29 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
+  g_oledReady = OLED_IsConnected();
+
+  if (g_oledReady != 0U)
+  {
+      OLED_Init();
+
+      OLED_ShowString(0, 0, "OLED OK", OLED_8X16);
+      OLED_ShowString(0, 18, "I2C2 PB10/PB11", OLED_6X8);
+      OLED_ShowString(0, 30, "STM32F407", OLED_8X16);
+      OLED_DrawRectangle(0, 50, 128, 14, OLED_UNFILLED);
+
+      OLED_Update();
+  }
+  else
+  {
+      g_oledError = OLED_GetI2CLastError();
+  }
+
   xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
-
+  xTaskCreate(KeyTask, "Key", 128, NULL, 3, NULL);
   vTaskStartScheduler();
   /* USER CODE END 2 */
 

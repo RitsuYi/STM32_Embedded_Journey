@@ -3,18 +3,16 @@
         {
             "name": "Project",
             "includePath": [
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\Core",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\App",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\System",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\Hardware",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\Drivers\\CMSIS\\Include",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\Drivers\\STM32F4xx_StdPeriph_Driver",
-                "e:\\c++\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\01-模块移植\\UserConfig",
-                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include",
-                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\arm_linux",
-                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\arm_linux_compat",
-                "D:\\Program Files (x86)\\Keil5\\ARM\\ARMCC\\include\\rw"
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\Core",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\App",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\System",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\Hardware",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\Drivers\\CMSIS\\Include",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\Drivers\\STM32F4xx_StdPeriph_Driver",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\01-模块移植\\UserConfig",
+                "D:\\Program Files\\keil_v5\\ARM\\ARMCC\\include",
+                "D:\\Program Files\\keil_v5\\ARM\\ARMCC\\include\\rw"
             ],
             "defines": [
                 "USE_STDPERIPH_DRIVER",

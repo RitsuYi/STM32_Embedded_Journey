@@ -30,9 +30,9 @@
 
 /* OLED 与 MPU6050 共用 I2C1：PB8 -> SCL，PB9 -> SDA */
 #define OLED_SCL_PORT                            GPIOB
-#define OLED_SCL_PIN                             GPIO_Pin_8
+#define OLED_SCL_PIN                             GPIO_Pin_10
 #define OLED_SDA_PORT                            GPIOB
-#define OLED_SDA_PIN                             GPIO_Pin_9
+#define OLED_SDA_PIN                             GPIO_Pin_11
 #define OLED_SCL_PINSOURCE                       GPIO_PinSource8
 #define OLED_SDA_PINSOURCE                       GPIO_PinSource9
 #define OLED_I2C_INSTANCE                        I2C1

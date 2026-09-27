@@ -7,7 +7,7 @@
 - `Delay` 阻塞式延时模块
 - `LED` 指示灯控制模块
 - `Key` 按键扫描模块
-- `OLED` 软件 I2C 显示驱动模块
+- `OLED` 硬件 I2C 显示驱动模块
 - `CMSIS + STM32F4xx StdPeriph` 基础工程框架
 
 工程使用 **Keil MDK** 管理，目标器件为 `STM32F407VGTx`，预处理宏为 `USE_STDPERIPH_DRIVER`、`STM32F40_41xxx`。
@@ -41,7 +41,7 @@
 1. 上电后初始化 OLED。
 2. 循环执行全屏填充显示，并点亮 `LED1`。
 3. 延时 300 ms 后熄灭 `LED1`。
-4. OLED 切换为测试画面，显示接线提示 `PB8 SCL / PB9 SDA` 和地址 `0x78`。
+4. OLED 切换为测试画面，显示接线提示 `PB10 SCL / PB11 SDA` 和地址 `0x78`。
 5. 再延时 700 ms，进入下一轮循环。
 
 测试画面内容包括：
@@ -164,8 +164,10 @@
 
 | 信号 | 引脚 | 说明 |
 | --- | --- | --- |
-| SCL | `PB8` | 软件 I2C 时钟 |
-| SDA | `PB9` | 软件 I2C 数据 |
+| SCL | `PB10` | I2C2 硬件时钟（AF4） |
+| SDA | `PB11` | I2C2 硬件数据（AF4） |
+
+> 注意：`PB11` 同时被当前 Key 驱动定义为 KEY2。使用 OLED 的 I2C2 时不要调用 `Key_Init()`，除非先将 KEY2 改到其他空闲引脚。
 
 默认参数：
 
@@ -173,7 +175,7 @@
 | --- | --- | --- |
 | `OLED_I2C_ADDRESS` | `0x78` | 常见 SSD1306 写地址 |
 | `OLED_POWER_ON_DELAY_MS` | `100` | 上电稳定等待时间 |
-| `OLED_I2C_DELAY_US` | `1` | 软件 I2C 延时 |
+| `OLED_I2C_CLOCK_SPEED` | `400000` | 硬件 I2C 时钟频率 |
 | `OLED_COLUMN_OFFSET` | `0` | 列偏移，SH1106 常见为 2 |
 
 OLED 模块已具备的能力：
