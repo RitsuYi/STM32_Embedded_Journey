@@ -15,3 +15,4 @@ void Buzzer_Turn(void)
 {
     HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
 }
+

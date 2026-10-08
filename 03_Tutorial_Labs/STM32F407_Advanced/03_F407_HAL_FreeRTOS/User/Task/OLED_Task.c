@@ -1,9 +1,4 @@
-#include "OLED.h"
-#include "main.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-
+#include "OLED_Task.h"
 
 void vOLED_Task(void *pvParameters)
 {

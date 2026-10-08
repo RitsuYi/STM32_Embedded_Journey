@@ -27,10 +27,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "OLED.h"
 #include "Key.h"
 #include "Key_Task.h"
 #include "OLED_Task.h"
+#include "Buzzer_Task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -153,6 +153,7 @@ int main(void)
   xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
   xTaskCreate(vOLED_Task, "OLED", 128, NULL, 2, NULL);
+  xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 2, NULL);
   vTaskStartScheduler();
   /* USER CODE END 2 */
 
