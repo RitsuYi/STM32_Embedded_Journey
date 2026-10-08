@@ -26,9 +26,11 @@
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 #include "OLED.h"
 #include "Key.h"
 #include "Key_Task.h"
+#include "OLED_Task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -69,6 +71,7 @@ typedef struct
     .Period = 300
   };
 
+  static SemaphoreHandle_t xOledSemaphore;
   static volatile uint8_t g_oledReady;
   static volatile uint32_t g_oledError;
 /* USER CODE END PV */
@@ -136,7 +139,6 @@ int main(void)
       OLED_ShowString(0, 0, "OLED OK", OLED_8X16);
       OLED_ShowString(0, 18, "I2C2 PB10/PB11", OLED_6X8);
       OLED_ShowString(0, 30, "STM32F407", OLED_8X16);
-      OLED_DrawRectangle(0, 50, 128, 14, OLED_UNFILLED);
 
       OLED_Update();
   }
@@ -145,9 +147,12 @@ int main(void)
       g_oledError = OLED_GetI2CLastError();
   }
 
+  xOledSemaphore = xSemaphoreCreateBinary();
+
   xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(KeyTask, "Key", 128, NULL, 3, NULL);
+  xTaskCreate(OLED_Task, "OLED", 128, NULL, 2, NULL);
   vTaskStartScheduler();
   /* USER CODE END 2 */
 
