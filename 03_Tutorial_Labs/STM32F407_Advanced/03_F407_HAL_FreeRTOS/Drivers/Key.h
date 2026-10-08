@@ -2,7 +2,7 @@
 #define __KEY_H
 
 
-void KeyTask(void *pvParameters);
+void vKeyTask(void *pvParameters);
 
 
 #endif

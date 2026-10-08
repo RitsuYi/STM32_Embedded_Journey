@@ -5,7 +5,7 @@
 #include "task.h"
 
 
-void OLED_Task(void *pvParameters)
+void vOLED_Task(void *pvParameters)
 {
     for(;;)
     {

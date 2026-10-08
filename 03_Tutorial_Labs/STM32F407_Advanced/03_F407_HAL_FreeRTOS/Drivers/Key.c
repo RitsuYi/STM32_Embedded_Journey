@@ -7,7 +7,7 @@
 #include "task.h"
 
 
-void KeyTask(void *pvParameters)
+void vKeyTask(void *pvParameters)
 {
     uint8_t key1Previous = 0;
     uint8_t key2Previous = 0;

@@ -151,8 +151,8 @@ int main(void)
 
   xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
-  xTaskCreate(KeyTask, "Key", 128, NULL, 3, NULL);
-  xTaskCreate(OLED_Task, "OLED", 128, NULL, 2, NULL);
+  xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
+  xTaskCreate(vOLED_Task, "OLED", 128, NULL, 2, NULL);
   vTaskStartScheduler();
   /* USER CODE END 2 */
 
