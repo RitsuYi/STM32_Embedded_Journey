@@ -3,14 +3,14 @@
         {
             "name": "Project",
             "includePath": [
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Core",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\App",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\System",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Hardware",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Include",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\Drivers\\STM32F4xx_StdPeriph_Driver",
-                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407进阶\\02-小车实现测试\\UserConfig",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\Core",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\App",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\System",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\Hardware",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\Drivers\\CMSIS\\Include",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\Drivers\\CMSIS\\Device\\ST\\STM32F4xx\\Include",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\Drivers\\STM32F4xx_StdPeriph_Driver",
+                "d:\\.workspace\\STM32_Embedded_Journey\\03_Tutorial_Labs\\STM32F407_Advanced\\02-小车实现测试\\UserConfig",
                 "D:\\Program Files\\keil_v5\\ARM\\ARMCC\\include",
                 "D:\\Program Files\\keil_v5\\ARM\\ARMCC\\include\\rw"
             ],
