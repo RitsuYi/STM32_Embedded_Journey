@@ -9,13 +9,13 @@
 
 void vKeyTask(void *pvParameters)
 {
-    uint8_t key1Previous = 0;
-    uint8_t key2Previous = 0;
-    uint8_t key3Previous = 0;
+    GPIO_PinState key1Previous = HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
+    GPIO_PinState key2Previous = HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
+    GPIO_PinState key3Previous = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
 
-    uint8_t key1Current;
-    uint8_t key2Current;
-    uint8_t key3Current;
+    GPIO_PinState key1Current;
+    GPIO_PinState key2Current;
+    GPIO_PinState key3Current;
 
 
     for (;;)
@@ -24,51 +24,25 @@ void vKeyTask(void *pvParameters)
          * 读取 KEY1
          * RESET = 按下
          * SET   = 松开
-         *
-         * 转换：
-         * 1 = 按下
-         * 0 = 松开
          */
-        key1Current =
-            (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin)
-             == GPIO_PIN_RESET);
+        key1Current = HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin);
+        key2Current = HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin);
+        key3Current = HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin);
 
-
-        key2Current =
-            (HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin)
-             == GPIO_PIN_RESET);
-
-
-        key3Current =
-            (HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin)
-             == GPIO_PIN_RESET);
-
-
-        /*
-         * KEY1 按下
-         */
-        if ((key1Previous == 0) &&
-            (key1Current == 1))
+        if ((key1Current != key1Previous) &&
+            (key1Current == GPIO_PIN_SET))
         {
             KEY1_Task();
         }
 
-
-        /*
-         * KEY2 按下
-         */
-        if ((key2Previous == 0) &&
-            (key2Current == 1))
+        if ((key2Current != key2Previous) &&
+            (key2Current == GPIO_PIN_SET))
         {
             KEY2_Task();
         }
 
-
-        /*
-         * KEY3 按下
-         */
-        if ((key3Previous == 0) &&
-            (key3Current == 1))
+        if ((key3Current != key3Previous) &&
+            (key3Current == GPIO_PIN_SET))
         {
             KEY3_Task();
         }

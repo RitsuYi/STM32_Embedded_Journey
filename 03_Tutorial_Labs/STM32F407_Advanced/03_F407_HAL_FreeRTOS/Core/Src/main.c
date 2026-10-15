@@ -27,6 +27,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "timers.h"
 #include "Key.h"
 #include "Key_Task.h"
 #include "OLED_Task.h"
@@ -57,23 +58,25 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-  static const LEDBlinkInfo_TypeDef LED1BlinkInfo =
-  {
-    .LED_GPIOx = LED1_GPIO_Port,
-    .LED_Pin = LED1_Pin,
-    .Period = 1000
-  };
+static const LEDBlinkInfo_TypeDef LED1BlinkInfo =
+{
+  .LED_GPIOx = LED1_GPIO_Port,
+  .LED_Pin = LED1_Pin,
+  .Period = 1000
+};
 
-  static const LEDBlinkInfo_TypeDef LED3BlinkInfo =
-  {
-    .LED_GPIOx = LED3_GPIO_Port,
-    .LED_Pin = LED3_Pin,
-    .Period = 300
-  };
+static const LEDBlinkInfo_TypeDef LED3BlinkInfo =
+{
+  .LED_GPIOx = LED3_GPIO_Port,
+  .LED_Pin = LED3_Pin,
+  .Period = 300
+};
 
-  static SemaphoreHandle_t xOledSemaphore;
-  static volatile uint8_t g_oledReady;
-  static volatile uint32_t g_oledError;
+static SemaphoreHandle_t xOledSemaphore;
+static volatile uint8_t g_oledReady;
+static volatile uint32_t g_oledError;
+
+TimerHandle_t xTimerForLED1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,6 +99,12 @@ static void prvLEDTask(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(pxLEDInfo->Period / 2));
   }
 }
+
+static void LED1TimerCallback(TimerHandle_t xTimer)
+{
+  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -149,8 +158,10 @@ int main(void)
 
   xOledSemaphore = xSemaphoreCreateBinary();
 
-  xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
-  xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
+  xTimerForLED1 = xTimerCreate("LED1Timer", pdMS_TO_TICKS(500), pdTRUE, NULL, LED1TimerCallback);
+  xTimerStart(xTimerForLED1, portMAX_DELAY);
+  //xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
+  //xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
   xTaskCreate(vOLED_Task, "OLED", 128, NULL, 2, NULL);
   xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 2, NULL);
