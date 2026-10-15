@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -32,6 +33,7 @@
 #include "Key_Task.h"
 #include "OLED_Task.h"
 #include "Buzzer_Task.h"
+#include "GUI_Task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +60,7 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+/*
 static const LEDBlinkInfo_TypeDef LED1BlinkInfo =
 {
   .LED_GPIOx = LED1_GPIO_Port,
@@ -71,7 +74,7 @@ static const LEDBlinkInfo_TypeDef LED3BlinkInfo =
   .LED_Pin = LED3_Pin,
   .Period = 300
 };
-
+*/
 static SemaphoreHandle_t xOledSemaphore;
 static volatile uint8_t g_oledReady;
 static volatile uint32_t g_oledError;
@@ -87,6 +90,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/*
 static void prvLEDTask(void *pvParameters)
 {
   LEDBlinkInfo_TypeDef *pxLEDInfo = (LEDBlinkInfo_TypeDef *)pvParameters;
@@ -99,7 +103,7 @@ static void prvLEDTask(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(pxLEDInfo->Period / 2));
   }
 }
-
+*/
 static void LED1TimerCallback(TimerHandle_t xTimer)
 {
   HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
@@ -138,6 +142,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_I2C2_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   g_oledReady = OLED_IsConnected();
 
@@ -163,8 +168,9 @@ int main(void)
   //xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   //xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
-  xTaskCreate(vOLED_Task, "OLED", 128, NULL, 2, NULL);
-  xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 2, NULL);
+  xTaskCreate(vOLED_Task, "OLED", 128, NULL, 1, NULL);
+  xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 1, NULL);
+  xTaskCreate(vGUI_Task, "GUI", 512, NULL, 2, NULL);
   vTaskStartScheduler();
   /* USER CODE END 2 */
 
