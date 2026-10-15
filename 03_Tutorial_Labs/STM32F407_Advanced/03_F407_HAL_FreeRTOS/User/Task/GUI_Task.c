@@ -12,6 +12,7 @@ void vGUI_Task(void *pvParameters)
     ST7796_Init();
     // 后续：lv_init();
     // 后续：配置LVGL显示设备和缓冲区
+    ST7796_FillScreen(ST7796_RED);
 
     for (;;)
     {
@@ -20,3 +21,4 @@ void vGUI_Task(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
+

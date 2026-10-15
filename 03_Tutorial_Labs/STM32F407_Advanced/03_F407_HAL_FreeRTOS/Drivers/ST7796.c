@@ -2,6 +2,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "spi.h"
+#include "ST7796.h"
 
 void ST7796_WriteCommand(uint8_t cmd)
 {
@@ -58,4 +59,83 @@ void ST7796_Init(void)
 
     // 打开背光
     HAL_GPIO_WritePin(LCD_BL_GPIO_Port, LCD_BL_Pin, GPIO_PIN_SET);
+}
+
+//设置显示区域
+void ST7796_SetAddressWindow(uint16_t x0, uint16_t y0,
+                             uint16_t x1, uint16_t y1)
+{
+    // 设置列地址
+    ST7796_WriteCommand(0x2A);
+    ST7796_WriteData(x0 >> 8);
+    ST7796_WriteData(x0 & 0xFF);
+    ST7796_WriteData(x1 >> 8);
+    ST7796_WriteData(x1 & 0xFF);
+
+    // 设置行地址
+    ST7796_WriteCommand(0x2B);
+    ST7796_WriteData(y0 >> 8);
+    ST7796_WriteData(y0 & 0xFF);
+    ST7796_WriteData(y1 >> 8);
+    ST7796_WriteData(y1 & 0xFF);
+}
+
+//整屏填充颜色
+void ST7796_FillScreen(uint16_t color)
+{
+    static uint8_t buffer[512];
+
+    // 256个RGB565像素
+    for (uint16_t i = 0; i < 256; i++)
+    {
+        buffer[i * 2]     = color >> 8;
+        buffer[i * 2 + 1] = color & 0xFF;
+    }
+
+    // 设置整屏显示区域
+    ST7796_SetAddressWindow(
+        0, 0,
+        ST7796_WIDTH - 1,
+        ST7796_HEIGHT - 1
+    );
+
+    // 确保板载Flash未被选中
+    HAL_GPIO_WritePin(FLASH_CS_GPIO_Port,
+                      FLASH_CS_Pin, GPIO_PIN_SET);
+
+    // 选中LCD，准备发送RAMWR命令
+    HAL_GPIO_WritePin(LCD_CS_GPIO_Port,
+                      LCD_CS_Pin, GPIO_PIN_RESET);
+
+    HAL_GPIO_WritePin(LCD_DC_GPIO_Port,
+                      LCD_DC_Pin, GPIO_PIN_RESET);
+
+    uint8_t cmd = 0x2C;
+
+    HAL_SPI_Transmit(&hspi1, &cmd, 1, HAL_MAX_DELAY);
+
+    // 后面连续发送像素数据
+    HAL_GPIO_WritePin(LCD_DC_GPIO_Port,
+                      LCD_DC_Pin, GPIO_PIN_SET);
+
+    uint32_t remaining = ST7796_WIDTH * ST7796_HEIGHT;
+
+    while (remaining > 0)
+    {
+        uint16_t count = (remaining > 256) ?
+                          256 : (uint16_t)remaining;
+
+        HAL_SPI_Transmit(
+            &hspi1,
+            buffer,
+            count * 2,
+            HAL_MAX_DELAY
+        );
+
+        remaining -= count;
+    }
+
+    // 发送结束，释放LCD片选
+    HAL_GPIO_WritePin(LCD_CS_GPIO_Port,
+                      LCD_CS_Pin, GPIO_PIN_SET);
 }
