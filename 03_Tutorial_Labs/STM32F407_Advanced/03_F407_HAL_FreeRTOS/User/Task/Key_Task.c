@@ -31,5 +31,6 @@ void KEY2_Task(void)
 
 void KEY3_Task(void)
 {
-    Buzzer_Beep();                  
+    Buzzer_Beep();
+    xTimerReset(xTimerForLED1, portMAX_DELAY);                  
 }
