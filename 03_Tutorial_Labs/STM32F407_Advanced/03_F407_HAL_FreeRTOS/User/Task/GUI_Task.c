@@ -1,24 +1,78 @@
 #include "ST7796.h"
+#include "GUI_Task.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+#include "main.h"
+#include "lvgl_port.h"
+#include "gui_app.h"
+#include "gui_lvgl_assert.h"
 
-/**
+static StaticQueue_t command_queue_storage;
+static uint8_t command_queue_data[8U * sizeof(unsigned)];
+static QueueHandle_t command_queue;
+volatile GUI_Diagnostics g_gui;
+
+bool GUI_TaskPrepare(void)
+{
+    if(!command_queue) command_queue = xQueueCreateStatic(8, sizeof(unsigned),
+                                           command_queue_data, &command_queue_storage);
+    return command_queue != NULL;
+}
+bool GUI_PostKey(unsigned key)
+{
+    if(!command_queue || xQueueSend(command_queue, &key, 0) != pdPASS) {
+        ++g_gui.queue_dropped;
+        return false;
+    }
+    return true;
+}
+void GUI_LVGL_AssertFailed(const char *file, int line)
+{
+    g_gui.assert_file = file; g_gui.assert_line = line;
+    taskDISABLE_INTERRUPTS();
+    for(;;) { }
+}
+
+/*
  * @brief GUI任务
  */
 void vGUI_Task(void *pvParameters)
 {
     (void)pvParameters;
+
     ST7796_Init();
-    // 后续：lv_init();
-    // 后续：配置LVGL显示设备和缓冲区
-    ST7796_FillScreen(ST7796_RED);
+
+    lv_init();
+    lv_tick_set_cb(HAL_GetTick);
+    if(!GUI_DisplayInit()) GUI_LVGL_AssertFailed(__FILE__, __LINE__);
+    GUI_AppInit(NULL); /* Flash persistence not connected: RAM-only, explicitly labelled. */
+    g_gui.ready = 1;
+    uint32_t last_monitor = 0;
 
     for (;;)
     {
-        // 后续：lv_timer_handler();
-
-        vTaskDelay(pdMS_TO_TICKS(100));
+        unsigned key;
+        /* Bound work per iteration so queued input cannot starve rendering. */
+        for(unsigned i = 0; i < 8 && xQueueReceive(command_queue, &key, 0) == pdPASS; ++i)
+            GUI_AppKey(key);
+        GUI_AppProcess();
+        uint32_t delay = lv_timer_handler();
+        uint32_t now = HAL_GetTick();
+        if(now - last_monitor >= 1000U) {
+            lv_mem_monitor_t monitor;
+            lv_mem_monitor(&monitor);
+            g_gui.stack_free_words = uxTaskGetStackHighWaterMark(NULL);
+            g_gui.freertos_heap_free = xPortGetFreeHeapSize();
+            g_gui.lvgl_heap_free = monitor.free_size;
+            g_gui.lvgl_heap_peak = monitor.max_used;
+            g_gui.lvgl_heap_fragmentation = monitor.frag_pct;
+            last_monitor = now;
+        }
+        if(delay == LV_NO_TIMER_READY || delay > 10U) delay = 10U;
+        if(delay < 1U) delay = 1U;
+        vTaskDelay(pdMS_TO_TICKS(delay));
     }
 }
 

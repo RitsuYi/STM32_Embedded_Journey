@@ -22,14 +22,14 @@ int main(void)
 	
 	while(1)
 	{
-		LED1_ON();
-		OLED_DrawRectangle(0, 0, 128, 64, OLED_FILLED);
-		OLED_Update();
-		Delay_ms(300);
+//		LED1_ON();
+//		OLED_DrawRectangle(0, 0, 128, 64, OLED_FILLED);
+//		OLED_Update();
+//		Delay_ms(300);
 
-		LED1_OFF();
-		OLED_ShowTestPattern();
-		Delay_ms(700);
+//		LED1_OFF();
+//		OLED_ShowTestPattern();
+//		Delay_ms(700);
 	}
 }
 

@@ -165,12 +165,14 @@ int main(void)
 
   xTimerForLED1 = xTimerCreate("LED1Timer", pdMS_TO_TICKS(500), pdTRUE, NULL, LED1TimerCallback);
   xTimerStart(xTimerForLED1, portMAX_DELAY);
+  if(!GUI_TaskPrepare()) Error_Handler();
   //xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   //xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
   xTaskCreate(vOLED_Task, "OLED", 128, NULL, 1, NULL);
   xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 1, NULL);
-  xTaskCreate(vGUI_Task, "GUI", 512, NULL, 2, NULL);
+  if(xTaskCreate(vGUI_Task, "GUI", GUI_TASK_STACK_WORDS, NULL, 2, NULL) != pdPASS)
+      Error_Handler();
   vTaskStartScheduler();
   /* USER CODE END 2 */
 

@@ -37,17 +37,25 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+# LVGL configuration for this project
+set(LV_BUILD_CONF_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h"
+    CACHE FILEPATH "LVGL configuration header"
+    FORCE
+)
+
+# Keep the CMake targets consistent with the embedded lv_conf.h.
+# LVGL v9.6.0 defaults these build options to ON independently of lv_conf.h.
+set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "Disable LVGL demos" FORCE)
+set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "Disable LVGL examples" FORCE)
+set(CONFIG_LV_USE_THORVG OFF CACHE BOOL "Disable ThorVG" FORCE)
+set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "Disable internal ThorVG" FORCE)
+
+add_subdirectory(LVGL)
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
-)
-
-# Collect sources and headers directly under Drivers (excluding its subdirectories)
-file(GLOB USER_DRIVER_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/*.c"
-)
-file(GLOB USER_DRIVER_HEADERS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/*.h"
 )
 
 # Collect sources and headers in User and all of its subdirectories
@@ -101,6 +109,11 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
+    lvgl
     # Add user defined libraries
 )
+
+# Standard C snprintf fractional formatting is separate from LVGL's LV_USE_FLOAT.
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
+file(GLOB_RECURSE GUI_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/User/GUI/*.c")
+set_source_files_properties(${GUI_SOURCES} PROPERTIES COMPILE_OPTIONS "-Wextra;-Wformat=2")
