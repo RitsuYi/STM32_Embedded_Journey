@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "i2c.h"
 #include "spi.h"
 #include "usart.h"
@@ -34,6 +35,7 @@
 #include "OLED_Task.h"
 #include "Buzzer_Task.h"
 #include "GUI_Task.h"
+#include "I2C2_Bus.h" /* OLED和触摸共用I2C2，启动任务前创建统一的总线锁。 */
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -140,10 +142,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_I2C2_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+  /* 先完成OLED启动探测、HAL_Delay和刷新，再创建FreeRTOS对象。
+   * 本工程在调度前创建锁会保持BASEPRI中断屏蔽，使TIM6毫秒计时停止；
+   * 此时再调用HAL_Delay就等不到计时增长。启动前只有main访问I2C，不需互斥。 */
   g_oledReady = OLED_IsConnected();
 
   if (g_oledReady != 0U)
@@ -161,6 +167,9 @@ int main(void)
       g_oledError = OLED_GetI2CLastError();
   }
 
+  /* OLED所有HAL启动操作已经结束，现在才创建共用总线锁。
+   * 调度器启动后OLED任务与GUI触摸读取必须取得同一把锁，不能并发操作I2C2。 */
+  if (!I2C2_Bus_Init()) Error_Handler();
   xOledSemaphore = xSemaphoreCreateBinary();
 
   xTimerForLED1 = xTimerCreate("LED1Timer", pdMS_TO_TICKS(500), pdTRUE, NULL, LED1TimerCallback);

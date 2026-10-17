@@ -79,6 +79,12 @@ void Error_Handler(void);
 #define LED3_GPIO_Port GPIOB
 #define LCD_CS_Pin GPIO_PIN_0
 #define LCD_CS_GPIO_Port GPIOE
+/* 电容触摸复位：接35002第11脚；低电平保持复位，由后续触摸驱动拉高释放。 */
+#define TP_RST_Pin GPIO_PIN_1
+#define TP_RST_GPIO_Port GPIOE
+/* 电容触摸通知：接35002第14脚；信号由触摸芯片输出，STM32只读取它。 */
+#define TP_INT_Pin GPIO_PIN_2
+#define TP_INT_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

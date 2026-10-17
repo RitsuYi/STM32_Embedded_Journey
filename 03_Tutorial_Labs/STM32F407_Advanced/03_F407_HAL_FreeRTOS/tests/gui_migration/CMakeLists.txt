@@ -24,3 +24,12 @@ add_executable(st7796_transfer_test st7796_transfer_test.c "${F407_ROOT}/User/Ha
 target_include_directories(st7796_transfer_test PRIVATE stubs "${F407_ROOT}/User/Hardware")
 target_compile_options(st7796_transfer_test PRIVATE -Wall -Wextra -Werror)
 add_test(NAME st7796_transfer COMMAND st7796_transfer_test)
+
+# H6.5回归：通过实际输入适配和LVGL命中检测点击按钮，不直接伪造CLICKED事件。
+add_executable(gui_touch_test gui_touch_test.c ${APP_SOURCES}
+    "${F407_ROOT}/User/GUI/gui_demo.c" "${F407_ROOT}/User/GUI/lvgl_port.c")
+target_include_directories(gui_touch_test PRIVATE touch_stubs stubs
+    "${F407_ROOT}/User/GUI" "${F407_ROOT}/User/Hardware")
+target_compile_options(gui_touch_test PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(gui_touch_test PRIVATE lvgl m)
+add_test(NAME gui_touch COMMAND gui_touch_test)

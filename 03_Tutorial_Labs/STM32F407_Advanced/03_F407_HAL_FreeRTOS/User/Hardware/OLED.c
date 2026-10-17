@@ -1,5 +1,6 @@
 #include "OLED.h"
 #include "i2c.h"
+#include "I2C2_Bus.h"
 
 #include <math.h>
 #include <stdarg.h>
@@ -77,6 +78,14 @@ static HAL_StatusTypeDef OLED_I2C_Write(uint8_t ControlByte, const uint8_t *Data
 	}
 
 	OLED_I2C_LastErrorFlags = HAL_I2C_ERROR_NONE;
+	/* 只锁当前命令或一页数据，不锁整屏刷新；让GUI能在页与页之间读取触摸。
+	 * 取锁失败不能继续调用HAL，否则会和触摸任务同时操作hi2c2。 */
+	if (!I2C2_Bus_Lock(pdMS_TO_TICKS(25) + 1U))
+	{
+		OLED_I2C_LastErrorFlags = OLED_I2C_HAL_BUSY_ERROR;
+		OLED_I2C_ErrorCount++;
+		return HAL_BUSY;
+	}
 	Status = HAL_I2C_Mem_Write(&hi2c2,
 							   OLED_I2C_ADDRESS,
 							   ControlByte,
@@ -99,12 +108,21 @@ static HAL_StatusTypeDef OLED_I2C_Write(uint8_t ControlByte, const uint8_t *Data
 		OLED_I2C_ErrorCount++;
 	}
 
+	/* HAL错误码也属于这次事务，先记录完再把总线交给触摸。 */
+	I2C2_Bus_Unlock();
 	return Status;
 }
 uint8_t OLED_IsConnected(void)
 {
 	HAL_StatusTypeDef Status;
 
+	/* main启动探测与任务期探测遵守同一入口；未取到锁就不访问硬件。 */
+	if (!I2C2_Bus_Lock(pdMS_TO_TICKS(25) + 1U))
+	{
+		OLED_I2C_LastErrorFlags = OLED_I2C_HAL_BUSY_ERROR;
+		OLED_I2C_ErrorCount++;
+		return 0U;
+	}
 	Status = HAL_I2C_IsDeviceReady(&hi2c2,
 								   OLED_I2C_ADDRESS,
 								   3U,
@@ -112,6 +130,7 @@ uint8_t OLED_IsConnected(void)
 	if (Status == HAL_OK)
 	{
 		OLED_I2C_LastErrorFlags = HAL_I2C_ERROR_NONE;
+		I2C2_Bus_Unlock();
 		return 1U;
 	}
 
@@ -125,6 +144,7 @@ uint8_t OLED_IsConnected(void)
 		OLED_I2C_LastErrorFlags |= OLED_I2C_HAL_TIMEOUT_ERROR;
 	}
 	OLED_I2C_ErrorCount++;
+	I2C2_Bus_Unlock();
 	return 0U;
 }
 
