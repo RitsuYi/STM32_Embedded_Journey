@@ -34,6 +34,14 @@ typedef struct {
     bool notice_warning;
     char primary_text[20], secondary_text[20], residual_text[20];
     char hint_text[64], caption_text[96];
+    /* 新主界面仍复用原测量会话；质检汇总由唯一GUI任务填入，绘制时只读。 */
+    bool quality_mode, automatic, wifi_connected;
+    uint32_t total_count, pass_count, fail_count;
+    unsigned verdict; /* 与InstrumentVerdict对应，避免显示层依赖业务头文件产生循环包含。 */
+    char recent[2][80];
+    struct { uint32_t id, uptime_ms; int32_t primary_cmm, secondary_cmm; bool pass; } recent_records[2];
+    void (*primary_action)(void *context); /* 中键：单次测量或自动质检开关。 */
+    lv_obj_t * zoom[3], * standard_button;
 } MeasurementPage;
 
 /* initial_result supplies only geometry/device metadata. Startup is always

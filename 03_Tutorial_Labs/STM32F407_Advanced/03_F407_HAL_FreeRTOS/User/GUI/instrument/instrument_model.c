@@ -12,14 +12,38 @@ void instrument_defaults(InstrumentModel * m)
 void instrument_default_settings(InstrumentSettings *s)
 {
     *s = (InstrumentSettings){.mode = MEASUREMENT_RING, .sample_count = 128,
-        .quality_cmm = 20, .timeout_ms = 5000, .grid = true, .dimensions = true, .contour = true};
+        .quality_cmm = 20, .timeout_ms = 5000, .grid = true, .dimensions = true, .contour = true,
+        /* 默认标准仅用于界面演示；实际工件标准由用户在“标准设定”修改。 */
+        .tolerance = {{{3000,20,20},{1200,10,10}},{{3200,20,20},{2000,20,20}}}};
 }
 
 bool instrument_settings_check(const InstrumentSettings * s)
 {
+    if(!s) return false;
+    for(unsigned g = 0; g < 2; ++g) for(unsigned d = 0; d < 2; ++d) {
+        const InstrumentTolerance *t = &s->tolerance[g][d];
+        if(t->target_cmm < 1 || t->target_cmm > 1000000 || t->lower_cmm >= t->target_cmm ||
+           t->upper_cmm > 1000000 - t->target_cmm) return false;
+    }
     return s && (s->mode == MEASUREMENT_RING || s->mode == MEASUREMENT_RECTANGLE) &&
         s->sample_count >= 32 && s->sample_count <= 512 && s->quality_cmm >= 1 && s->quality_cmm <= 100 &&
         s->timeout_ms >= 2000 && s->timeout_ms <= 30000 && s->timeout_ms % 1000 == 0 && s->image_profile <= 1;
+}
+
+InstrumentVerdict instrument_inspect(const InstrumentSettings *s, const MeasurementResult *r)
+{
+    /* 先校验配置和测量，再比较两个尺寸；返回具体超差项供页面和历史记录显示。
+     * cmm表示百分之一毫米，使用整数比较可让上下边界得到稳定、相同的判定。 */
+    if(!instrument_settings_check(s) || !measurement_result_check(r) || r->status != MEASUREMENT_VALID)
+        return INSPECTION_INVALID;
+    const int32_t values[2] = {r->primary_cmm, r->secondary_cmm};
+    for(unsigned i = 0; i < 2; ++i) {
+        const InstrumentTolerance *t = &s->tolerance[r->geometry][i];
+        if(values[i] < (int32_t)(t->target_cmm - t->lower_cmm) ||
+           values[i] > (int32_t)(t->target_cmm + t->upper_cmm))
+            return i == 0 ? INSPECTION_PRIMARY : INSPECTION_SECONDARY;
+    }
+    return INSPECTION_PASS;
 }
 
 bool instrument_calibration_ready(const InstrumentModel * m)
@@ -122,6 +146,9 @@ bool instrument_delete_record(InstrumentModel * m, uint32_t id)
 bool instrument_model_check(const InstrumentModel * m)
 {
     if(!m || !instrument_settings_check(&m->settings) || m->record_count > INSTRUMENT_RECORD_CAPACITY || !m->next_id) return false;
+    /* 存储后端将来载入数据时，也核对新增统计，拒绝损坏或旧布局的数据。
+     * 使用64位加法，避免两个32位计数相加溢出后误通过。 */
+    if((uint64_t)m->passed+m->failed!=m->inspected) return false;
     const InstrumentCalibration * c = &m->calibration;
     if(c->image_profile > 1) return false;
     for(unsigned i = 0; i < 9; ++i) if(!isfinite(c->homography[i])) return false;
@@ -134,7 +161,9 @@ bool instrument_model_check(const InstrumentModel * m)
     for(uint32_t i = 0; i < m->record_count; ++i) {
         const InstrumentRecord * r = m->records + i;
         if(!r->id || r->id >= m->next_id || (i && r->id >= m->records[i-1].id) ||
-           !measurement_result_check(&r->result) || r->result.status == MEASUREMENT_PENDING) return false;
+           !measurement_result_check(&r->result) || r->result.status == MEASUREMENT_PENDING ||
+           (unsigned)r->verdict > INSPECTION_INVALID ||
+           (r->inspection ? r->verdict == INSPECTION_NONE : r->verdict != INSPECTION_NONE)) return false;
     }
     return true;
 }

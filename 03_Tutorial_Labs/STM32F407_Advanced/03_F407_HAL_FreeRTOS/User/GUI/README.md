@@ -1,3 +1,46 @@
+# 智能视觉测量仪 LVGL 应用层
+
+当前入口为 H7.1 浅色配色、完整图标和官方转换字体版（2026-10-19）。用户已提供上一版RGB565优化后的实机照片，仍反馈过深、缺图标与字体模糊；本轮继续整改，代码、主机/ARM验证通过，本版尚未下载。原H6/H7验收保持，实物视觉待新照片确认。
+
+## 当前界面与操作
+
+- 左下切换“测量 / 质检”，中键普通测量或自动质检启停，右下打开设置；三个触摸目标一直覆盖到Y319。
+- 质检右侧包含标准设定、当前结论、累计统计、两条最近检测记录。“查看更多”及小箭头打开可滑动历史。
+- 设置从右侧180ms滑入，内含Wi-Fi、设备信息、测量参数、显示、目标与上下公差、历史；列表可以手指拖动。数字键盘底行五键继续覆盖到Y319。
+- KEY1切换模式（空闲且无菜单时）；KEY2设置/返回；KEY3主动作。原蜂鸣器和LED任务保持。
+- 标准以0.01mm整数比较，区间包含两端。历史保留检测当时结论，修改标准不会重判；累计统计不因64条记录淘汰而减少。
+
+`GUI_AppInit → MeasurementPage + DashboardUI → MeasurementBackend` 是当前运行链路。`instrument_ui.c`旧四页源码保留作历史，不再从应用入口创建；界面均由唯一GUI任务访问。
+
+## 二维皮肤和数据边界
+
+参考图布局和二维圆环保留。雾蓝背景、按钮、蓝绿紫与深色文字再次调浅，工件加轻微圆环高光。正文12px、标题14px、主标题/质检数字16px、主尺寸数字26px，均由官方转换器直接取字，取消横向压缩。设置/测量/质检/缩放及标准设定、检测结果、累计统计、最近记录使用完整16/20px图标字形，独立指定图标字体；Wi-Fi始终蓝色，未连接为带斜杠图标，右侧竖线与时间分隔。见`fonts/README.md`和`measurement/ui_icons.h`。最近两条记录保留清晰摘要，完整开机时间/单位仍在记录页。
+
+`assets/ui_skin.c`以960B共享行缓存生成292/278×232原尺寸雾蓝背景，8×8固定有序抖动减轻RGB565色带，取消低分辨率背景放大及10px密网格。LVGL先用8位通道混合，最后转RGB565，纯白可输出0xFFFF；有限色阶仍不能等同高色深电脑屏。保持单GUI任务、`LV_DRAW_SW_DRAW_UNIT_CNT=1`及原480×20局部缓冲、SPI DMA等待，未改硬件/触摸/时钟/液晶寄存器。二维圆环仍为参考图材质，不是实时相机图像。见`assets/README.md`。
+
+当前仍是模拟相机（包括32.00×20.00mm矩形像素角点→固定映射→尺寸路径），不是MaixCAM2真实测量。`gui_camera_config.h`集中放固定参数，目前仅适配模拟夹具；真实安装需一次性替换。界面没有现场标定向导。
+
+`GUI_AppInit(NULL)`为仅内存存储，重启清空；没有RTC时显示开机时间，不冒充参考图日期。`GUI_AppSetNetwork`预留非阻塞连接/断开请求，true只表示受理，只有`GUI_AppNetworkStatus`后端回报才变为已连接。两接口必须在GUI任务调用，其他任务用队列转交。网络和Flash均未接硬件；存储模型布局新增了公差/结论/时间/统计，后续Flash后端必须做版本化，不能原样载入旧结构。
+
+## 当前验证
+
+- 原预设：`cmake --build --preset build-debug`。最新日志`build/Debug/h7_1_icons_fonts_final_build.log`：RAM107864B/131072B（82.29%），Flash837576B（79.88%），CCM0，无需外部Flash。C编译通过，仍有LOAD段RWX链接告警。
+- `tests/ui_dashboard`的`icons_fonts_final_test.log`：真实LVGL及实际ST7796驱动契约2/2通过，新增字体覆盖/无缺字图标、图标绘图宽度、原尺寸数字宽度、Wi-Fi蓝色两状态与竖线；纯色、1/7/20行和裁剪重绘一致、480宽DMA等回归保持。主机48KiB池峰39696B，不能替代实机水位或LCD接收证据。
+- 覆盖模式、底边真实指针输入、自动启停/超时、公差边界与旧结论、失败回滚、数字键盘、设置/历史拖动、Wi-Fi请求与状态分离、缩放、矩形和64条容量。
+- `build/H7_1_Host/measurement_icons_fonts.png`及`inspection_idle_icons_fonts.png`为本版实际主机渲染；另存连接/断开、合格/超差、设置/记录/键盘截图。旧`*_rgb565.png`和`reference_comparison.png`保留历史。截图缓冲仅在电脑存在，液晶色调/亮度/清晰度仍需新实拍确认。
+
+首次建立主机目标（MinGW GCC + Ninja）：
+
+```powershell
+cmake -S tests/ui_dashboard -B build/H7_1_Host -G Ninja -DCMAKE_C_COMPILER=E:/DevEnv/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=E:/DevEnv/mingw64/bin/g++.exe -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/H7_1_Host --target ui_dashboard_test
+ctest --test-dir build/H7_1_Host --output-on-failure
+```
+
+当前步骤/验收依据统一维护于根`PROJECT_PROGRESS.md`，下面仅保留迁移与触摸历史，旧按钮数量和KEY操作不代表当前H7.1界面。
+
+---
+
 # STM32 LVGL应用层迁移
 
 2026-10-16从`D:\.workspace\LVGL_PC_GJOBS\src`迁入measurement、instrument和fonts，

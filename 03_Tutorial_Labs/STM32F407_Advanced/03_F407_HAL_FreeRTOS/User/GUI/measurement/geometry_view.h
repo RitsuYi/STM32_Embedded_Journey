@@ -4,7 +4,7 @@
 #include "lvgl/lvgl.h"
 #include "measurement.h"
 
-#define GEOMETRY_DEFAULT_SCALE_Q8 1105U /* 4.31640625 pixels/mm */
+#define GEOMETRY_DEFAULT_SCALE_Q8 1450U /* 约5.66像素/mm；大工件仍自动适配预览区。 */
 
 typedef struct {
     int32_t cx, cy;
@@ -21,6 +21,8 @@ typedef struct {
     GeometryLayout layout;
     bool has_geometry;
     bool show_grid, show_dimensions, show_contour, inches;
+    bool quality_mode; /* 质检使用绿色尺寸线，普通测量使用黄色。 */
+    bool automatic; /* 停止后不继续显示“检测中”。 */
     char primary_text[24];
     char secondary_text[24];
 } GeometryView;
