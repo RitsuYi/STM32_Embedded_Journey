@@ -5,15 +5,12 @@
 #include "main.h"
 #include "task.h"
 
-/* 寄存器是芯片内部可读写的小格子：0x02存手指数，0x03起存坐标与事件。
- * 依据FocalTech手册复位时序及Espressif官方FT6336U驱动的寄存器格式。
- * 链接与实测方法见User/GUI/README.md。 */
-#define FT_REG_DEVICE_MODE   0x00U
+/* 按商家STM32F1_4SPI示例ctp.c：先读0x02点数，再读0x03起的4字节坐标。
+ * 只接受CONTACT事件，表示芯片已确认持续接触；不把初始DOWN当作有效坐标。
+ * 保留本工程HAL/RTOS总线保护与已实测的横屏方向，不搬商家的F1引脚/软件I2C。 */
 #define FT_REG_TOUCH_COUNT   0x02U
+#define FT_REG_FIRST_POINT   0x03U
 #define FT_REG_CHIP_ID       0xA3U
-#define FT_REG_G_MODE        0xA4U
-#define FT_REG_FIRMWARE_ID   0xA6U
-#define FT_REG_VENDOR_ID     0xA8U
 #define FT_EXPECTED_CHIP_ID  0x64U
 #define FT_TRANSFER_MS       20U
 #define FT_LOCK_MS           25U
@@ -23,61 +20,48 @@
 #error "FT6336U raw coordinate maximum must exceed minimum"
 #endif
 
-volatile FT6336U_Diagnostics g_ft6336u;
+/* 这些是读取和重试所需的私有状态；松手/失败时保留最后有效坐标。
+ * 只有GUI任务访问，不再发布供其他任务显示的调试快照。 */
+static bool ready;
+static uint16_t last_x, last_y;
 static uint32_t last_probe_ms;
 static uint8_t consecutive_errors;
-/* 只由GUI任务写入，用来测量真正的采样间隔；第一次读取不计算启动前的等待。 */
-static uint32_t last_read_ms;
-static bool have_read_time;
-
-/* 一次完整I2C传输只占一次锁。等待OLED发送完当前页即可读取触摸，
- * 不把锁跨越复位延时或整个OLED刷新。错误码在解锁前读取，避免被OLED覆盖。 */
-static bool transfer(uint8_t reg, uint8_t *data, uint16_t size, bool write)
+/* 调用者已经取得总线锁。本函数读一个寄存器块并在锁内检查返回值，
+ * 共用层必要时恢复控制器；失败仍返回false，不能把恢复当作读到了坐标。 */
+static bool read_locked(uint8_t reg, uint8_t *data, uint16_t size)
 {
-    HAL_StatusTypeDef status = HAL_BUSY;
-    uint32_t error = HAL_I2C_ERROR_NONE;
-    if (I2C2_Bus_Lock(pdMS_TO_TICKS(FT_LOCK_MS) + 1U)) {
-        if (write)
-            status = HAL_I2C_Mem_Write(&hi2c2, FT6336U_I2C_ADDRESS_7BIT << 1,
-                        reg, I2C_MEMADD_SIZE_8BIT, data, size, FT_TRANSFER_MS);
-        else
-            status = HAL_I2C_Mem_Read(&hi2c2, FT6336U_I2C_ADDRESS_7BIT << 1,
-                        reg, I2C_MEMADD_SIZE_8BIT, data, size, FT_TRANSFER_MS);
-        error = HAL_I2C_GetError(&hi2c2);
-        I2C2_Bus_Unlock();
-    }
-    g_ft6336u.last_status = status;
-    g_ft6336u.last_i2c_error = error;
-    if (status != HAL_OK) ++g_ft6336u.error_count;
+    HAL_StatusTypeDef status = HAL_I2C_Mem_Read(&hi2c2,
+        FT6336U_I2C_ADDRESS_7BIT << 1, reg, I2C_MEMADD_SIZE_8BIT, data, size, FT_TRANSFER_MS);
+    I2C2_Bus_ReportResult(FT6336U_I2C_ADDRESS_7BIT << 1, status);
     return status == HAL_OK;
+}
+
+static bool lock_bus(void)
+{
+    return I2C2_Bus_Lock(pdMS_TO_TICKS(FT_LOCK_MS) + 1U);
+}
+
+/* 身份查询只读寄存器，不改商家复位后的默认模式、扫描率或灵敏度。 */
+static bool read_register(uint8_t reg, uint8_t *data)
+{
+    if (!lock_bus()) return false;
+    bool valid = read_locked(reg, data, 1);
+    I2C2_Bus_Unlock();
+    return valid;
 }
 
 static bool configure(void)
 {
     uint8_t value = 0;
-    ++g_ft6336u.init_count;
     last_probe_ms = HAL_GetTick();
-    g_ft6336u.ready = 0;
-    if (!transfer(FT_REG_CHIP_ID, &value, 1, false)) return false;
-    g_ft6336u.chip_id = value;
+    ready = 0;
+    if (!read_register(FT_REG_CHIP_ID, &value)) return false;
     /* 错芯片也可能应答地址；检查ID，不能只凭“有应答”就说初始化成功。 */
-    if (value != FT_EXPECTED_CHIP_ID) {
-        g_ft6336u.last_status = HAL_ERROR;
-        ++g_ft6336u.invalid_count;
-        return false;
-    }
-    if (!transfer(FT_REG_FIRMWARE_ID, &value, 1, false)) return false;
-    g_ft6336u.firmware_id = value;
-    if (!transfer(FT_REG_VENDOR_ID, &value, 1, false)) return false;
-    g_ft6336u.vendor_id = value;
+    if (value != FT_EXPECTED_CHIP_ID) return false;
 
-    /* DEVICE_MODE=0进入普通工作模式；G_MODE=0选择轮询，GUI定时主动问状态。
-     * 不改灵敏度/扫描率，也不进入工厂校准或休眠模式。 */
-    value = 0;
-    if (!transfer(FT_REG_DEVICE_MODE, &value, 1, true) ||
-        !transfer(FT_REG_G_MODE, &value, 1, true)) return false;
+    /* ID只用于确认芯片型号；保持商家硬复位后的默认模式，不读调试身份字段。 */
     consecutive_errors = 0;
-    g_ft6336u.ready = 1;
+    ready = 1;
     return true;
 }
 
@@ -85,11 +69,7 @@ bool FT6336U_Init(void)
 {
     if (__get_IPSR() != 0U || xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
         return false;
-    g_ft6336u.ready = 0;
-    g_ft6336u.pressed = 0;
-    have_read_time = false;
-    g_ft6336u.read_gap_ms = 0;
-    g_ft6336u.max_read_gap_ms = 0;
+    ready = 0;
     /* 低电平复位至少5ms，释放后至少300ms才开始报告点。
      * 多加一个RTOS节拍，避免恰逢节拍边界使实际等待不足手册最小值。
      * vTaskDelay期间GUI任务休眠，OLED/按键等任务仍可运行。 */
@@ -138,70 +118,50 @@ static bool map_point(uint16_t raw_x, uint16_t raw_y, FT6336U_Point *point)
 bool FT6336U_Read(FT6336U_Point *point)
 {
     if (!point) return false;
-    point->x = g_ft6336u.x;
-    point->y = g_ft6336u.y;
+    point->x = last_x;
+    point->y = last_y;
     point->pressed = false;
-    bool was_pressed = g_ft6336u.pressed != 0U;
-    g_ft6336u.pressed = 0;
-    g_ft6336u.point_count = 0;
     if (__get_IPSR() != 0U || xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
         return false;
-    /* 记录实际进入读取的时间，不能把LVGL配置33ms当作硬件实测周期。
-     * 用无符号相减也能跨越HAL毫秒计数回绕；本段不增加额外I2C访问。 */
-    uint32_t now = HAL_GetTick();
-    if (have_read_time) {
-        g_ft6336u.read_gap_ms = now - last_read_ms;
-        if (g_ft6336u.read_gap_ms > g_ft6336u.max_read_gap_ms)
-            g_ft6336u.max_read_gap_ms = g_ft6336u.read_gap_ms;
-    }
-    last_read_ms = now;
-    have_read_time = true;
-    g_ft6336u.int_level = HAL_GPIO_ReadPin(TP_INT_GPIO_Port, TP_INT_Pin) == GPIO_PIN_SET;
     /* 未接好或启动失败时，每秒只尝试一次；不反复复位、不死循环卡住GUI。
-     * 持续故障不自动重置共用I2C外设，以免破坏OLED正在进行的事务。 */
-    if (!g_ft6336u.ready &&
-        (HAL_GetTick() - last_probe_ms < FT_RETRY_MS || !configure())) return false;
+     * 共享I2C层只在HAL返回且仍持锁时做有限恢复，不打断OLED正在进行的事务。 */
+    if (!ready &&
+        (HAL_GetTick() - last_probe_ms < FT_RETRY_MS || !configure()))
+        return false;
 
-    /* 一次读0x02~0x06五字节，点数与第一点坐标属于同一段传输。
-     * XH/YH高四位含事件/手指编号，只有低四位属于12位坐标。 */
-    uint8_t data[5];
-    if (!transfer(FT_REG_TOUCH_COUNT, data, sizeof(data), false)) {
+    /* 与商家一样分开读点数和第一个触点的4字节，不扫未使用的触点/权重。
+     * 两次HAL事务持同一把锁，OLED不会插在点数与坐标之间。
+     * 当前界面只支持一根手指；多指松手，避免另一个触点接管按钮。 */
+    uint8_t count = 0, data[4];
+    bool valid = false;
+    if (lock_bus()) {
+        valid = read_locked(FT_REG_TOUCH_COUNT, &count, 1);
+        count &= 0x0FU;
+        if (valid && count == 1U) valid = read_locked(FT_REG_FIRST_POINT, data, sizeof(data));
+        I2C2_Bus_Unlock();
+    }
+    if (!valid) {
         if (++consecutive_errors >= 3U) {
-            g_ft6336u.ready = 0;
+            ready = 0;
             last_probe_ms = HAL_GetTick();
         }
         return false;
     }
     consecutive_errors = 0;
-    ++g_ft6336u.read_count;
-    uint8_t count = data[0] & 0x0FU;
-    g_ft6336u.point_count = count;
-    g_ft6336u.last_event = data[1] >> 6;
-    if (count == 0U || count == 2U) return true;
-    if (count > 2U) {
-        ++g_ft6336u.invalid_count;
-        return false;
-    }
-    uint8_t event = data[1] >> 6;
-    if (event == 1U) return true; /* 1是抬起；该帧可能仍带旧坐标，不再按下。 */
-    if (event == 3U) {
-        ++g_ft6336u.invalid_count;
-        return false;
-    }
-    uint16_t raw_x = (uint16_t)(((data[1] & 0x0FU) << 8) | data[2]);
-    uint16_t raw_y = (uint16_t)(((data[3] & 0x0FU) << 8) | data[4]);
-    g_ft6336u.raw_x = raw_x;
-    g_ft6336u.raw_y = raw_y;
-    if (!map_point(raw_x, raw_y, point)) {
-        ++g_ft6336u.out_of_range_count;
-        ++g_ft6336u.invalid_count;
-        return false;
-    }
-    /* 事件0=刚按下，2=持续接触；只有坐标合法才提交给LVGL。 */
+    if (count == 0U || count == 2U)
+        return true;
+    if (count > 2U) return false;
+    uint16_t raw_x = (uint16_t)(((data[0] & 0x0FU) << 8) | data[1]);
+    uint16_t raw_y = (uint16_t)(((data[2] & 0x0FU) << 8) | data[3]);
+    /* 商家明确要求(XH & 0xF0)==0x80，即CONTACT；DOWN/UP不更新界面位置。
+     * 非CONTACT仍按松手处理，并沿用最后有效坐标。 */
+    if ((data[0] & 0xF0U) != 0x80U)
+        return true;
+    /* 商家也忽略两个原始坐标都为0的记录；单轴0是合法边缘，不能单独拒绝。 */
+    if (raw_x == 0U && raw_y == 0U) return false;
+    if (!map_point(raw_x, raw_y, point)) return false;
+    /* 直接上报商家认可的CONTACT坐标，不再做中值、边缘补偿或历史猜点。 */
     point->pressed = true;
-    g_ft6336u.x = point->x;
-    g_ft6336u.y = point->y;
-    g_ft6336u.pressed = 1;
-    if (!was_pressed) ++g_ft6336u.press_count;
+    last_x = point->x; last_y = point->y;
     return true;
 }

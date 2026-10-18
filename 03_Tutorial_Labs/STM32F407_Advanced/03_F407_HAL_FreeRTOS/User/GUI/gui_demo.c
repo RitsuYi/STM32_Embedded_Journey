@@ -38,22 +38,89 @@ static void step(lv_timer_t *timer)
             (uint8_t)(elapsed * 100U / 1800U));
         return;
     }
-    MeasurementResult r = {.geometry = demo.geometry, .primary_cmm = 3012, .secondary_cmm = 1206,
-        .status = MEASUREMENT_VALID, .connected = true, .calibrated = true, .simulated = true};
-    if(demo.geometry == MEASUREMENT_RECTANGLE) { r.primary_cmm = 3200; r.secondary_cmm = 2000; }
+        MeasurementResult r = {
+        .geometry = demo.geometry,
+        .status = MEASUREMENT_VALID,
+        .connected = true,
+        .calibrated = instrument_calibration_ready(demo.model),
+        .simulated = true
+    };
     const InstrumentCalibration *c = &demo.model->calibration;
-    double scale = c->image_profile ? 16.0 : 8.0;
-    InstrumentPoint origin = c->image_profile ? (InstrumentPoint){160,80} : (InstrumentPoint){80,40};
-    InstrumentPoint base, end;
-    if(instrument_calibration_ready(demo.model)) {
-        if(instrument_map_point(c, origin, &base) && instrument_map_point(c,
-            (InstrumentPoint){origin.x + r.primary_cmm / 100.0 * scale, origin.y}, &end))
-            r.primary_cmm = (int32_t)lround(hypot(end.x-base.x, end.y-base.y) * 100);
-        if(instrument_map_point(c, origin, &base) && instrument_map_point(c,
-            (InstrumentPoint){origin.x, origin.y + r.secondary_cmm / 100.0 * scale}, &end))
-            r.secondary_cmm = (int32_t)lround(hypot(end.x-base.x, end.y-base.y) * 100);
+
+    if (demo.geometry == MEASUREMENT_RECTANGLE) {
+        /*
+         * 模拟一个旋转摆放的矩形，四角按沿边顺序排列。
+         * 这些是图像像素坐标；经过50mm参考件的模拟标定后，
+         * 对应的矩形长宽为32mm和20mm。
+         */
+        static const InstrumentPoint pixels[4] = {
+            {200, 100}, {404.8, 253.6},
+            {308.8, 381.6}, {104, 228}
+        };
+        InstrumentPoint mm[4];
+
+        /* 高分辨率配置中，同一位置的像素坐标扩大2倍。 */
+        double image_scale = c->image_profile ? 2.0 : 1.0;
+        bool ok = r.calibrated;
+
+        for (unsigned i = 0; ok && i < 4U; ++i) {
+            InstrumentPoint pixel = {
+                pixels[i].x * image_scale,
+                pixels[i].y * image_scale
+            };
+
+            /* 先通过已有标定参数，把像素坐标换成毫米坐标。 */
+            ok = instrument_map_point(c, pixel, &mm[i]);
+        }
+
+        /* 再调用你写的函数，得到单位为0.01mm的整数长宽。 */
+        if (ok) {
+            ok = instrument_rectangle_dimensions(
+                mm, &r.primary_cmm, &r.secondary_cmm);
+        }
+
+        /*
+         * 失败时保留零尺寸，由已有完成接口报告数据异常，
+         * 避免把错误结果作为正常测量记录保存。
+         */
+        if (!ok) {
+            r.primary_cmm = 0;
+            r.secondary_cmm = 0;
+            r.status = MEASUREMENT_INVALID;
+        }
     }
-    r.residual_cmm = 1024U / demo.samples;
+    else {
+        /* 圆环继续使用现有模拟数据及标定换算流程。 */
+        r.primary_cmm = 3012;
+        r.secondary_cmm = 1206;
+        double scale = c->image_profile ? 16.0 : 8.0;
+        InstrumentPoint origin = c->image_profile
+            ? (InstrumentPoint){160, 80}
+            : (InstrumentPoint){80, 40};
+        InstrumentPoint base, end;
+
+        if (r.calibrated) {
+            if (instrument_map_point(c, origin, &base) &&
+                instrument_map_point(c,
+                    (InstrumentPoint){
+                        origin.x + r.primary_cmm / 100.0 * scale,
+                        origin.y
+                    }, &end)) {
+                r.primary_cmm = (int32_t)lround(
+                    hypot(end.x - base.x, end.y - base.y) * 100);
+            }
+
+            if (instrument_map_point(c, origin, &base) &&
+                instrument_map_point(c,
+                    (InstrumentPoint){
+                        origin.x,
+                        origin.y + r.secondary_cmm / 100.0 * scale
+                    }, &end)) {
+                r.secondary_cmm = (int32_t)lround(
+                    hypot(end.x - base.x, end.y - base.y) * 100);
+            }
+        }
+    }
     if(r.residual_cmm > demo.model->settings.quality_cmm) r.status = MEASUREMENT_INVALID;
     uint32_t id = demo.request_id;
     demo.request_id = 0; lv_timer_pause(demo.timer);

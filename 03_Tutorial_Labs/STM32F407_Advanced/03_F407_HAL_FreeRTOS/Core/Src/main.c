@@ -178,7 +178,8 @@ int main(void)
   //xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   //xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
-  xTaskCreate(vOLED_Task, "OLED", 128, NULL, 1, NULL);
+  /* OLED共享总线出错时还要执行有限恢复，任务栈使用头文件注明的字数。 */
+  xTaskCreate(vOLED_Task, "OLED", OLED_TASK_STACK_WORDS, NULL, 1, NULL);
   xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 1, NULL);
   if(xTaskCreate(vGUI_Task, "GUI", GUI_TASK_STACK_WORDS, NULL, 2, NULL) != pdPASS)
       Error_Handler();

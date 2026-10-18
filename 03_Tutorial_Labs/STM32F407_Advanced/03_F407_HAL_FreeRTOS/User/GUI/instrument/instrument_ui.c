@@ -1,5 +1,9 @@
 #include "instrument_ui.h"
 #include "../measurement/ui_draw.h"
+/* 固定的LVGL 9.6把命中结果结构放在此头文件；只读取类型定义，不修改第三方库。 */
+#include "src/core/lv_obj_event_private.h"
+/* 固定LVGL 9.6的键盘没有公开单键坐标接口，仅读取矩阵布局，不改库内按键区域。 */
+#include "src/widgets/buttonmatrix/lv_buttonmatrix_private.h"
 #include "../fonts/measurement_fonts.h"
 #include <math.h>
 #include <stdio.h>
@@ -27,11 +31,50 @@ static lv_obj_t * label(lv_obj_t * parent, int x, int y, int width, const lv_fon
     lv_label_set_long_mode(l, LV_LABEL_LONG_CLIP); lv_label_set_text(l, "");
     return l;
 }
+
+/* 通用按钮在外观之外最多多接受8像素的点击，容忍手指落点的小偏差。
+ * 命中检测时读取当前布局：相邻按钮之间以空隙的中线为界，各用靠近自己的一半。
+ * 这样设置列表即使只有2像素行距，也不会因为扩大范围而点到上一行/下一行。
+ * e是LVGL提供的本次检测事件；只写回hit->res，不改坐标、不手工发送CLICKED。 */
+static void button_hit_test(lv_event_t * e)
+{
+    lv_obj_t * target = lv_event_get_target_obj(e);
+    lv_hit_test_info_t * hit = lv_event_get_hit_test_info(e);
+    lv_area_t body, area;
+    lv_obj_get_coords(target, &body);
+    area = body;
+    lv_area_increase(&area, 8, 8);
+    lv_obj_t * parent = lv_obj_get_parent(target);
+    uint32_t count = lv_obj_get_child_count(parent);
+    for(uint32_t i = 0; i < count; ++i) {
+        lv_obj_t * other = lv_obj_get_child(parent, (int32_t)i);
+        /* 隐藏项和只显示数据的行不参与划分；禁用按钮仍保留自己的位置，防止被旁键抢占。 */
+        if(other == target || lv_obj_is_hidden(other) || !lv_obj_is_clickable(other) ||
+           !lv_obj_check_type(other, &lv_button_class)) continue;
+        lv_area_t peer;
+        lv_obj_get_coords(other, &peer);
+        if(body.x1 <= peer.x2 && peer.x1 <= body.x2) {
+            if(peer.y2 < body.y1) area.y1 = LV_MAX(area.y1, (peer.y2 + body.y1) / 2 + 1);
+            if(peer.y1 > body.y2) area.y2 = LV_MIN(area.y2, (body.y2 + peer.y1) / 2);
+        }
+        if(body.y1 <= peer.y2 && peer.y1 <= body.y2) {
+            if(peer.x2 < body.x1) area.x1 = LV_MAX(area.x1, (peer.x2 + body.x1) / 2 + 1);
+            if(peer.x1 > body.x2) area.x2 = LV_MIN(area.x2, (body.x2 + peer.x1) / 2);
+        }
+    }
+    hit->res = hit->point->x >= area.x1 && hit->point->x <= area.x2 &&
+               hit->point->y >= area.y1 && hit->point->y <= area.y2;
+}
+
 static lv_obj_t * button(lv_obj_t * parent, int x, int y, int w, int h, const char * text,
                          lv_event_cb_t callback, InstrumentUI * u, lv_obj_t ** out_label)
 {
     lv_obj_t * b = lv_button_create(parent); lv_obj_remove_style_all(b);
     lv_obj_set_pos(b, x, y); lv_obj_set_size(b, w, h); lv_obj_set_scrollable(b, false);
+    /* 先给LVGL一个8像素的搜索外框，再在回调中按相邻按钮收窄，外观大小保持原样。 */
+    lv_obj_set_ext_click_area(b, 8);
+    lv_obj_set_adv_hittest(b, true);
+    lv_obj_add_event_cb(b, button_hit_test, LV_EVENT_HIT_TEST, NULL);
     lv_obj_set_style_radius(b, 4, 0); lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(b, ui_color(UI_SELECTED), 0);
     lv_obj_set_style_bg_color(b, ui_color(0x598DAB), LV_STATE_PRESSED);
@@ -112,6 +155,78 @@ static void pager(InstrumentUI * u, unsigned index, unsigned total)
     lv_obj_set_state(u->down, LV_STATE_DISABLED, index + 1 >= total);
     lv_label_set_text_fmt(u->page_label, "%u/%u", index + 1, total);
 }
+
+/* 只判断键盘下方新增的空白：point是屏幕坐标，返回对应键号或“没有命中”。
+ * 标准数字键盘最后五键依次为+/−、0、.、左、右；左右边界按实际键间隙中线划分。
+ * 原键盘底部是Y312，新增区为Y313～319；不扩大左右/上方，不涉及上面三排。 */
+static uint32_t keyboard_bottom_key(lv_obj_t * keyboard, const lv_point_t * point)
+{
+    const lv_buttonmatrix_t * matrix = (const lv_buttonmatrix_t *)keyboard;
+    lv_area_t body;
+    lv_obj_get_coords(keyboard, &body);
+    if(lv_keyboard_get_mode(keyboard) != LV_KEYBOARD_MODE_NUMBER || matrix->btn_cnt < 5U ||
+       !matrix->button_areas || point->y <= body.y2 || point->y > 319 ||
+       point->x < body.x1 || point->x > body.x2) return LV_BUTTONMATRIX_BUTTON_NONE;
+    uint32_t first = matrix->btn_cnt - 5U;
+    for(uint32_t i = first; i < matrix->btn_cnt; ++i) {
+        int32_t left = i == first ? body.x1 : body.x1 +
+            (matrix->button_areas[i - 1U].x2 + matrix->button_areas[i].x1) / 2 + 1;
+        int32_t right = i + 1U == matrix->btn_cnt ? body.x2 : body.x1 +
+            (matrix->button_areas[i].x2 + matrix->button_areas[i + 1U].x1) / 2;
+        if(point->x < left || point->x > right) continue;
+        /* 单键禁用或隐藏时，下方空白也不能绕过原限制。 */
+        if(lv_buttonmatrix_has_button_ctrl(keyboard, i, LV_BUTTONMATRIX_CTRL_DISABLED) ||
+           lv_buttonmatrix_has_button_ctrl(keyboard, i, LV_BUTTONMATRIX_CTRL_HIDDEN))
+            return LV_BUTTONMATRIX_BUTTON_NONE;
+        return i;
+    }
+    return LV_BUTTONMATRIX_BUTTON_NONE;
+}
+
+/* 矩阵原处理先执行，本回调只补它不能识别的底部空白。
+ * 第一次按下时选中对应键，发出矩阵正常的VALUE_CHANGED（键值变化）事件，
+ * 仍由LVGL键盘处理字符、正负号和光标；不复制输入逻辑、不手工制造CLICKED。
+ * 按住期间恢复同一个键的选择，让原有长按重复继续工作；横移到别列则取消本次按键。 */
+static void keyboard_bottom_event(lv_event_t * e)
+{
+    InstrumentUI * u = lv_event_get_user_data(e);
+    lv_obj_t * keyboard = lv_event_get_target_obj(e);
+    lv_event_code_t code = lv_event_get_code(e);
+    if(code == LV_EVENT_HIT_TEST) {
+        lv_hit_test_info_t * hit = lv_event_get_hit_test_info(e);
+        lv_area_t body;
+        lv_obj_get_coords(keyboard, &body);
+        hit->res = (hit->point->x >= body.x1 && hit->point->x <= body.x2 &&
+                    hit->point->y >= body.y1 && hit->point->y <= body.y2) ||
+                   keyboard_bottom_key(keyboard, hit->point) != LV_BUTTONMATRIX_BUTTON_NONE;
+        return;
+    }
+    if(code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+        u->keyboard_pressed_key = LV_BUTTONMATRIX_BUTTON_NONE;
+        return;
+    }
+    if(code != LV_EVENT_PRESSED && code != LV_EVENT_PRESSING) return;
+    lv_indev_t * input = lv_event_get_indev(e);
+    if(!input || lv_indev_get_type(input) != LV_INDEV_TYPE_POINTER || lv_obj_is_hidden(u->editor)) return;
+    lv_point_t point;
+    lv_indev_get_point(input, &point);
+    uint32_t key = keyboard_bottom_key(keyboard, &point);
+    if(code == LV_EVENT_PRESSED) {
+        u->keyboard_pressed_key = lv_buttonmatrix_get_selected_button(keyboard);
+        if(key == LV_BUTTONMATRIX_BUTTON_NONE) return;
+        u->keyboard_pressed_key = key;
+        lv_buttonmatrix_set_selected_button(keyboard, key);
+        /* 标准底行五键均在按下时输入一次；后续重复由矩阵自身产生。 */
+        (void)lv_obj_send_event(keyboard, LV_EVENT_VALUE_CHANGED, &key);
+    }
+    else if(key != LV_BUTTONMATRIX_BUTTON_NONE && key == u->keyboard_pressed_key) {
+        lv_buttonmatrix_set_selected_button(keyboard, key);
+    }
+    else {
+        u->keyboard_pressed_key = lv_buttonmatrix_get_selected_button(keyboard);
+    }
+}
+
 static void show_editor(InstrumentUI * u, InstrumentEdit edit, const char * title, const char * hint, const char * value)
 {
     u->edit = edit; lv_label_set_text(u->editor_title, title); lv_label_set_text(u->editor_hint, hint);
@@ -561,6 +676,11 @@ void instrument_ui_create(InstrumentUI * u, MeasurementPage * p, InstrumentModel
     u->keyboard = lv_keyboard_create(u->editor); lv_obj_set_align(u->keyboard, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(u->keyboard, 7, 121); lv_obj_set_size(u->keyboard, 466, 192);
     lv_keyboard_set_mode(u->keyboard, LV_KEYBOARD_MODE_NUMBER);
+    /* 外观仍到Y312，仅扩大命中搜索；回调把下面7行空白分别交给最下面五键。 */
+    lv_obj_set_ext_click_area(u->keyboard, 7);
+    lv_obj_set_adv_hittest(u->keyboard, true);
+    u->keyboard_pressed_key = LV_BUTTONMATRIX_BUTTON_NONE;
+    lv_obj_add_event_cb(u->keyboard, keyboard_bottom_event, LV_EVENT_ALL, u);
     lv_obj_set_style_bg_color(u->keyboard, ui_color(UI_BG), 0); lv_obj_set_style_bg_color(u->keyboard, ui_color(UI_PANEL), LV_PART_ITEMS);
     lv_obj_set_style_text_color(u->keyboard, ui_color(UI_WHITE), LV_PART_ITEMS);
     lv_obj_set_style_bg_color(u->keyboard, ui_color(UI_SELECTED), LV_PART_ITEMS | LV_STATE_PRESSED);

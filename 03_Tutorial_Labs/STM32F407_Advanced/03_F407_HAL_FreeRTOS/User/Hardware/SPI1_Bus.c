@@ -31,10 +31,6 @@ void SPI1_Bus_Unlock(void)
     if(mutex) (void)xSemaphoreGiveRecursive(mutex);
 }
 
-volatile uint32_t g_spi1_tx_done_count = 0;
-volatile uint32_t g_spi1_error_count = 0;
-volatile uint32_t g_spi1_last_error = 0;
-
 static void notify_tx_done_from_isr(void)
 {
     BaseType_t task_woken = pdFALSE;
@@ -50,8 +46,6 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
     /* hspi指向产生回调的SPI；其他SPI不能修改SPI1的结果。 */
     if (hspi != &hspi1) return;
 
-    ++g_spi1_tx_done_count;
-
     /* 先保存成功结果，再唤醒等待任务，保证任务读到正确状态。 */
     tx_result = HAL_OK;
     notify_tx_done_from_isr();
@@ -61,10 +55,6 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
     /* 必须先筛选SPI1，避免其他SPI的错误影响本次等待。 */
     if (hspi != &hspi1) return;
-
-    /* 保存错误信息，方便之后在调试器中检查。 */
-    g_spi1_last_error = HAL_SPI_GetError(hspi);
-    ++g_spi1_error_count;
 
     /* 错误也要通知，让任务及时醒来执行异常收尾。 */
     tx_result = HAL_ERROR;
@@ -129,11 +119,6 @@ HAL_StatusTypeDef SPI1_Bus_TransmitDMA(const uint8_t *data,
 
     if (status != HAL_OK)
     {
-        /* HAL中止操作可能清除错误码，因此先保存诊断信息。 */
-        uint32_t error = HAL_SPI_GetError(&hspi1);
-        if (error != HAL_SPI_ERROR_NONE)
-            g_spi1_last_error = error;
-
         /* 启动失败、传输错误或超时，都必须先停止本次传输。 */
         if (HAL_SPI_Abort(&hspi1) != HAL_OK)
             Error_Handler();

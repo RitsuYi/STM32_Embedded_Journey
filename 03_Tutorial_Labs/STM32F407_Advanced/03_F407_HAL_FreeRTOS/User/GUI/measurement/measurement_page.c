@@ -1,5 +1,7 @@
 #include "measurement_page.h"
 #include "ui_draw.h"
+/* 固定的LVGL 9.6把命中结果结构放在此头文件；只读取类型定义，不修改第三方库。 */
+#include "src/core/lv_obj_event_private.h"
 #include "../fonts/measurement_fonts.h"
 #include <stdio.h>
 #include <string.h>
@@ -199,6 +201,20 @@ static void navigation_click(lv_event_t * e)
     }
 }
 
+/* 命中检测只决定“这个坐标是否算点中”，不修改芯片坐标，也不主动产生点击。
+ * 四键保留原来左右/上方各4像素的容错，下方则覆盖到480×320屏幕的最后一行。
+ * 横向不跟着扩11像素，避免相邻导航按钮的判定范围互相重叠。 */
+static void navigation_hit_test(lv_event_t * e)
+{
+    lv_hit_test_info_t * hit = lv_event_get_hit_test_info(e);
+    lv_area_t area;
+    lv_obj_get_coords(lv_event_get_target_obj(e), &area);
+    area.x1 -= 4; area.x2 += 4;
+    area.y1 -= 4; area.y2 = 319;
+    hit->res = hit->point->x >= area.x1 && hit->point->x <= area.x2 &&
+               hit->point->y >= area.y1 && hit->point->y <= area.y2;
+}
+
 static void start_click(lv_event_t * e)
 {
     measurement_page_start(lv_event_get_user_data(e));
@@ -270,6 +286,8 @@ void measurement_page_create(MeasurementPage * p, lv_obj_t * screen, const Measu
     lv_obj_remove_style_all(p->start_button);
     lv_obj_set_pos(p->start_button, 11, 196); lv_obj_set_size(p->start_button, 132, 29);
     button_styles(p->start_button);
+    /* 测量按钮四周最多额外8像素可点；超出结果面板的部分仍由父容器限制。 */
+    lv_obj_set_ext_click_area(p->start_button, 8);
     lv_obj_add_event_cb(p->start_button, start_click, LV_EVENT_CLICKED, p);
     p->start_label = lv_label_create(p->start_button);
     lv_obj_set_style_text_font(p->start_label, &measurement_font_14, 0);
@@ -281,10 +299,16 @@ void measurement_page_create(MeasurementPage * p, lv_obj_t * screen, const Measu
     lv_obj_set_style_bg_opa(navigation_panel, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(navigation_panel, 5, 0);
     for(unsigned i = 0; i < 4; ++i) {
-        p->navigation[i] = lv_button_create(navigation_panel);
+        /* 按钮直接归整屏容器管理，坐标换成原来的绝对位置，外观不变。
+         * 原导航背景只到Y312；继续把按钮放在其内部会使Y313～319无法被搜索到。 */
+        p->navigation[i] = lv_button_create(p->root);
         lv_obj_remove_style_all(p->navigation[i]);
-        lv_obj_set_pos(p->navigation[i], 6 + (int32_t)i * 112, 4);
+        lv_obj_set_pos(p->navigation[i], 13 + (int32_t)i * 112, 284);
         lv_obj_set_size(p->navigation[i], 101, 25);
+        /* LVGL先搜索四周11像素，再由上面的回调收窄左右/上方，只向下扩到屏幕底边。 */
+        lv_obj_set_ext_click_area(p->navigation[i], 11);
+        lv_obj_set_adv_hittest(p->navigation[i], true);
+        lv_obj_add_event_cb(p->navigation[i], navigation_hit_test, LV_EVENT_HIT_TEST, NULL);
         lv_obj_set_style_radius(p->navigation[i], 4, 0);
         lv_obj_set_style_bg_opa(p->navigation[i], LV_OPA_TRANSP, 0);
         lv_obj_set_style_bg_opa(p->navigation[i], LV_OPA_COVER, LV_STATE_CHECKED);

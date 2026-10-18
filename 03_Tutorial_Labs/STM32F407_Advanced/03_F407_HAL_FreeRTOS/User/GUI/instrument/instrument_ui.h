@@ -29,6 +29,7 @@ typedef struct {
     InstrumentSettingsPage settings_page;
     unsigned records_page, calibration_step;
     uint32_t selected_record, reference_cmm, capture_started;
+    uint32_t keyboard_pressed_key; /* 保存本次按住的键号；滑到另一列后取消，避免拖动串键。 */
     uint32_t applied_calibration_version;
     InstrumentCalibration candidate;
     InstrumentEdit edit;

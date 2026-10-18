@@ -19,40 +19,20 @@
 #define FT6336U_INVERT_X          0
 #define FT6336U_INVERT_Y          1 /* 修正上下相反：最终(x,y)=(raw_y,319-raw_x)。 */
 
-/* H6.5临时排障开关：1在已有OLED上显示触摸坐标/错误，0恢复原OLED内容。
- * 只供定位当前漏点问题，不能当成正式测量界面；不修改坐标方向或触摸灵敏度。 */
-#define FT6336U_OLED_DIAGNOSTICS  0 /* 原因已查明，恢复OLED原显示；需要时可再开启。 */
-
 typedef struct {
     uint16_t x, y; /* 已换算的屏幕像素位置；松手时保留最后一次有效位置。 */
     bool pressed;  /* true按下，false松手；本工程只向LVGL提供单指输入。 */
 } FT6336U_Point;
 
-/* 在调试器中展开g_ft6336u：ready只表示通信初始化成功，不代表实机位置已校准。
- * read_count是成功读出的数据帧数；error_count是通信/锁失败次数；
- * invalid_count是非法点数、事件或坐标次数；press_count是松手→按下次数。
- * last_status沿用HAL状态：0成功、1错误、2忙、3超时；last_i2c_error是HAL错误位。
- * int_level只观察PE2电平，不用它决定是否读取，以免漏掉松手。
- * out_of_range_count单独统计原始坐标越界，用来区别映射范围错误和通信失败；
- * read_gap_ms/max_read_gap_ms记录实际两次读取入口的间隔/最大间隔，单位毫秒。
- * last_event记录最近读到的事件高位：0按下、1抬起、2接触、3无效。 */
-typedef struct {
-    uint32_t ready, init_count, read_count, error_count, invalid_count, press_count;
-    uint32_t last_status, last_i2c_error;
-    uint32_t out_of_range_count, read_gap_ms, max_read_gap_ms;
-    uint16_t raw_x, raw_y, x, y;
-    uint8_t chip_id, firmware_id, vendor_id, point_count, pressed, int_level, last_event;
-} FT6336U_Diagnostics;
-extern volatile FT6336U_Diagnostics g_ft6336u;
-
 /* 仅在GUI任务中调用：PE1拉低20ms后拉高，至少等300ms再通信。
- * 返回true表示地址应答、芯片ID及工作/轮询模式设置成功。
+ * 返回true表示芯片ID核对成功；保持商家硬复位后的默认模式，不额外写模式/扫描参数。
  * 返回false时保留显示/按键功能，Read会每隔1秒尝试重新通信。 */
 bool FT6336U_Init(void);
 
 /* point是接收结果的非空指针；返回true表示成功获取有效状态（包括松手）。
  * 返回false表示未就绪/通信失败/非法数据，同时point->pressed必定为false。
- * 两指同时按下时主动松手，避免将第二根手指误当作同一根手指拖动控件。
+ * 按商家先读点数，再读第一个触点4字节；仅单指CONTACT有效，DOWN/UP和多指不按下。
+ * 有效坐标只做方向转换，不滤波、不猜位置；原始双零记录按商家要求拒绝。
  * 由GUI任务定时调用，不能在中断或其他任务中同时调用。 */
 bool FT6336U_Read(FT6336U_Point *point);
 

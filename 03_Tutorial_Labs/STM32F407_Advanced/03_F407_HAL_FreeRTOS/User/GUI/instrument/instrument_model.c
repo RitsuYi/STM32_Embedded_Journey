@@ -144,3 +144,49 @@ void instrument_format_dimension(char * b, size_t n, uint32_t cmm, bool inches)
     if(inches) snprintf(b, n, "%.3f", cmm / 2540.0);
     else measurement_format_cmm(b, n, cmm);
 }
+
+bool instrument_rectangle_dimensions(const InstrumentPoint points_mm[4],
+                                     int32_t *length_cmm,
+                                     int32_t *width_cmm)
+{
+    /* 先检查地址，避免读取不存在的数据或向空地址写结果。 */
+    if (!points_mm || !length_cmm || !width_cmm) return false;
+
+    double edge_mm[4]; /* 保存四条边的长度，单位仍为毫米。 */
+
+    for (unsigned i = 0; i < 4U; ++i) {
+        /* 拒绝无穷大、无效浮点数，防止异常数据进入后续计算。 */
+        if (!isfinite(points_mm[i].x) ||
+            !isfinite(points_mm[i].y)) return false;
+
+        /* 最后一个角点需要连接回第一个角点，形成第四条边。 */
+        unsigned next = (i + 1U) % 4U;
+        double dx = points_mm[next].x - points_mm[i].x;
+        double dy = points_mm[next].y - points_mm[i].y;
+
+        /* hypot按勾股定理计算两点间距离，矩形旋转后也适用。 */
+        edge_mm[i] = hypot(dx, dy);
+        if (!isfinite(edge_mm[i]) || edge_mm[i] <= 0.0) return false;
+    }
+
+    /* 对边分别取平均，综合矩形两侧的测量结果。 */
+    double side_a = (edge_mm[0] + edge_mm[2]) * 0.5;
+    double side_b = (edge_mm[1] + edge_mm[3]) * 0.5;
+    double length_mm = fmax(side_a, side_b);
+    double width_mm = fmin(side_a, side_b);
+
+    /* 与现有MeasurementResult的尺寸上限保持一致：10000毫米。 */
+    if (!isfinite(length_mm) || !isfinite(width_mm) ||
+        length_mm > 10000.0) return false;
+
+    /* 转成现有界面使用的0.01毫米整数，lround负责四舍五入。
+     * 显示分辨率为0.01毫米，不代表实物测量精度达到0.01毫米。 */
+    int32_t length = (int32_t)lround(length_mm * 100.0);
+    int32_t width = (int32_t)lround(width_mm * 100.0);
+    if (length <= 0 || width <= 0) return false;
+
+    /* 全部检查通过后才写回，保证失败时保留调用者原有结果。 */
+    *length_cmm = length;
+    *width_cmm = width;
+    return true;
+}

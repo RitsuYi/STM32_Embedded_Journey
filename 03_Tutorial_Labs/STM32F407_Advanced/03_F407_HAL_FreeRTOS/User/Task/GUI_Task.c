@@ -13,7 +13,6 @@
 static StaticQueue_t command_queue_storage;
 static uint8_t command_queue_data[8U * sizeof(unsigned)];
 static QueueHandle_t command_queue;
-volatile GUI_Diagnostics g_gui;
 
 bool GUI_TaskPrepare(void)
 {
@@ -24,14 +23,14 @@ bool GUI_TaskPrepare(void)
 bool GUI_PostKey(unsigned key)
 {
     if(!command_queue || xQueueSend(command_queue, &key, 0) != pdPASS) {
-        ++g_gui.queue_dropped;
         return false;
     }
     return true;
 }
 void GUI_LVGL_AssertFailed(const char *file, int line)
 {
-    g_gui.assert_file = file; g_gui.assert_line = line;
+    /* 保留断言失败时的停机保护，防止内存异常后继续访问失效对象。 */
+    (void)file; (void)line;
     taskDISABLE_INTERRUPTS();
     for(;;) { }
 }
@@ -61,13 +60,11 @@ void vGUI_Task(void *pvParameters)
     lv_init();
     lv_tick_set_cb(HAL_GetTick);
     if(!GUI_DisplayInit()) GUI_LVGL_AssertFailed(__FILE__, __LINE__);
-    /* 接线已由用户确认。失败不停止显示：驱动保留诊断并在读回调中每秒重试。
+    /* 接线已由用户确认。失败不停止显示：驱动在读回调中每秒重试。
      * 输入设备注册失败则是LVGL内存问题，与硬件未应答分别处理。 */
     (void)FT6336U_Init();
     if (!GUI_RegisterTouch(read_touch, NULL)) GUI_LVGL_AssertFailed(__FILE__, __LINE__);
     GUI_AppInit(NULL); /* Flash persistence not connected: RAM-only, explicitly labelled. */
-    g_gui.ready = 1;
-    uint32_t last_monitor = 0;
 
     for (;;)
     {
@@ -77,17 +74,6 @@ void vGUI_Task(void *pvParameters)
             GUI_AppKey(key);
         GUI_AppProcess();
         uint32_t delay = lv_timer_handler();
-        uint32_t now = HAL_GetTick();
-        if(now - last_monitor >= 1000U) {
-            lv_mem_monitor_t monitor;
-            lv_mem_monitor(&monitor);
-            g_gui.stack_free_words = uxTaskGetStackHighWaterMark(NULL);
-            g_gui.freertos_heap_free = xPortGetFreeHeapSize();
-            g_gui.lvgl_heap_free = monitor.free_size;
-            g_gui.lvgl_heap_peak = monitor.max_used;
-            g_gui.lvgl_heap_fragmentation = monitor.frag_pct;
-            last_monitor = now;
-        }
         if(delay == LV_NO_TIMER_READY || delay > 10U) delay = 10U;
         if(delay < 1U) delay = 1U;
         vTaskDelay(pdMS_TO_TICKS(delay));

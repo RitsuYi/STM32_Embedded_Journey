@@ -4,20 +4,9 @@
 #include <stdbool.h>
 
 typedef bool (*GUI_TouchReader)(void *context, int32_t *x, int32_t *y, bool *pressed);
-typedef struct {
-    uint32_t flush_count, flush_errors;
-    uint32_t last_spi_status, last_flush_ms, max_flush_ms;
-} GUI_DisplayDiagnostics;
-extern volatile GUI_DisplayDiagnostics g_gui_display;
-
-/* H6.5临时输入追踪：1显示LVGL光标，0关闭光标；事件计数始终保留供调试。
- * 光标仅帮助核对LVGL实际使用的位置，不能拦截按钮；排障后关闭此开关。 */
-#define GUI_TOUCH_TRACE 0 /* 上下方向已定位并修正，默认不再创建临时触摸圆点。 */
-typedef struct {
-    uint32_t read_count, pressed_reports, released_reports, failed_reports;
-    uint32_t pressed_events, released_events, clicked_events;
-} GUI_TouchDiagnostics;
-extern volatile GUI_TouchDiagnostics g_gui_touch;
+/* 输入定时器单独设为15ms，减少短按漏采；不改变显示刷新周期或芯片扫描率。
+ * 这是调度目标，实际间隔还受GUI绘图、SPI传输及任务调度影响。 */
+#define GUI_TOUCH_READ_PERIOD_MS 15U
 
 lv_display_t *GUI_DisplayInit(void);
 /* reader由GUI任务定时调用，返回已换算的480×320坐标及按下状态。

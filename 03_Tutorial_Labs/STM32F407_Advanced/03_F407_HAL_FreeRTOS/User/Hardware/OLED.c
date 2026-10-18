@@ -109,6 +109,7 @@ static HAL_StatusTypeDef OLED_I2C_Write(uint8_t ControlByte, const uint8_t *Data
 	}
 
 	/* HAL错误码也属于这次事务，先记录完再把总线交给触摸。 */
+	I2C2_Bus_ReportResult(OLED_I2C_ADDRESS, Status);
 	I2C2_Bus_Unlock();
 	return Status;
 }
@@ -130,6 +131,7 @@ uint8_t OLED_IsConnected(void)
 	if (Status == HAL_OK)
 	{
 		OLED_I2C_LastErrorFlags = HAL_I2C_ERROR_NONE;
+		I2C2_Bus_ReportResult(OLED_I2C_ADDRESS, Status);
 		I2C2_Bus_Unlock();
 		return 1U;
 	}
@@ -144,6 +146,8 @@ uint8_t OLED_IsConnected(void)
 		OLED_I2C_LastErrorFlags |= OLED_I2C_HAL_TIMEOUT_ERROR;
 	}
 	OLED_I2C_ErrorCount++;
+	/* 与触摸一样先留存原错误，再让共用层在独占总线时尝试恢复。 */
+	I2C2_Bus_ReportResult(OLED_I2C_ADDRESS, Status);
 	I2C2_Bus_Unlock();
 	return 0U;
 }

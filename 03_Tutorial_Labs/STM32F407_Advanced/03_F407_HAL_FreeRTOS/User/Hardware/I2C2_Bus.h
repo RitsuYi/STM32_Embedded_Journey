@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "FreeRTOS.h"
+#include "stm32f4xx_hal.h"
 
 /* 在main完成OLED等所有依赖HAL计时的启动操作后、启动任务前调用一次。
  * 创建OLED和触摸共同使用的静态互斥锁，相当于总线“使用权”；失败返回false。
@@ -15,6 +16,11 @@ bool I2C2_Bus_Init(void);
  * 每次成功取得使用权后，必须在HAL传输及错误码读取结束后调用Unlock。
  * 这是普通锁，不允许同一个任务连续加两次锁；中断中禁止调用。 */
 bool I2C2_Bus_Lock(TickType_t timeout_ticks);
+/* 成功取锁且HAL已返回后调用，address为传给HAL的左移地址，status为原返回值。
+ * 超时/忙等故障每秒最多尝试一次恢复，全程仍持有同一把锁。
+ * 不重发失败数据、不把失败改成成功；调用者仍须处理原错误并Unlock。
+ * 取锁失败时禁止调用，启动调度器前不进行RTOS延时恢复。 */
+void I2C2_Bus_ReportResult(uint16_t address, HAL_StatusTypeDef status);
 void I2C2_Bus_Unlock(void);
 
 #endif
