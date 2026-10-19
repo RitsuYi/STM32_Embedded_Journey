@@ -52,6 +52,9 @@ set(CONFIG_LV_USE_THORVG OFF CACHE BOOL "Disable ThorVG" FORCE)
 set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "Disable internal ThorVG" FORCE)
 
 add_subdirectory(LVGL)
+# 仅F407固件启用CCM池；主机回归仍由LVGL自行分配同容量内存，不能访问MCU地址。
+target_compile_definitions(lvgl PUBLIC GUI_USE_CCM_POOL=1)
+target_include_directories(lvgl PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/User/GUI")
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE

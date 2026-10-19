@@ -16,6 +16,7 @@ typedef struct {
 
 typedef struct {
     lv_obj_t * object;
+    lv_obj_t * opaque_cover; /* GUI菜单的借用指针：只裁掉其完全遮挡的自绘区域，不拥有对象。 */
     MeasurementResult result;
     uint32_t scale_q8;
     GeometryLayout layout;

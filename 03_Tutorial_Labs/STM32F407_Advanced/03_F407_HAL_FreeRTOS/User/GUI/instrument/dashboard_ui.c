@@ -10,7 +10,7 @@
 #include <inttypes.h>
 
 /* 二级页面共用一个可垂直滚动的容器，每次仅创建当前菜单。
- * 历史采用8条一段的滚动列表，64条记录不会同时占用LVGL的48KB内存池。
+ * 历史采用8条一段的滚动列表，64条记录不会同时占用LVGL的52KiB内存池。
  * 页面从右侧滑入/滑出，列表保留惯性滑动，手指拖动不会误当成按钮点击。 */
 enum { EDIT_OFF, EDIT_TARGET, EDIT_SAMPLES_NEW, EDIT_TIMEOUT_NEW, EDIT_RESIDUAL_NEW,
        EDIT_SSID, EDIT_PASSWORD };
@@ -22,16 +22,18 @@ static void row_event(lv_event_t *e);
 static void draw_record(lv_event_t *e)
 {
     DashboardUI *u=lv_event_get_user_data(e);lv_obj_t *o=lv_event_get_target_obj(e);
-    unsigned i=(unsigned)(uintptr_t)lv_obj_get_user_data(o);if(i>=u->model->record_count)return;
-    const InstrumentRecord *r=&u->model->records[i];lv_area_t a;lv_obj_get_coords(o,&a);
-    lv_layer_t *l=lv_event_get_layer(e);char v[40];int x=a.x1,y=a.y1+10;
-    snprintf(v,sizeof(v),"#%" PRIu32,r->id);ui_text(l,x+10,y,48,&ui_font_12,UI_INK,v,LV_TEXT_ALIGN_LEFT);
-    snprintf(v,sizeof(v),"%02" PRIu32 ":%02" PRIu32 ":%02" PRIu32,r->uptime_ms/3600000U,r->uptime_ms/60000U%60U,r->uptime_ms/1000U%60U);
-    ui_text(l,x+62,y,99,&ui_font_12,UI_MUTED,v,LV_TEXT_ALIGN_LEFT);
-    measurement_format_cmm(v,sizeof(v),(uint32_t)r->result.primary_cmm);ui_text(l,x+167,y,68,&ui_font_12,UI_CYAN,v,LV_TEXT_ALIGN_LEFT);
-    measurement_format_cmm(v,sizeof(v),(uint32_t)r->result.secondary_cmm);ui_text(l,x+251,y,68,&ui_font_12,UI_PURPLE,v,LV_TEXT_ALIGN_LEFT);
-    ui_text(l,x+335,y,100,&ui_font_12,r->verdict==INSPECTION_PASS?UI_GREEN:UI_INK,
-        r->inspection?(r->verdict==INSPECTION_PASS?"合格  >":"超差  >"):"普通测量  >",LV_TEXT_ALIGN_LEFT);
+    unsigned i=(unsigned)(uintptr_t)lv_obj_get_user_data(o);
+    if(i>=u->model->record_count || i<u->record_offset || i-u->record_offset>=8U)return;
+    lv_area_t a;lv_obj_get_coords(o,&a);
+    lv_layer_t *l=lv_event_get_layer(e);int x=a.x1,y=a.y1+10;
+    const DashboardRecordText *v=&u->record_text[i-u->record_offset];
+    /* 数字/时间已在render中转换；滚动只改变坐标，不重复格式化与分配字符串。 */
+    ui_text_cached(l,x+10,y,48,&ui_font_12,UI_INK,v->id);
+    ui_text_cached(l,x+62,y,99,&ui_font_12,UI_MUTED,v->time);
+    ui_text_cached(l,x+167,y,68,&ui_font_12,UI_CYAN,v->primary);
+    ui_text_cached(l,x+251,y,68,&ui_font_12,UI_PURPLE,v->secondary);
+    ui_text(l,x+335,y,100,&ui_font_12,v->verdict==INSPECTION_PASS?UI_GREEN:UI_INK,
+        v->inspection?(v->verdict==INSPECTION_PASS?"合格  >":"超差  >"):"普通测量  >",LV_TEXT_ALIGN_LEFT);
 }
 static lv_obj_t *box(lv_obj_t *parent,int x,int y,int w,int h,uint32_t color)
 {
@@ -88,6 +90,10 @@ static const char *verdict_name(InstrumentVerdict v,MeasurementGeometry g)
 static void summary(DashboardUI *u)
 {
     MeasurementPage *p=u->page;InstrumentModel *m=u->model;
+    /* 模型中的记录/统计已正常更新，只把底图显示留到遮挡解除时一次提交。
+     * 没有变化时不再格式化记录、不额外失效三个统计区域。 */
+    if(!u->summary_pending || p->presentation_paused) return;
+    u->summary_pending=false;p->verdict=u->result_verdict;
     p->total_count=m->inspected;p->pass_count=m->passed;p->fail_count=m->failed;
     memset(p->recent,0,sizeof(p->recent));unsigned n=0;
     memset(p->recent_records,0,sizeof(p->recent_records));
@@ -101,7 +107,12 @@ static void summary(DashboardUI *u)
         snprintf(p->recent[n++],sizeof(p->recent[0]),"#%" PRIu32 "  %s  %s  %s",r->id,a,b,
                  r->verdict==INSPECTION_PASS?"合格":"超差");
     }
-    lv_obj_invalidate(p->result_panel);
+    /* 汇总只改变结果、三个计数/圆环和最近两行；标题与卡片保持原样。 */
+    if(p->quality_mode) {
+        const lv_area_t result={294,72,474,133},counts={298,155,470,206},records={297,233,474,272};
+        lv_obj_invalidate_area(p->result_panel,&result);lv_obj_invalidate_area(p->result_panel,&counts);
+        lv_obj_invalidate_area(p->result_panel,&records);
+    }
 }
 static void completed(void *context,const MeasurementResult *result)
 {
@@ -110,7 +121,7 @@ static void completed(void *context,const MeasurementResult *result)
     if(!instrument_add_record(m,result)) {u->page->automatic=false;note(u,"记录失败，请检查数据");return;}
     InstrumentRecord *r=&m->records[0];r->uptime_ms=lv_tick_get();r->inspection=u->page->quality_mode;
     r->verdict=r->inspection?instrument_inspect(&m->settings,result):INSPECTION_NONE;
-    u->page->verdict=r->verdict;
+    u->result_verdict=r->verdict;u->summary_pending=true;
     /* 只有完成且通过数据校验的结果计入统计，超时/取消不会伪造一条检测。 */
     if(r->inspection&&m->inspected<UINT32_MAX) {
         /* 总数到上限后三项一起停止增长，保持总数=合格+不合格的关系。 */
@@ -122,6 +133,17 @@ static void completed(void *context,const MeasurementResult *result)
     /* 结果完成后至少留2.5秒阅读时间，再请求下一件；使用期限比较，不阻塞GUI触摸。
      * 下一轮采集仍保留上一份有效结果，只有新结果完成才替换数值与结论。 */
     summary(u);u->next_auto_ms=lv_tick_get()+2500U;
+    /* 测量开始后仍可打开历史；完成时记录会向后移动，必须同时更新文字缓存。
+     * 保留当前滚动位置，避免编号/时间是旧记录、结论却已取自新记录。 */
+    if(!lv_obj_is_hidden(u->panel)&&u->menu==DASH_RECORDS&&!u->edit) {
+        /* 滑动中不销毁/重建整张列表；行文字和结论均仍来自同一份缓存。
+         * 终点回调再一次更新；菜单静止时仍立即刷新新记录并保持滚动位置。 */
+        if(u->animating) u->menu_dirty=true;
+        else {
+            int32_t scroll=lv_obj_get_scroll_y(u->body);
+            render(u);lv_obj_scroll_to_y(u->body,scroll,LV_ANIM_OFF);
+        }
+    }
     /* 保存失败会停止自动检测，同步按钮文字和禁用状态，不能留下“停止”假象。 */
     measurement_page_set_backend(u->page,&u->page->backend);
 }
@@ -148,14 +170,22 @@ void dashboard_action(DashboardUI *u)
             p->session.state=MEASUREMENT_IDLE;p->session.progress=0;
         }
     } else if(!measurement_page_start(p))p->automatic=false;
-    measurement_page_set_backend(p,&p->backend);lv_obj_invalidate(p->geometry.object);
+    measurement_page_set_backend(p,&p->backend);
 }
 static void primary(void *context) {dashboard_action(context);}
 static void timer_tick(lv_timer_t *t)
 {
     DashboardUI *u=lv_timer_get_user_data(t);MeasurementPage *p=u->page;
     uint32_t now=lv_tick_get();
-    if(u->header_second!=now/1000U) {u->header_second=now/1000U;lv_obj_invalidate(p->header);}
+    if(u->header_second!=now/1000U) {
+        u->header_second=now/1000U;
+        p->clock_seconds=u->header_second;
+        /* 包含旧文字的完整边界，时钟位数变化也先恢复背景，不留下旧笔画。 */
+        const lv_area_t clock={419,7,474,27};lv_obj_invalidate_area(p->header,&clock);
+        if(!p->quality_mode && !p->presentation_paused) {
+            const lv_area_t time={429,44,473,63};lv_obj_invalidate_area(p->result_panel,&time);
+        }
+    }
     if(p->automatic&&!measurement_session_busy(&p->session)) {
         if(p->session.state==MEASUREMENT_FAILED||!p->session.connected) {
             p->automatic=false;measurement_page_set_backend(p,&p->backend);
@@ -167,15 +197,29 @@ static void timer_tick(lv_timer_t *t)
 static void slide_x(void *object,int32_t x) {lv_obj_set_x(object,x);}
 static void closed(lv_anim_t *a)
 {
-    DashboardUI *u=lv_anim_get_user_data(a);lv_obj_set_hidden(u->panel,true);u->closing=false;
+    DashboardUI *u=lv_anim_get_user_data(a);lv_obj_set_hidden(u->panel,true);
+    u->animating=false;u->closing=false;
+    measurement_page_pause_presentation(u->page,false);summary(u);
+    /* 底图已准备好后才归还输入，避免结束帧与新的触摸操作交叉。 */
+    lv_obj_set_clickable(u->transition_guard,false);
+}
+static void opened(lv_anim_t *a)
+{
+    DashboardUI *u=lv_anim_get_user_data(a);u->animating=false;
+    if(u->menu_dirty) {
+        int32_t scroll=lv_obj_get_scroll_y(u->body);
+        render(u);lv_obj_scroll_to_y(u->body,scroll,LV_ANIM_OFF);
+    }
 }
 static void slide(DashboardUI *u,bool close)
 {
     lv_anim_delete(u->panel,slide_x);lv_anim_t a;lv_anim_init(&a);
     lv_anim_set_var(&a,u->panel);lv_anim_set_exec_cb(&a,slide_x);
-    lv_anim_set_values(&a,close?lv_obj_get_x(u->panel):480,close?480:0);
+    /* 动画被返回/再次打开打断时从当前位置继续，避免跳回屏幕外再进场。 */
+    lv_anim_set_values(&a,lv_obj_get_x(u->panel),close?480:0);
     lv_anim_set_duration(&a,180);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
-    if(close) {lv_anim_set_user_data(&a,u);lv_anim_set_completed_cb(&a,closed);}
+    u->animating=true;lv_anim_set_user_data(&a,u);
+    lv_anim_set_completed_cb(&a,close?closed:opened);
     lv_anim_start(&a);
 }
 void dashboard_open(DashboardUI *u,DashboardMenu menu)
@@ -183,22 +227,37 @@ void dashboard_open(DashboardUI *u,DashboardMenu menu)
     if(!u)return;
     bool hidden=lv_obj_is_hidden(u->panel);
     u->menu=menu;u->closing=false;lv_anim_delete(u->panel,slide_x);
-    lv_obj_set_x(u->panel,0);lv_obj_set_hidden(u->panel,false);lv_obj_move_foreground(u->panel);
+    measurement_page_pause_presentation(u->page,true);
+    lv_obj_stop_scroll_anim(u->body);
+    /* 先在屏幕右侧准备菜单，不能先放X=0并隐藏底图，再启动滑入。
+     * 透明输入层覆盖未被菜单遮住的区域，动画中不会点穿到原主页面。 */
+    if(hidden)lv_obj_set_x(u->panel,480);
+    /* 只切输入标志，不显隐/重排透明层，避免为无像素变化的290行请求额外刷新。 */
+    lv_obj_set_clickable(u->transition_guard,true);
+    lv_obj_set_hidden(u->panel,false);lv_obj_move_foreground(u->panel);
     render(u);lv_obj_scroll_to_y(u->body,0,LV_ANIM_OFF);
-    if(hidden)slide(u,false);
+    lv_obj_update_layout(u->panel);
+    if(hidden || lv_obj_get_x(u->panel)!=0)slide(u,false);
+    else u->animating=false;
 }
 void dashboard_close(DashboardUI *u)
 {
-    if(!u||u->closing)return;
+    if(!u||u->closing||lv_obj_is_hidden(u->panel))return;
     /* 恢复主画面后，覆盖层仍拦截触摸直到滑出完成，不会点穿到底部按钮。 */
     u->page->selected_navigation=u->last_main;
     lv_obj_set_hidden(u->page->geometry.object,false);lv_obj_set_hidden(u->page->result_panel,false);
-    u->closing=true;slide(u,true);measurement_page_set_backend(u->page,&u->page->backend);
+    /* 在菜单仍盖住主页时准备最新结果/按钮；滑出期间固定这一份底图。
+     * 列表的惯性只暂停到当前位置，不让列表滚动和整页移动同时争用刷新。 */
+    lv_obj_stop_scroll_anim(u->body);
+    measurement_page_pause_presentation(u->page,false);summary(u);
+    measurement_page_set_backend(u->page,&u->page->backend);
+    measurement_page_pause_presentation(u->page,true);
+    u->closing=true;slide(u,true);
 }
 static void navigation(void *context,unsigned destination)
 {
     DashboardUI *u=context;
-    if(destination<2) {u->last_main=destination;u->page->verdict=INSPECTION_NONE;return;}
+    if(destination<2) {u->last_main=destination;u->result_verdict=INSPECTION_NONE;u->page->verdict=INSPECTION_NONE;return;}
     if(destination==2) {u->record_offset=0;dashboard_open(u,DASH_RECORDS);}
     else dashboard_open(u,destination==4?DASH_STANDARDS:DASH_SETTINGS);
 }
@@ -326,16 +385,27 @@ static void row_event(lv_event_t *e)
 }
 static void render(DashboardUI *u)
 {
+    /* 只复用同一设置菜单已有的六行；切换到其他菜单仍按原内存策略仅保留当前页。
+     * 文字相同时不调用set_text，避免无意义的分配、布局和整行重绘。 */
+    bool reuse=u->menu==DASH_SETTINGS && u->rendered_menu==DASH_SETTINGS && u->rows[0];
     /* 删除的是当前菜单的LVGL对象，涉及内存释放，不是删除任何磁盘文件。 */
-    lv_obj_clean(u->body);memset(u->rows,0,sizeof(u->rows));
+    if(!reuse) {lv_obj_clean(u->body);memset(u->rows,0,sizeof(u->rows));}
+    u->rendered_menu=u->menu;u->menu_dirty=false;
     static const char *titles[]={"设置","Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录","检测记录详情"};
-    lv_label_set_text(u->title,titles[u->menu]);char value[128],a[20],b[20];
+    if(strcmp(lv_label_get_text(u->title),titles[u->menu]))lv_label_set_text(u->title,titles[u->menu]);
+    char value[128],a[20],b[20];
     InstrumentModel *m=u->model;InstrumentSettings *s=&m->settings;
     int y=4;
     if(u->menu==DASH_SETTINGS) {
         const char *names[]={"Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录"};
         const char *vals[]={u->connected?u->ssid:"未连接  >","固件 / 屏幕 / 相机  >","工件 / 采样 / 超时  >","网格 / 标注 / 单位  >","目标尺寸与上下公差  >","滑动查看历史  >"};
-        for(unsigned i=0;i<6;++i) {row(u,i,y,names[i],vals[i]);y+=45;}
+        for(unsigned i=0;i<6;++i) {
+            if(reuse) {
+                lv_obj_t *v=lv_obj_get_child(u->rows[i],1);
+                if(strcmp(lv_label_get_text(v),vals[i]))lv_label_set_text(v,vals[i]);
+            } else row(u,i,y,names[i],vals[i]);
+            y+=45;
+        }
     } else if(u->menu==DASH_NETWORK) {
         label(u->body,16,y,430,u->connected?"当前状态：已连接":u->connecting?"当前状态：连接中":"当前状态：未连接",true,UI_INK);y+=28;
         snprintf(value,sizeof(value),"SSID：%s",u->connected?u->ssid:"--");label(u->body,16,y,430,value,false,UI_MUTED);y+=23;
@@ -379,6 +449,13 @@ static void render(DashboardUI *u)
         unsigned end=LV_MIN(m->record_count,u->record_offset+8U);
         for(unsigned i=u->record_offset;i<end;++i) {
             const InstrumentRecord *r=&m->records[i];
+            DashboardRecordText *v=&u->record_text[i-u->record_offset];
+            v->verdict=r->verdict;v->inspection=r->inspection;
+            snprintf(v->id,sizeof(v->id),"#%" PRIu32,r->id);
+            snprintf(v->time,sizeof(v->time),"%02" PRIu32 ":%02" PRIu32 ":%02" PRIu32,
+                     r->uptime_ms/3600000U,r->uptime_ms/60000U%60U,r->uptime_ms/1000U%60U);
+            measurement_format_cmm(v->primary,sizeof(v->primary),(uint32_t)r->result.primary_cmm);
+            measurement_format_cmm(v->secondary,sizeof(v->secondary),(uint32_t)r->result.secondary_cmm);
             lv_obj_t *o=button(u->body,8,y,448,37,"",row_event,u);lv_obj_set_user_data(o,(void *)(uintptr_t)i);
             lv_obj_delete(lv_obj_get_child(o,0));lv_obj_add_event_cb(o,draw_record,LV_EVENT_DRAW_MAIN,u);
             lv_obj_set_style_text_font(o,&ui_font_12,0);
@@ -439,7 +516,12 @@ void dashboard_create(DashboardUI *u,MeasurementPage *p,InstrumentModel *m,const
 {
     memset(u,0,sizeof(*u));u->page=p;u->model=m;if(services)u->services=*services;
     p->navigation_changed=navigation;p->result_completed=completed;p->application_context=u;p->primary_action=primary;
+    /* 透明对象只拦截输入，不清空/覆盖底图；结束滑出后才撤去。 */
+    u->transition_guard=box(p->root,0,30,480,290,UI_BG);
+    lv_obj_set_style_bg_opa(u->transition_guard,LV_OPA_TRANSP,0);
+    lv_obj_set_clickable(u->transition_guard,false);
     u->panel=box(p->root,0,30,480,290,UI_BG);lv_obj_set_hidden(u->panel,true);
+    p->opaque_cover=u->panel;p->geometry.opaque_cover=u->panel;
     u->back=button(u->panel,9,4,62,29,"< 返回",back_event,u);
     u->title=label(u->panel,88,9,377,"设置",true,UI_INK);
     u->body=box(u->panel,7,39,466,246,UI_BG);lv_obj_set_scrollable(u->body,true);
@@ -471,21 +553,29 @@ void dashboard_create(DashboardUI *u,MeasurementPage *p,InstrumentModel *m,const
     u->keyboard_pressed_key=LV_BUTTONMATRIX_BUTTON_NONE;
     lv_obj_add_event_cb(u->keyboard,keyboard_bottom,LV_EVENT_ALL,u);
     lv_obj_add_event_cb(u->keyboard,keyboard_event,LV_EVENT_READY,u);lv_obj_add_event_cb(u->keyboard,keyboard_event,LV_EVENT_CANCEL,u);
-    u->timer=lv_timer_create(timer_tick,100,u);LV_ASSERT_MALLOC(u->timer);apply(u);summary(u);
+    u->timer=lv_timer_create(timer_tick,100,u);LV_ASSERT_MALLOC(u->timer);
+    u->summary_pending=true;apply(u);summary(u);
 }
 void dashboard_set_network(DashboardUI *u,const DashboardNetworkOps *ops)
 { if(u)u->network=ops?*ops:(DashboardNetworkOps){0}; }
 void dashboard_network_status(DashboardUI *u,bool connected,const char *ssid,const char *ip)
 {
     if(!u)return;
+    bool icon_changed=u->page->wifi_connected!=connected;
     u->connected=connected;u->connecting=false;u->page->wifi_connected=connected;
     snprintf(u->ssid,sizeof(u->ssid),"%s",ssid?ssid:"");snprintf(u->ip,sizeof(u->ip),"%s",ip?ip:"");
-    lv_obj_invalidate(u->page->header);
-    if(!u->edit&&!lv_obj_is_hidden(u->panel)&&u->menu==DASH_NETWORK)render(u);
+    if(icon_changed) {const lv_area_t icon={382,5,411,28};lv_obj_invalidate_area(u->page->header,&icon);}
+    if(!u->edit&&!lv_obj_is_hidden(u->panel)&&u->menu==DASH_NETWORK) {
+        if(u->animating)u->menu_dirty=true;else render(u);
+    }
 }
 void dashboard_destroy(DashboardUI *u)
 {
     if(!u)return;
     lv_anim_delete(u->panel,slide_x);lv_timer_delete(u->timer);
-    lv_obj_delete(u->panel);lv_obj_delete(u->editor);memset(u->password,0,sizeof(u->password));
+    /* 清掉借用指针并解除显示合并，防止销毁后自绘访问已经释放的菜单。 */
+    u->page->opaque_cover=NULL;u->page->geometry.opaque_cover=NULL;
+    measurement_page_pause_presentation(u->page,false);summary(u);
+    lv_obj_delete(u->panel);lv_obj_delete(u->editor);lv_obj_delete(u->transition_guard);
+    memset(u->password,0,sizeof(u->password));
 }

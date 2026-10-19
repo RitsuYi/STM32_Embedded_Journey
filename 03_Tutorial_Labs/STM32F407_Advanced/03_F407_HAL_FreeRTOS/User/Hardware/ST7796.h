@@ -41,4 +41,11 @@ HAL_StatusTypeDef ST7796_WriteRGB565(uint16_t x, uint16_t y,
                                     uint16_t width, uint16_t height,
                                     const uint8_t *pixels, uint32_t stride_bytes);
 
+/* 新LVGL快路径：pixels已经是高字节在前、无行尾填充的RGB565连续矩形。
+ * width*height*2必须<=65534；Start成功后源内存直到Finish返回都不可复用。
+ * CS及外层递归锁由启动任务持有，必须同一任务调用Finish，ISR只发完成通知。 */
+HAL_StatusTypeDef ST7796_StartRGB565DMA(uint16_t x,uint16_t y,uint16_t width,uint16_t height,
+                                       const uint8_t *pixels);
+HAL_StatusTypeDef ST7796_FinishRGB565DMA(void);
+
 #endif

@@ -32,9 +32,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fdata-sections -ffunction-sections -f
 # However, most GCC toolchains do not support this option, which causes a compilation error; for this reason, the feature is disabled by default.
 # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcyclomatic-complexity")
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g3")
+# H7.1：GUI、LVGL、驱动与RTOS统一优化；-g3继续保留符号，不使用破坏浮点语义的fast-math。
+set(CMAKE_C_FLAGS_DEBUG "-O2 -g3")
 set(CMAKE_C_FLAGS_RELEASE "-Os -g0")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
+set(CMAKE_CXX_FLAGS_DEBUG "-O2 -g3")
 set(CMAKE_CXX_FLAGS_RELEASE "-Os -g0")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions -fno-threadsafe-statics")

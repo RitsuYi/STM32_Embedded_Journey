@@ -10,6 +10,18 @@ bool SPI1_Bus_Init(void);
 bool SPI1_Bus_Lock(void);
 void SPI1_Bus_Unlock(void);
 
+/* 异步分两阶段：Start成功后当前任务继续绘制另一块缓冲；Wait才等待并释放内部锁。
+ * 调用者的外层锁仍覆盖CS低到CS高。两函数必须由同一运行中任务成对调用。
+ * data/size为连续的LCD字节流，成功启动后直到Wait返回前禁止改写或释放data。 */
+HAL_StatusTypeDef SPI1_Bus_StartDMA(const uint8_t *data, uint16_t size);
+HAL_StatusTypeDef SPI1_Bus_WaitDMA(TickType_t timeout_ticks);
+/* 仅做地址范围判断，拒绝CCM、栈外溢和跨区；真实固件Start也会执行此检查。 */
+bool SPI1_Bus_DMAAddressValid(uintptr_t address, uint32_t bytes);
+/* 查询收尾上下文，防止ISR/其他任务提前释放LCD片选；不等待、不修改状态。 */
+bool SPI1_Bus_DMAOwnedByCaller(void);
+/* 窗口命令轮询失败时使用：调用者已持总线锁且没有启动DMA，安全停止SPI后才拉高CS。 */
+void SPI1_Bus_AbortPolling(void);
+
 /*
  * 通过DMA发送一段数据，并让当前任务等待结果。
  *

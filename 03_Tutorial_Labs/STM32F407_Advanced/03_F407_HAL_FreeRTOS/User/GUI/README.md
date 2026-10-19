@@ -1,6 +1,18 @@
 # 智能视觉测量仪 LVGL 应用层
 
-当前入口为 H7.1 局部布局与结果可读性优化版（2026-10-19）。用户已认可整体布局/颜色；本轮修深色尺寸标注、完整胶囊、文字对齐、质检间距/提示及结果停留，通过主机/ARM验证，尚未下载。原H6/H7验收保持，新增实物效果待确认。
+当前入口为H7.1方案A侧滑优化版（2026-10-20），见主进度5.18。用户已确认双32行版再提高约3帧；本轮保留双向180ms及全部画质，裁剪菜单盖住的主页自绘、合并底图显示更新、复用六条设置行，并在滑出前停止列表惯性。ARM及真实主机3/3通过，A版尚未上板验证；原H6/H7实机结论保持。
+
+普通SRAM100560B（仅比32行版+48B，余30512B）、CCM53248B不变，片内Flash731968B（+1112B，余316608B）。未增加大缓存或扩大池，双32行61440B保持；继续给后续通信/测量保留至少约20KiB普通SRAM链接余量，链接余量不代表运行时堆水位。没有修改时钟/引脚/LCD寄存器、接入外部Flash或下载。
+
+## OLED性能显示与本轮对照
+
+- `FPS:000.0`：最近约1秒内成功发送的LVGL刷新次数，包含空闲时间；整屏10个DMA块合成的一次刷新只算1帧，失败/无像素刷新不算，静止时可为0或仅剩时钟刷新。它不是面板内部扫描率；短暂180ms动画受窗口内空闲影响，比较时持续滑动约2秒。
+- `MS:0000 BLK:000`：最近一次成功刷新的耗时（毫秒，含布局/绘图与末DMA等待）及DMA块数；`ERR`显示传输错误累计最低6位。最后耗时会保留，局部时钟刷新也可能更新它，不能单看停止后某个数值认定整页耗时。
+- GUI只发布数字，OLED任务在短临界区复制36B统计；排版/I²C均在临界区外。统计区每秒最多发送上方32像素/512B，底部按键提示仅变化时更新，不再每轮整屏发送1024B；原100kHz、共享锁/恢复和按键消抖保持。新增`last_frame_wait_ms`/`last_frame_pack_ms`供调试器看Finish等待及换序墙钟毫秒，不新增OLED行；不是DMA总忙时长或CPU周期，不能直接推CPU占用。
+- 旧OLED版三组实测10.3/10.5/10.4FPS、89/88/91ms、31块、ERR0保持历史；20/32行版分别获约再提高3帧的用户反馈，无新绝对数，不倒推16.4FPS。相同历史body的软件8/16/20/32行对照为31/16/13/8块，均229272B且逐像素一致；A版未减少这批整块历史像素，不承诺全场景30FPS。
+- `h7_1_buffer32_build.log`：普通SRAM100512B（余30560B）、CCM53248B、Flash730856B，ARM GCC13.3.1实际编译链接无warning/error；HEX/BIN已从同一ELF导出。`buffer32_test.log`及`buffer32_details.log`实际3/3，含32行/裁剪/增量/动画、记录完成缓存更新、进度抖色及原DMA边界。主机池峰40248B/free15208B仅为软件证据；旧`transition_final`日志保留。
+- 本轮A证据为`h7_1_option_a_final_build.log`、`option_a_final_test.log`/`option_a_details.log`，3/3通过；28组固定姿态的裁剪前后同像素，任务15894→11941、圆环/柔影裁剪包围面积790338→506842，仅是主机工作量，不是实机提速。18张原场景真实截图全像素相同，见`option_a_visual_comparison.json`；主机池峰40208B/free15208B不当作F407峰值。
+- 下一次下载最新Debug，在相同质检结果下分别往返设置/测量记录，比较进入卡顿、返回动态断层及最终显示；OLED仍可读原FPS/MS/BLK/ERR，不重做已确认的32行提速。当前无确认LCD TE，不能保证完全无撕裂；不取消动画、闪背光或降低画质。
 
 ## 当前界面与操作
 
@@ -18,7 +30,17 @@
 
 参考图布局和二维圆环保留。蓝色0x98CBFA、正文0x78899B，底色0xFAF9F6略暖；正文12px、标题14px、主标题/质检数字16px、主尺寸数字26px，官方原尺寸取字。底部为36px高完整胶囊（Y276～311，下方留阴影，触摸到Y319），独立16px轻轮廓盾牌/直尺/齿轮，播放/停止略小，16px图标+8px间距+实际文字作为一组居中；保留四标题的完整16px图标。Wi-Fi始终蓝色，未连接带斜杠，竖线分隔时间。按钮按下/禁用遮罩沿用胶囊圆角，键盘特殊键样式保持。见`fonts/README.md`和`measurement/ui_icons.h`。
 
-`assets/ui_skin.c`以1440B共享行缓存生成292/278×232原尺寸RGB888背景。圆环保留ARGB8888颜色/透明度并常驻Flash。19200B单局部缓冲内部RGB888（全宽13行），让卡片、按钮、进度、字体边缘及透明缩放先混合，再由`lvgl_port.c`按屏幕绝对坐标8×8固定抖色，原地压缩成RGB565。屏幕仍每像素2字节，纯白输出0xFFFF；没有整屏缓存。原ST7796窗口/stride/高字节在前、960B逐行DMA等待、单GUI/软件绘图单元保持，未改硬件/触摸/时钟/液晶寄存器。旧20行是绘图缓冲，不是一次DMA20行。有限色阶及面板响应仍需实机核验。
+`assets/ui_skin.c`使用960B解码行，Flash中14种预计算抖色渐变覆盖292/278×232背景、卡片、页脚按钮和117×8蓝色进度条；可随机解码相交行/列，不展开整图RAM。进度条按原0xA0D8FF→0x98CBFA水平渐变离线量化，按进度裁剪同一像素图并保留圆角，运行时不重新计算渐变。`tools/generate_ui_perf_tables.py`只需Python标准库，主题改变后用它重新生成表。任意缩放矩形按行计算8种抖色相位并平铺。圆环保留原ARGB8888素材、A8柔影与字体透明/抗锯齿能力，最终由LVGL直接混合到565。
+
+`lvgl_port.c`采用两个480×32×2=30720B局部缓冲，总61440B普通SRAM；CPU绘B时DMA发A。`GUI_DRAW_BUFFER_ROWS`用于明确行数，全屏一个脏区10次DMA。PARTIAL仍只发送变化区域，大缓冲不强制整屏刷新。flush仅一次原地换序/必要的stride紧密化，每块一次连续DMA，无逐行中转。SPI Start/Wait由同一GUI任务成对执行，中断仅通知；完成核DMA EN/SPI BSY，尾块主动收尾CS/锁，错误安全中止后在任务阶段限速完整重绘。最后缓冲可用才通知LVGL，DMA源地址检查拒绝CCM。旧const小端同步LCD接口仍保留兼容，已退出LVGL链路。
+
+`dashboard_ui.c`缓存当前段8条记录的文字及对应结论/模式，滚动不重复格式化；新测量在历史打开时完成，静止时立即更新，滑动中在安全终点更新并保留滚动位置。`measurement_page_pause_presentation`只合并底图显示，真实会话/进度/完成/超时/模型继续运行；返回前准备最新底图，滑出中固定可见版本，结束再提交期间的新结果。重开同一设置菜单复用六行，只在文字变化时更新。设置进入仍在X480准备布局，返回逐步揭露；透明输入层防点穿，快速反向从当前X续动，主题及180ms保持。
+
+`ui_underlay_begin`仅在已知不透明、无圆角的菜单完全遮住当前自绘裁剪框右侧/高度时生效；几何/结果卡只合成露出部分，包装函数返回后恢复原clip，不影响菜单或兄弟控件。无有效遮挡时完全沿原绘图路径。未用最终合成整页缓存，也没有实现5.17候选的纯色块跳过发送。
+
+52KiB LVGL池放独占`.lvgl_ccm (NOLOAD)`，由`GUI_LVGL_PoolAlloc`开CCM数据时钟并清零；当前启动汇编未泛化处理CCM，不能随意在通用.ccmram放初始化变量。只有CPU的软件绘图/解码可用此池，DMA必须读显式普通SRAM输出。RTOS堆24KiB、GUI栈8KiB未缩减。无整屏缓存，SPI/触摸/时钟/引脚/液晶寄存器未变。565多层透明边缘与纯色量化并非与旧888逐像素相同，敏感静态渐变已局部抖色；仍须面板同条件比较。
+
+当前重点复用历史文字、固定渐变与时钟小脏区；未增加整菜单/8条记录的像素缓存。板载W25Q128适合素材/参数/记录存储，不能扩充绘图RAM，且与LCD共SPI1，读写须仲裁；片内Flash余316608B，本轮未接外部Flash。普通SRAM链接余30512B不等于实时堆余量，保留给运行时、通信和测量。
 
 当前仍是模拟相机（包括32.00×20.00mm矩形像素角点→固定映射→尺寸路径），不是MaixCAM2真实测量。`gui_camera_config.h`集中放固定参数，目前仅适配模拟夹具；真实安装需一次性替换。界面没有现场标定向导。
 
@@ -26,16 +48,22 @@
 
 ## 当前验证
 
-- 原预设：`cmake --build --preset build-debug`。最新日志`build/Debug/h7_1_layout_polish_build.log`：RAM112440B/131072B（85.78%，不变），Flash875952B（83.54%），CCM0，无需外部Flash。C编译通过，仍有LOAD段RWX链接告警。
-- `build/H7_1_Host/layout_polish_test.log`：真实LVGL及实际ST7796驱动契约2/2通过。新增2.5秒阅读期限、下一轮采集的结果区域逐像素保持、按钮上下弧线和环内百分比宽度；两布局1/7/13/20行及裁剪逐像素一致、渐变/纯色/字体/原回归保持。52KiB主机池峰41568B/free17464B，不能代替实机水位。48KiB曾在切菜单变换时连续分配失败，现52KiB池及12KiB简单图层预算回归通过。
-- 覆盖模式、底边真实指针输入、自动启停/超时、公差边界与旧结论、失败回滚、数字键盘、设置/历史拖动、Wi-Fi请求与状态分离、缩放、矩形和64条容量。
-- `build/H7_1_Host/measurement_layout_polish.png`、`inspection_idle_layout_polish.png`、`inspection_pass_layout_polish.png`及`inspection_acquiring_layout_polish.png`为本版实际主机渲染，另有超差/矩形。旧`*_render_audit.png`等保留历史。20行RGB888测试缓冲及整屏截图仅在电脑存在。高精度混合/抖色未变，未新增实机性能结果；性能方案见主进度5.10，不照旧20行565预算直接实施。
+- A版：`build/Debug/h7_1_option_a_final_build.log`、`build/H7_1_Host/option_a_final_test.log`及`option_a_details.log`。ARM实际编译链接无warning/error，真实-O2主机3/3，覆盖多位置/多条带同像素、动画中两次新结果/超时、缓存结论一致、设置复用、惯性停止及原业务/DMA回归。真实中间帧`option_a_ring_mid_option_a.png`、`option_a_rectangle_mid_option_a.png`及18场景对照已保存，固件ELF/HEX/BIN同源。尚无A版实机速度/撕裂结论。
+- 本轮：`build/Debug/h7_1_buffer32_build.log`、`build/H7_1_Host/buffer32_test.log`和`buffer32_details.log`。ARM SRAM100512B/CCM53248B/Flash730856B，真实-O2主机3/3；主机池峰40248B/free15208B。8/16/20/32行软件主画面40/20/16/10块、历史31/16/13/8块，发送像素不减少、逐像素一致；进度条0/1/2/5/25/50/75/99/100%固定抖色及1/7/8/10/16/20/32行/裁剪通过。其余DMA/业务回归保持。下一项图像对照为上轮5.14历史证据。
+- 实际图`*_transition.png`与`*_transition_comparison.png`、`progress_gradient.png`。对照旧帧排除开机时钟后，测量/矩形仅进度条489像素不同，历史仅一条记录开机时间末位33像素不同，其他场景和所有其余像素不变；见`transition_pixel_comparison.json`。本轮没有降低字体/素材/透明效果来换速度。以下5.12日志为前轮历史。
+- 原预设：`cmake --build --preset build-debug`。`build/Debug/h7_1_performance_build.log`为全链路优化重编，`h7_1_performance_final_build.log`为最终源码构建；ARM GCC13.3.1退出0、无warning/error，旧RWX链接告警已修。603个C/C++单元均核-O2/-g3，无fast-math。
+- 优化前→后：普通SRAM112440→53864B（余77208B），CCM0→53248B（余12288B），总RAM112440→107112B（少5328B）；Flash875952→727616B（少148336B，余320960B）。CCM迁移不算总量减少。地址/LOAD段/ELF校验见`build/Debug/h7_1_performance_resources.json`及`h7_1_performance_segments.log`；最终ELF/BIN/HEX同目录。
+- `build/H7_1_Host/performance_final_test.log`：-O2下真实LVGL/应用、真实LCD驱动、真实SPI总线状态模型3/3。普通圆环/质检/矩形分别1/7/8/10/20行双缓冲、裁剪及动态增量与完整重绘一致；180ms菜单中间/结束帧也比较，2.5秒结果停留/保留、原按键/触摸/键盘/公差/回滚/历史/网络契约保持。
+- 延迟读取模拟DMA检查缓冲不被复用，覆盖提前/外来通知、期限回绕、BSY/EN假完成、错误/超时/中止保护、CS/锁生命周期及65534/65536字节边界。全屏一个脏区40次像素DMA/307200B，同值更新0字节，质检一秒时钟2352B；均为软件验证，不是实机帧率。
+- 52KiB主机池峰39864B，最终free14136B（新动画测试留下菜单行，不能直接对比旧末尾余量）。RTOS两池/GUI栈实机峰值未测，保留安全容量。48KiB曾碎片失败的旧证据仍在主进度。
+- 实际主机画面为`build/H7_1_Host/*_performance.png`，测量/合格/矩形另有`*_performance_comparison.png`。旧基线ELF/图保留`build/H7_1_PerfBaseline`。6场景排除时钟文字框后每通道平均绝对差0.6594～1.5428/255、最大9～25/255，详`performance_pixel_comparison.json`；不能声称全局888中间精度完全一致。不同条带/裁剪自身则逐像素一致。
+- 5.12/5.13旧双8行已获10.3～10.5FPS实测，20行版用户反馈再提高约3帧；本轮32行版待下载对照，按5.15续接。新版CPU/栈堆峰值与长期稳定性未测，不恢复旧触摸诊断/取消任务。
 
 首次建立主机目标（MinGW GCC + Ninja）：
 
 ```powershell
 cmake -S tests/ui_dashboard -B build/H7_1_Host -G Ninja -DCMAKE_C_COMPILER=E:/DevEnv/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=E:/DevEnv/mingw64/bin/g++.exe -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/H7_1_Host --target ui_dashboard_test
+cmake --build build/H7_1_Host
 ctest --test-dir build/H7_1_Host --output-on-failure
 ```
 
@@ -141,7 +169,7 @@ GUI_RegisterTouch已接FT6336U硬件读回调，输入定时器目标15ms，由�
 
 ## 内存配置
 
-当前LVGL池52KiB，简单图层分块上限12KiB；FreeRTOS堆24KiB；GUI任务栈2048 words=8KiB。下方旧证据中的48KiB为历史值。
+当前LVGL池52KiB在CCM，简单图层分块上限12KiB；FreeRTOS堆24KiB和GUI任务栈2048 words=8KiB保持。下方旧证据中的48KiB/普通SRAM池为历史值。
 整份模型回滚快照放在GUI静态对象中，避免回调中多个1920B局部副本。
 使用newlib-nano的_printf_float支持C snprintf，区别于LVGL自己的浮点配置。
 
@@ -171,7 +199,7 @@ RAM105176B、Flash753540B、CCM0；调试显示/统计符号已移除，触摸�
 
 SPI1_TX已配置DMA2 Stream3 Channel3、Normal、Memory-to-Peripheral、
 外设不递增/内存递增、Byte/Byte、FIFO关闭，DMA/SPI中断抢占优先级5。
-DMA回调和完成等待已接入；显示逐行发送并等待，不是绘图与发送并行的双缓冲。
+历史迁移阶段显示逐行发送等待；H7.1现已采用整块异步双8行，当前实现与验收见本文顶部及主进度5.12。
 2026-10-17已按用户授权同步.ioc与初始化：PA6=SPI1_MISO、
 PE1=TP_RST（推挽输出，初始低保持触摸复位）、PE2=TP_INT（普通输入，未开EXTI）；
 触摸SCL/SDA共用OLED的I²C2 PB10/PB11，100kHz。35002原理图有两颗10kΩ上拉到3.3V。

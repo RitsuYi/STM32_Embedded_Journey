@@ -7,6 +7,9 @@
 #include "measurement/ui_draw.h"
 #include "measurement/ui_icons.h"
 #include "src/widgets/buttonmatrix/lv_buttonmatrix_private.h"
+#include "src/display/lv_display_private.h"
+#include "src/draw/lv_draw_private.h"
+#include "assets/ui_assets.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +24,44 @@ static bool down;
 static MeasurementPage page;
 static InstrumentModel model;
 static DashboardUI ui;
+/* 模拟DMA延迟到Finish才读取源数据，能发现提前归还/换序或下一条带覆盖缓冲的错误。 */
+static const uint8_t *in_flight;
+static uint8_t flight_copy[65534];
+static uint16_t flight_x,flight_y,flight_w,flight_h;
+static unsigned dma_starts,dma_finishes,draw_while_dma;
+static uint64_t sent_bytes;
+static bool fail_start,fail_finish;
+/* 仅测试计时契约时注入虚拟绘图/末块等待时间，不把电脑执行速度当作F407速度。 */
+static unsigned finish_delay_ms, render_delay_ms;
+/* 行数对照只记录真实绘图回调/发送量；不把主机或注入时间当作F407性能。 */
+static unsigned geometry_draws, record_draws;
+/* 直接观察真实LVGL创建的任务；只计算已变换图片与裁剪框交集的面积，
+ * 用来证明少做了被遮挡的圆环/柔影工作，不将面积或电脑运行时间冒充实机提速。 */
+static bool probe_tasks, enforce_cover;
+static int32_t probe_limit;
+static uint64_t ring_work;
+static unsigned submitted_tasks;
+void __real_lv_draw_finalize_task_creation(lv_layer_t *layer,lv_draw_task_t *task);
+void __wrap_lv_draw_finalize_task_creation(lv_layer_t *layer,lv_draw_task_t *task)
+{
+    if(probe_tasks) {
+        ++submitted_tasks;
+        if(task->type==LV_DRAW_TASK_TYPE_IMAGE) {
+            const lv_draw_image_dsc_t *d=task->draw_dsc;
+            if(d->src==&ui_metal_ring || d->src==&ui_metal_shadow) {
+                lv_area_t a;
+                if(enforce_cover)CHECK(task->clip_area.x2<probe_limit);
+                a.x1=LV_MAX(task->_real_area.x1,task->clip_area.x1);
+                a.y1=LV_MAX(task->_real_area.y1,task->clip_area.y1);
+                a.x2=LV_MIN(task->_real_area.x2,task->clip_area.x2);
+                a.y2=LV_MIN(task->_real_area.y2,task->clip_area.y2);
+                if(a.x1<=a.x2 && a.y1<=a.y2)ring_work+=lv_area_get_size(&a);
+            }
+        }
+    }
+    __real_lv_draw_finalize_task_creation(layer,task);
+}
+#define FULL_FRAME_BLOCKS ((320U + GUI_DRAW_BUFFER_ROWS - 1U) / GUI_DRAW_BUFFER_ROWS)
 uint32_t HAL_GetTick(void) {return now;}
 void GUI_LVGL_AssertFailed(const char *file,int line)
 {lv_mem_monitor_t m;lv_mem_monitor(&m);fprintf(stderr,"LVGL assert %s:%d menu=%u edit=%u time=%lu free=%lu biggest=%lu peak=%lu\n",file,line,ui.menu,ui.edit,(unsigned long)now,(unsigned long)m.free_size,(unsigned long)m.free_biggest_size,(unsigned long)m.max_used);exit(1);}
@@ -30,10 +71,36 @@ HAL_StatusTypeDef ST7796_WriteRGB565(uint16_t x,uint16_t y,uint16_t w,uint16_t h
     for(unsigned row=0;row<h;++row)memcpy(frame+(y+row)*480+x,pixels+row*stride,w*2U);
     return HAL_OK;
 }
+HAL_StatusTypeDef ST7796_StartRGB565DMA(uint16_t x,uint16_t y,uint16_t w,uint16_t h,const uint8_t *pixels)
+{
+    CHECK(!in_flight&&x+w<=480&&y+h<=320&&(uint32_t)w*h*2U<=65534U);
+    if(fail_start){fail_start=false;return HAL_ERROR;}
+    in_flight=pixels;flight_x=x;flight_y=y;flight_w=w;flight_h=h;
+    memcpy(flight_copy,pixels,(unsigned)w*h*2U);++dma_starts;sent_bytes+=(unsigned)w*h*2U;
+    return HAL_OK;
+}
+HAL_StatusTypeDef ST7796_FinishRGB565DMA(void)
+{
+    CHECK(in_flight);CHECK(!memcmp(in_flight,flight_copy,(unsigned)flight_w*flight_h*2U));
+    now += finish_delay_ms;
+    if(!fail_finish)for(unsigned y=0;y<flight_h;++y)for(unsigned x=0;x<flight_w;++x) {
+        unsigned i=(y*flight_w+x)*2U;
+        frame[(flight_y+y)*480+flight_x+x]=(uint16_t)(in_flight[i]<<8|in_flight[i+1]);
+    }
+    in_flight=NULL;++dma_finishes;
+    if(fail_finish){fail_finish=false;return HAL_TIMEOUT;}
+    return HAL_OK;
+}
+static void observe_overlap(lv_event_t *e)
+{
+    (void)e;
+    ++geometry_draws;
+    if(in_flight) {++draw_while_dma;CHECK(!memcmp(in_flight,flight_copy,(unsigned)flight_w*flight_h*2U));}
+}
 static bool reader(void *context,int32_t *x,int32_t *y,bool *pressed)
 {(void)context;*x=tx;*y=ty;*pressed=down;return true;}
 static void advance(unsigned ms)
-{for(unsigned i=0;i<ms;i+=5){now+=5;measurement_page_process(&page,now);lv_timer_handler();}}
+{for(unsigned i=0;i<ms;i+=5){now+=5;measurement_page_process(&page,now);lv_timer_handler();GUI_DisplayService();}}
 static void tap_at(lv_obj_t *o,int x,int y)
 {
     lv_obj_update_layout(lv_screen_active());lv_point_t p={x,y};
@@ -46,13 +113,190 @@ static void tap(lv_obj_t *o)
     CHECK(o);lv_obj_update_layout(lv_screen_active());lv_area_t a;lv_obj_get_coords(o,&a);
     tap_at(o,(a.x1+a.x2)/2,(a.y1+a.y2)/2);
 }
+static void incremental_contract(const char *phase);
+static void simulate_render_cost(lv_event_t *event)
+{
+    (void)event;
+    now += render_delay_ms;
+    render_delay_ms = 0U;
+}
+static void frame_stats_contract(void)
+{
+    /* 在创建业务页面/动画定时器之前，直接验证真实LVGL刷新事件和延迟DMA收尾：
+     * 多块整屏只能记1帧；CPU绘图7ms加每块1ms的Finish，须全部计入耗时。
+     * 块数由当前行数计算，32行时为10块；这些虚拟毫秒不是实机性能。 */
+    lv_display_t *display = lv_display_get_default();
+    GUI_DisplayStats before, after;
+    lv_refr_now(display);
+    GUI_DisplayGetStats(&before);
+    lv_obj_add_event_cb(lv_screen_active(),simulate_render_cost,LV_EVENT_DRAW_MAIN,NULL);
+    render_delay_ms = 7U;
+    finish_delay_ms = 1U;
+    lv_obj_invalidate(lv_screen_active());
+    lv_refr_now(display);
+    finish_delay_ms = 0U;
+    lv_obj_remove_event_cb(lv_screen_active(),simulate_render_cost);
+    GUI_DisplayGetStats(&after);
+    CHECK(after.completed_frames == before.completed_frames + 1U);
+    CHECK(after.last_frame_blocks == FULL_FRAME_BLOCKS && after.last_frame_bytes == 307200U);
+    CHECK(after.last_frame_ms == 7U + FULL_FRAME_BLOCKS && after.max_frame_ms >= 7U + FULL_FRAME_BLOCKS);
+    CHECK(after.last_frame_wait_ms==FULL_FRAME_BLOCKS && after.last_frame_pack_ms==0U);
+    before = after;
+    lv_refr_now(display); /* 无失效区域，不能将空刷新记作1帧。 */
+    GUI_DisplayGetStats(&after);
+    CHECK(after.completed_frames == before.completed_frames);
+
+    /* 先结束旧统计窗口，再在明确的1秒窗口内提交3帧，应为3.0，不能按DMA块数计帧。 */
+    now += 1000U;
+    GUI_DisplayService();
+    for(unsigned i = 0; i < 3U; ++i) {
+        lv_obj_invalidate(lv_screen_active());
+        lv_refr_now(display);
+    }
+    now += 1000U;
+    GUI_DisplayService();
+    GUI_DisplayGetStats(&after);
+    CHECK(after.fps_x10 == 30U);
+    now += 1000U;
+    GUI_DisplayService();
+    GUI_DisplayGetStats(&after);
+    CHECK(after.fps_x10 == 0U);
+    printf("PASS: FPS counts completed refreshes; %u blocks + 7ms synthetic render = %ums; idle = 0 FPS\n",
+           FULL_FRAME_BLOCKS,7U+FULL_FRAME_BLOCKS);
+}
 static void screenshot(const char *path)
 {
+    incremental_contract(path);
     lv_obj_invalidate(page.root);advance(45);FILE *f=fopen(path,"wb");CHECK(f);
     fprintf(f,"P6\n480 320\n255\n");
     for(unsigned i=0;i<480U*320U;++i){uint16_t p=frame[i];
         fputc(((p>>11)&31)*255/31,f);fputc(((p>>5)&63)*255/63,f);fputc((p&31)*255/31,f);}
     fclose(f);
+}
+/* 截图函数会强制完整重绘，不能用它证明精确脏区。这里先保留增量帧，再与同一时刻
+ * 的完整重绘逐像素比较；旧文字清除、状态变化和菜单揭露均不能出现残影。 */
+static void incremental_contract(const char *phase)
+{
+    lv_display_t *display=lv_display_get_default();GUI_DisplayService();lv_refr_now(display);
+    uint16_t *before=malloc(sizeof(frame));CHECK(before);memcpy(before,frame,sizeof(frame));
+    lv_obj_invalidate(page.root);lv_refr_now(display);
+    unsigned count=0;for(unsigned i=0;i<480U*320U;++i)if(before[i]!=frame[i]) {
+        if(count<5)fprintf(stderr,"incremental %s mismatch %u,%u: %04x/%04x\n",phase,i%480,i/480,before[i],frame[i]);
+        ++count;
+    }
+    free(before);CHECK(count==0);
+}
+static void asynchronous_contract(void)
+{
+    lv_display_t *d=lv_display_get_default();
+    GUI_DisplayStats before, after;
+    GUI_DisplayGetStats(&before);
+    unsigned first=dma_starts;uint64_t bytes=sent_bytes;
+    lv_obj_invalidate(lv_screen_active());lv_refr_now(d);
+    CHECK(dma_starts-first==FULL_FRAME_BLOCKS&&sent_bytes-bytes==307200&&!in_flight);
+    GUI_DisplayGetStats(&after);
+    CHECK(after.completed_frames == before.completed_frames + 1U);
+    /* 启动失败和完成超时都模拟丢一块；Service期限过后必须恢复完整画面。 */
+    uint16_t *reference=malloc(sizeof(frame));CHECK(reference);memcpy(reference,frame,sizeof(frame));
+    for(unsigned failure=0;failure<2;++failure) {
+        GUI_DisplayGetStats(&before);
+        memset(frame,0,sizeof(frame));fail_start=failure==0;fail_finish=failure==1;
+        lv_obj_invalidate(page.root);lv_refr_now(d);CHECK(!in_flight);
+        GUI_DisplayGetStats(&after);
+        CHECK(after.completed_frames == before.completed_frames);
+        CHECK(after.transfer_errors == before.transfer_errors + 1U);
+        now+=100;GUI_DisplayService();lv_refr_now(d);CHECK(!memcmp(reference,frame,sizeof(frame)));
+    }
+    free(reference);printf("PASS: full screen %u DMA blocks/307200 bytes; failure full repaint recovery\n",FULL_FRAME_BLOCKS);
+}
+/* 不变数据不得触发SPI；运行时钟只刷新自己的小矩形，不能带动整头/结果卡。 */
+static void dirty_area_contract(void)
+{
+    lv_display_t *d=lv_display_get_default();lv_refr_now(d);uint64_t start=sent_bytes;
+    for(unsigned i=0;i<5;++i) {
+        measurement_page_set_device(&page,page.session.connected,page.session.calibrated);
+        measurement_page_set_backend(&page,&page.backend);
+        geometry_view_set_options(&page.geometry,page.geometry.show_grid,page.geometry.show_dimensions,
+                                  page.geometry.show_contour,page.geometry.inches);
+        lv_refr_now(d);
+    }
+    CHECK(sent_bytes==start);advance(1000);uint64_t bytes=sent_bytes-start;
+    CHECK(bytes>0&&bytes<=5000);
+    incremental_contract("clock only");
+    printf("PASS: unchanged data = 0 SPI bytes; quality clock one second = %llu bytes\n",(unsigned long long)bytes);
+}
+static void animation_contract(void)
+{
+    /* 从真实导航入口开菜单，先验证X=480时底图仍完整；只检查结束帧会漏掉提前隐藏。 */
+    lv_display_t *d=lv_display_get_default();lv_refr_now(d);
+    uint16_t *underlay=malloc(sizeof(frame));CHECK(underlay);memcpy(underlay,frame,sizeof(frame));
+    measurement_page_navigate(&page,3);
+    CHECK(!lv_obj_is_hidden(page.geometry.object)&&!lv_obj_is_hidden(page.result_panel));
+    CHECK(lv_obj_get_x(ui.panel)==480&&lv_obj_is_clickable(ui.transition_guard));
+    lv_refr_now(d);
+    for(unsigned y=36;y<268;++y)CHECK(!memcmp(underlay+y*480,frame+y*480,480*2));
+    free(underlay);
+    for(unsigned i=0;i<6;++i){
+        advance(30);incremental_contract("menu sliding in");
+        lv_point_t point={20,290};
+        if(lv_obj_get_x(ui.panel)>20)CHECK(lv_indev_search_obj(page.root,&point)==ui.transition_guard);
+    }
+    CHECK(lv_obj_get_x(ui.panel)==0);
+    dashboard_close(&ui);
+    for(unsigned i=0;i<6;++i){advance(30);incremental_contract("menu sliding out");}
+    CHECK(lv_obj_is_hidden(ui.panel)&&!lv_obj_is_clickable(ui.transition_guard));
+    /* 快速返回/重开必须从当前X继续，不能闪回X=0或480，旧关闭回调不能撤去新菜单。 */
+    measurement_page_navigate(&page,3);advance(40);
+    int x=lv_obj_get_x(ui.panel);CHECK(x>0&&x<480);
+    dashboard_close(&ui);CHECK(lv_obj_get_x(ui.panel)==x);advance(30);
+    x=lv_obj_get_x(ui.panel);dashboard_open(&ui,DASH_SETTINGS);CHECK(lv_obj_get_x(ui.panel)==x);
+    /* 动画目标仍180ms；33ms刷新定时器可能在下一次采样才执行终点回调。 */
+    advance(250);
+    if(lv_obj_get_x(ui.panel)!=0||!lv_obj_is_clickable(ui.transition_guard))
+        fprintf(stderr,"reopened x=%ld panel_hidden=%u guard_hidden=%u closing=%u\n",
+                (long)lv_obj_get_x(ui.panel),lv_obj_is_hidden(ui.panel),!lv_obj_is_clickable(ui.transition_guard),ui.closing);
+    CHECK(lv_obj_get_x(ui.panel)==0&&lv_obj_is_clickable(ui.transition_guard));
+    dashboard_close(&ui);advance(250);CHECK(!lv_obj_is_clickable(ui.transition_guard));
+    puts("PASS: 180ms overlay keeps underlay; intermediate frames, input guard and interrupted animation");
+}
+static void padded_flush_contract(void)
+{
+    /* 主机直接调用真实flush，构造3像素/行但stride=8的两行缓冲。
+     * 默认固件stride对齐为1，普通画面不会自然产生padding，必须单独验证这条分支。 */
+    lv_display_t *d=lv_display_get_default();GUI_DisplayService();
+    lv_draw_buf_t padded={0};lv_draw_buf_t *saved=d->buf_act;
+    uint8_t pixels[]={0x00,0xF8,0xE0,0x07,0x1F,0x00,0xAA,0xBB,
+                      0xFF,0xFF,0x00,0x00,0xE0,0xFF,0xCC,0xDD};
+    const uint16_t expected[]={0xF800,0x07E0,0x001F,0xFFFF,0x0000,0xFFE0};
+    padded.header.cf=LV_COLOR_FORMAT_RGB565;padded.header.stride=8;
+    d->buf_act=&padded;d->flushing=1;d->flushing_last=1;
+    const lv_area_t a={10,20,12,21};uint64_t bytes=sent_bytes;
+    d->flush_cb(d,&a,pixels);CHECK(!in_flight&&!d->flushing&&sent_bytes-bytes==12);
+    for(unsigned y=0;y<2;++y)for(unsigned x=0;x<3;++x)CHECK(frame[(20+y)*480+10+x]==expected[y*3+x]);
+    d->buf_act=saved;d->flushing_last=0;
+    puts("PASS: real flush compacts padded RGB565 in place, exact byte order and 12-byte contiguous payload");
+}
+static void plot_dither_contract(void)
+{
+    static const uint8_t threshold[8][8]={
+        {0,48,12,60,3,51,15,63},{32,16,44,28,35,19,47,31},
+        {8,56,4,52,11,59,7,55},{40,24,36,20,43,27,39,23},
+        {2,50,14,62,1,49,13,61},{34,18,46,30,33,17,45,29},
+        {10,58,6,54,9,57,5,53},{42,26,38,22,41,25,37,21}};
+    /* 无网格/文字覆盖的实际雾蓝像素，与原8位平方渐变的末级抖色数学值逐像素对照。
+     * 覆盖8×8所有相位，验证生成表、行随机寻址和LVGL565显示链路没有再量化。 */
+    unsigned width=page.quality_mode?278U:292U;
+    for(unsigned sy=92;sy<112;++sy)for(unsigned sx=50;sx<66;++sx) {
+        unsigned x=sx-8,y=sy-36,top=(231-y)*(231-y)*256/(231*231),bottom=y*y*256/(231*231);
+        unsigned edge=(unsigned)abs((int)(2*x-width+1))*256/width,t=threshold[sy&7][sx&7];
+        unsigned rgb[]={205+(top*38+bottom*10+edge*2)/256,222+(top*23+bottom*7+edge*2)/256,
+                        236+(top*15+bottom*4+edge)/256};
+        unsigned levels[]={31,63,31},out[3];
+        for(unsigned i=0;i<3;++i) {
+            unsigned scaled=rgb[i]*levels[i];out[i]=scaled/255+(scaled%255*64>t*255+127);
+        }
+        CHECK(frame[sy*480+sx]==(uint16_t)(out[0]<<11|out[1]<<5|out[2]));
+    }
 }
 /* 只在电脑记录当前结论卡片像素，验证自动采集时不会把上一份数字闪成“--”。
  * 不比较时钟、进度等应当变化的区域，也不为F407增加截图内存。 */
@@ -98,8 +342,8 @@ static void color_contract(void)
         CHECK(frame[y*480+i*40+x]==expected[i]);
     lv_obj_delete(group);
 }
-/* 渐变由真实LVGL生成，检查32像素小段内的均值能持续变化，不会整行卡在同一档。
- * 同时用中性灰核对抖色均值：每个通道只相差相邻一档，平均亮度接近原始128。
+/* 任意动态渐变仍由真实LVGL565绘制，检查单调色阶和原生中性灰量化值。
+ * 静态敏感渐变另由plot_dither_contract与条带/裁剪一致性检查，不再要求全局末级抖色。
  * 该检查针对送屏数字像素，不能代替面板本身的伽马/刷新速度测量。 */
 static void gradient_contract(void)
 {
@@ -114,32 +358,32 @@ static void gradient_contract(void)
         unsigned sum=0;for(unsigned yy=y;yy<y+8;++yy)for(unsigned x=0;x<64;++x)sum+=(frame[yy*480+x]>>11)&31U;
         CHECK(sum>=last);distinct+=(sum>last);last=sum;
     }
-    CHECK(distinct>=12);
+    /* 任意运行时渐变由原生565绘制；静态预计算背景的抖色另按精确像素检查。 */
+    CHECK(distinct>=3);
     lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_NONE,0);lv_obj_set_style_bg_color(o,lv_color_hex(0x808080),0);
     lv_refr_now(lv_display_get_default());
     unsigned red=0,green=0,blue=0;
     for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x) {
         uint16_t c=frame[y*480+x];unsigned r=c>>11,g=(c>>5)&63U,b=c&31U;
-        CHECK((r==15||r==16)&&(g==31||g==32)&&(b==15||b==16));red+=r;green+=g;blue+=b;
+        CHECK(r==16&&g==32&&b==16);red+=r;green+=g;blue+=b;
     }
-    CHECK(abs((int)red*255-(128*31*64))<=255);
-    CHECK(abs((int)green*255-(128*63*64))<=255);
-    CHECK(red==blue);lv_obj_delete(o);
-    puts("PASS: final RGB565 gradient levels and neutral-gray dither mean");
+    CHECK(red==blue&&green==2048);lv_obj_delete(o);
+    puts("PASS: native RGB565 colors, gray, gradient monotonicity; static dither checked separately");
 }
-/* 固定同一时刻，分别用1/7/13/20行缓冲重绘，再裁成不对齐的小矩形重绘。
+/* 固定同一时刻，分别用1/7/8/10/16/20/32行双缓冲重绘，再裁成不对齐的小矩形重绘。
  * 整幅RGB565必须逐字节一致，才能排除步幅、解码起点或局部刷新引入的方块/接缝。 */
 static void redraw_contract(void)
 {
     lv_display_t *display=lv_display_get_default();
-    uint8_t *pixels=lv_display_get_buf_active(display)->data;
-    /* 20行RGB888只在电脑分配；固件仍为19200B，不能把此测试缓冲写入F407。 */
-    uint8_t *test_pixels=malloc(480U*20U*3U);CHECK(test_pixels);
+    GUI_DisplayService();
+    uint8_t *pixels1=display->buf_1->data,*pixels2=display->buf_2->data;
+    /* 主机独立缓冲用于对比，固件容量由GUI_DRAW_BUFFER_ROWS决定。 */
+    uint8_t *test_pixels=malloc(2U*480U*32U*2U);CHECK(test_pixels);
     lv_obj_invalidate(page.root);lv_refr_now(display);
     uint16_t *reference=malloc(sizeof(frame));CHECK(reference);memcpy(reference,frame,sizeof(frame));
-    const unsigned heights[]={1,7,13,20};
-    for(unsigned i=0;i<4;++i) {
-        lv_display_set_buffers(display,test_pixels,NULL,480U*3U*heights[i],LV_DISPLAY_RENDER_MODE_PARTIAL);
+    const unsigned heights[]={1,7,8,10,16,20,32};
+    for(unsigned i=0;i<sizeof(heights)/sizeof(heights[0]);++i) {
+        lv_display_set_buffers(display,test_pixels,test_pixels+480U*32U*2U,480U*2U*heights[i],LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_obj_invalidate(page.root);lv_refr_now(display);
         if(memcmp(reference,frame,sizeof(frame))) {
             unsigned count=0;int x1=480,y1=320,x2=0,y2=0;
@@ -157,8 +401,94 @@ static void redraw_contract(void)
         lv_obj_invalidate_area(page.root,&areas[i]);lv_refr_now(display);
         CHECK(!memcmp(reference,frame,sizeof(frame)));
     }
-    lv_display_set_buffers(display,pixels,NULL,19200U,LV_DISPLAY_RENDER_MODE_PARTIAL);
-    free(test_pixels);free(reference);puts("PASS: RGB565 white/primary colors, 1/7/13/20-row and cropped redraw consistency");
+    CHECK(!in_flight);
+    lv_display_set_buffers(display,pixels1,pixels2,GUI_DRAW_BUFFER_BYTES,LV_DISPLAY_RENDER_MODE_PARTIAL);
+    free(test_pixels);free(reference);puts("PASS: RGB565 1/7/8/10/16/20/32-row double-buffer and cropped redraw consistency");
+}
+static void progress_gradient_contract(void)
+{
+    /* 使用真实页面的bar，不复制控件实现：100%作为固定渐变基准，部分进度必须
+     * 裁剪同一批像素；以原8位设计颜色+8×8抖色的独立数学期望检查色阶。 */
+    lv_display_t *d=lv_display_get_default();lv_obj_t *bar=page.progress_bar;
+    int32_t saved=lv_bar_get_value(bar);lv_bar_set_value(bar,100,LV_ANIM_OFF);lv_refr_now(d);
+    lv_area_t a;lv_obj_get_coords(bar,&a);CHECK(lv_area_get_width(&a)==117&&lv_area_get_height(&a)==8);
+    uint16_t reference[8*117];
+    for(unsigned y=0;y<8;++y)memcpy(reference+y*117,frame+(a.y1+y)*480+a.x1,117*2);
+    static const uint8_t bayer[8][8]={
+        {0,48,12,60,3,51,15,63},{32,16,44,28,35,19,47,31},
+        {8,56,4,52,11,59,7,55},{40,24,36,20,43,27,39,23},
+        {2,50,14,62,1,49,13,61},{34,18,46,30,33,17,45,29},
+        {10,58,6,54,9,57,5,53},{42,26,38,22,41,25,37,21}};
+    for(unsigned y=2;y<6;++y)for(unsigned x=5;x<112;++x) {
+        unsigned mix=x*255U/116U,t=bayer[(a.y1+y)&7][(a.x1+x)&7];
+        unsigned first[]={160,216,255},last[]={152,203,250},levels[]={31,63,31},out[3];
+        for(unsigned c=0;c<3;++c) {
+            unsigned channel=((first[c]*(255U-mix)+last[c]*mix)*0x8081U)>>23;
+            unsigned scaled=channel*levels[c];out[c]=scaled/255U+(scaled%255U*64U>t*255U+127U);
+        }
+        CHECK(reference[y*117+x]==(uint16_t)(out[0]<<11|out[1]<<5|out[2]));
+    }
+    const unsigned progress[]={0,1,2,5,25,50,75,99,100};
+    for(unsigned i=0;i<sizeof(progress)/sizeof(progress[0]);++i) {
+        lv_bar_set_value(bar,progress[i],LV_ANIM_OFF);lv_refr_now(d);
+        unsigned width=117U*progress[i]/100U;
+        for(unsigned y=2;y<6;++y)for(unsigned x=5;x+5<width;++x)
+            CHECK(frame[(a.y1+y)*480+a.x1+x]==reference[y*117+x]);
+        incremental_contract("progress gradient clipping");
+    }
+    uint8_t saved_progress=page.session.progress;page.session.progress=50;
+    lv_bar_set_value(bar,50,LV_ANIM_OFF);lv_obj_invalidate(page.result_panel);lv_refr_now(d);
+    screenshot("progress_gradient.ppm");redraw_contract();
+    page.session.progress=saved_progress;lv_bar_set_value(bar,saved,LV_ANIM_OFF);
+    lv_obj_invalidate(page.result_panel);lv_refr_now(d);
+    puts("PASS: fixed blue gradient exact dither pixels, 0/1/2/5/25/50/75/99/100% clipping and round ends");
+}
+static void observe_record_draw(lv_event_t *event)
+{(void)event;++record_draws;}
+static void strip_comparison_contract(void)
+{
+    /* 两个实际场景分别比较8/16/20/32行；画面、时间和滚动位置完全相同。
+     * 新增32行核对画质和重复准备次数，不能据此宣称MCU耗时已下降。 */
+    lv_display_t *d=lv_display_get_default();uint8_t *old1=d->buf_1->data,*old2=d->buf_2->data;
+    uint8_t *buffers=malloc(2U*480U*32U*2U);uint16_t *reference=malloc(sizeof(frame));CHECK(buffers&&reference);
+    const unsigned rows[]={8,16,20,32};
+    for(unsigned scene=0;scene<2;++scene) {
+        if(scene) {
+            dashboard_open(&ui,DASH_RECORDS);advance(220);lv_obj_scroll_to_y(ui.body,73,LV_ANIM_OFF);
+            for(unsigned i=0;i<lv_obj_get_child_count(ui.body);++i)
+                lv_obj_add_event_cb(lv_obj_get_child(ui.body,i),observe_record_draw,LV_EVENT_DRAW_MAIN,NULL);
+        }
+        lv_refr_now(d);memcpy(reference,frame,sizeof(frame));
+        unsigned previous=UINT32_MAX;
+        for(unsigned i=0;i<sizeof(rows)/sizeof(rows[0]);++i) {
+            lv_display_set_buffers(d,buffers,buffers+480U*32U*2U,480U*rows[i]*2U,LV_DISPLAY_RENDER_MODE_PARTIAL);
+            unsigned blocks=dma_starts,draws=scene?record_draws:geometry_draws;uint64_t bytes=sent_bytes;
+            if(scene)lv_obj_invalidate(ui.body);else lv_obj_invalidate(page.root);
+            lv_refr_now(d);CHECK(!in_flight&&!memcmp(reference,frame,sizeof(frame)));
+            unsigned calls=(scene?record_draws:geometry_draws)-draws;CHECK(calls>0&&calls<previous);previous=calls;
+            printf("STRIP_COMPARE scene=%s rows=%u blocks=%u bytes=%llu draw_callbacks=%u\n",
+                   scene?"records":"main",rows[i],dma_starts-blocks,(unsigned long long)(sent_bytes-bytes),calls);
+        }
+    }
+    lv_display_set_buffers(d,old1,old2,GUI_DRAW_BUFFER_BYTES,LV_DISPLAY_RENDER_MODE_PARTIAL);
+    free(buffers);free(reference);dashboard_close(&ui);advance(220);
+    puts("PASS: 8/16/20/32-row comparison identical pixels; fewer repeated draw callbacks");
+}
+static void record_cache_update_contract(void)
+{
+    /* 真正发起测量，再在尚未完成时打开历史。完成插入新记录后，已显示行的缓存
+     * 也必须换成新编号；否则滚动会显示旧文字配新结论，属于可见的数据错误。 */
+    measurement_page_navigate(&page,0);CHECK(measurement_page_start(&page));advance(350);
+    CHECK(measurement_session_busy(&page.session));measurement_page_navigate(&page,2);advance(250);
+    char old_id[12];memcpy(old_id,ui.record_text[0].id,sizeof(old_id));
+    advance(2000);CHECK(page.session.state==MEASUREMENT_COMPLETE);
+    CHECK(strcmp(old_id,ui.record_text[0].id)!=0);
+    incremental_contract("history completion cache");
+    uint16_t *saved=malloc(sizeof(frame));CHECK(saved);memcpy(saved,frame,sizeof(frame));
+    dashboard_open(&ui,DASH_RECORDS);lv_refr_now(lv_display_get_default());
+    CHECK(!memcmp(saved,frame,sizeof(frame)));free(saved);
+    dashboard_close(&ui);advance(250);
+    puts("PASS: measurement completing under history updates cached text and preserves exact rendering");
 }
 static unsigned connects,disconnects;
 static bool connect_request(void *context,const char *ssid,const char *password)
@@ -167,6 +497,122 @@ static bool disconnect_request(void *context){(void)context;++disconnects;return
 static bool reject_save(void *context,const InstrumentModel *m){(void)context;(void)m;return false;}
 static bool silent_backend(void *context,uint32_t id,MeasurementGeometry geometry)
 {(void)context;(void)id;(void)geometry;return true; /* 模拟已受理但不回结果的相机。 */}
+
+static void occlusion_contract(void)
+{
+    /* 同一真实菜单位置分别关闭/开启应用层裁剪：最终全屏必须逐像素相同。
+     * 同时统计真实圆环/柔影任务的可绘包围面积，不按一份自造的简化画面测性能。 */
+    lv_display_t *d=lv_display_get_default();MeasurementBackend original=page.backend;
+    MeasurementBackend quiet={.start=silent_backend};measurement_page_set_backend(&page,&quiet);
+    uint16_t *reference=malloc(sizeof(frame));CHECK(reference);
+    uint64_t before_work=0,after_work=0;unsigned before_tasks=0,after_tasks=0;
+    const int positions[]={0,37,95,180,291,470,480};
+    for(unsigned mode=0;mode<2;++mode)for(unsigned shape=0;shape<2;++shape) {
+        measurement_page_navigate(&page,mode);
+        MeasurementGeometry g=shape?MEASUREMENT_RECTANGLE:MEASUREMENT_RING;
+        CHECK(measurement_page_select_geometry(&page,g));CHECK(measurement_page_start(&page));
+        MeasurementResult r=page.session.result;r.geometry=g;r.status=MEASUREMENT_VALID;
+        r.primary_cmm=shape?3200:3012;r.secondary_cmm=shape?2000:1206;
+        r.connected=true;r.calibrated=true;r.simulated=true;
+        CHECK(measurement_page_complete(&page,page.session.request_id,&r));
+        measurement_page_navigate(&page,3);
+        /* 仅测试固定位置，不让定时器改变动画进度；收尾仍走正式关闭流程。 */
+        lv_anim_delete(ui.panel,NULL);
+        for(unsigned i=0;i<sizeof(positions)/sizeof(positions[0]);++i) {
+            lv_obj_set_x(ui.panel,positions[i]);lv_obj_update_layout(page.root);
+            page.opaque_cover=NULL;page.geometry.opaque_cover=NULL;
+            ring_work=0;submitted_tasks=0;probe_tasks=true;
+            lv_obj_invalidate(page.root);lv_refr_now(d);probe_tasks=false;
+            uint64_t old_work=ring_work;unsigned old_tasks=submitted_tasks;
+            memcpy(reference,frame,sizeof(frame));
+            page.opaque_cover=ui.panel;page.geometry.opaque_cover=ui.panel;
+            ring_work=0;submitted_tasks=0;probe_limit=positions[i];
+            enforce_cover=positions[i]>0 && positions[i]<480;probe_tasks=true;
+            lv_obj_invalidate(page.root);lv_refr_now(d);probe_tasks=false;enforce_cover=false;
+            CHECK(!memcmp(reference,frame,sizeof(frame)));
+            CHECK(ring_work<=old_work && submitted_tasks<=old_tasks);
+            before_work+=old_work;after_work+=ring_work;
+            before_tasks+=old_tasks;after_tasks+=submitted_tasks;
+            if(mode==1 && shape==0)printf("OCCLUSION x=%d ring_area=%llu/%llu tasks=%u/%u\n",
+                positions[i],(unsigned long long)old_work,(unsigned long long)ring_work,old_tasks,submitted_tasks);
+            if(positions[i]==95) {
+                redraw_contract();
+                if(mode==1)screenshot(shape?"option_a_rectangle_mid.ppm":"option_a_ring_mid.ppm");
+            }
+        }
+        dashboard_close(&ui);advance(250);incremental_contract("occlusion close");
+    }
+    CHECK(after_work<before_work && after_tasks<before_tasks);
+    printf("PASS: all overlay positions/modes/shapes identical; image work area %llu -> %llu, tasks %u -> %u\n",
+        (unsigned long long)before_work,(unsigned long long)after_work,before_tasks,after_tasks);
+    free(reference);measurement_page_set_backend(&page,&original);
+}
+
+static void presentation_contract(void)
+{
+    /* 使用静默后端手动送真实进度/完成事件，精确让完成发生在滑入与滑出中间。
+     * 模型必须立即接收，底图/列表只在安全时机更新；禁止暂停计时或丢掉一份结果。 */
+    MeasurementBackend original=page.backend,quiet={.start=silent_backend};
+    measurement_page_set_backend(&page,&quiet);measurement_page_navigate(&page,1);
+    CHECK(measurement_page_select_geometry(&page,MEASUREMENT_RING));
+    CHECK(measurement_page_start(&page));uint32_t id=page.session.request_id;
+    CHECK(measurement_page_progress(&page,id,MEASUREMENT_ACQUIRING,10));advance(40);
+    uint32_t old_count=model.inspected;MeasurementResult old_geometry=page.geometry.result;
+    measurement_page_navigate(&page,2);advance(30);CHECK(ui.animating&&page.presentation_paused);
+    DashboardRecordText old_text=ui.record_text[0];
+    uint8_t shown_progress=page.displayed.progress;
+    CHECK(measurement_page_progress(&page,id,MEASUREMENT_FITTING,75));
+    CHECK(page.session.progress==75 && page.displayed.progress==shown_progress);
+    MeasurementResult r=page.session.result;r.geometry=MEASUREMENT_RING;r.status=MEASUREMENT_VALID;
+    r.primary_cmm=3022;r.secondary_cmm=1206;r.connected=true;r.calibrated=true;r.simulated=true;
+    CHECK(measurement_page_complete(&page,id,&r));
+    CHECK(model.inspected==old_count+1U && page.total_count==old_count);
+    CHECK(page.geometry.result.primary_cmm==old_geometry.primary_cmm);
+    CHECK(!memcmp(&old_text,&ui.record_text[0],sizeof(old_text))&&ui.menu_dirty&&ui.summary_pending);
+    incremental_contract("result arrives while entering");
+    advance(250);CHECK(!ui.animating&&!ui.menu_dirty&&page.presentation_paused);
+    CHECK(strcmp(old_text.id,ui.record_text[0].id)!=0);
+    CHECK(ui.record_text[0].verdict==model.records[0].verdict);
+    CHECK(page.total_count==old_count); /* 被盖住的主页没有反复重绘统计。 */
+    dashboard_close(&ui);CHECK(page.total_count==model.inspected&&page.presentation_paused);
+    CHECK(page.geometry.result.primary_cmm==3022);advance(30);
+    CHECK(measurement_page_start(&page));id=page.session.request_id;
+    CHECK(measurement_page_progress(&page,id,MEASUREMENT_FITTING,90));
+    r.primary_cmm=3032;CHECK(measurement_page_complete(&page,id,&r));
+    CHECK(model.inspected==old_count+2U&&page.total_count==old_count+1U);
+    CHECK(page.geometry.result.primary_cmm==3022 && page.displayed.result.primary_cmm==3022);
+    incremental_contract("result arrives while returning");advance(250);
+    CHECK(!page.presentation_paused&&!ui.animating&&!ui.summary_pending);
+    CHECK(!lv_obj_is_clickable(ui.transition_guard)&&page.total_count==model.inspected);
+    CHECK(page.displayed.result.primary_cmm==3032&&page.geometry.result.primary_cmm==3032);
+    incremental_contract("latest result after return");
+
+    /* 被菜单盖住时超时处理仍执行；退出后看到真实失败状态，不能一直停在采集中。 */
+    CHECK(measurement_page_start(&page));measurement_page_navigate(&page,3);
+    measurement_page_process(&page,page.session.started_ms+page.session.timeout_ms+1U);
+    CHECK(page.session.state==MEASUREMENT_FAILED);dashboard_close(&ui);advance(250);
+    CHECK(page.displayed.state==MEASUREMENT_FAILED&&!page.presentation_paused);
+    incremental_contract("timeout under overlay");
+    measurement_page_set_backend(&page,&original);
+    puts("PASS: progress/results/records/timeouts continue; presentation coalesces at slide boundaries");
+}
+
+static void menu_reuse_contract(void)
+{
+    dashboard_open(&ui,DASH_SETTINGS);advance(250);
+    lv_obj_t *saved[6];for(unsigned i=0;i<6;++i)saved[i]=ui.rows[i];
+    dashboard_close(&ui);advance(250);dashboard_network_status(&ui,true,"ReuseTest","192.0.2.9");
+    dashboard_open(&ui,DASH_SETTINGS);advance(250);
+    for(unsigned i=0;i<6;++i)CHECK(saved[i]==ui.rows[i]);
+    CHECK(!strcmp(lv_label_get_text(lv_obj_get_child(ui.rows[0],1)),"ReuseTest"));
+    dashboard_close(&ui);advance(250);dashboard_network_status(&ui,false,NULL,NULL);
+    dashboard_open(&ui,DASH_RECORDS);advance(250);
+    lv_obj_scroll_by(ui.body,0,-110,LV_ANIM_ON);advance(30);
+    int32_t y=lv_obj_get_scroll_y(ui.body);dashboard_close(&ui);advance(30);
+    CHECK(lv_obj_get_scroll_y(ui.body)==y);advance(250);
+    incremental_contract("settings reuse and scroll stop");
+    puts("PASS: six settings rows reused with fresh values; list inertia stops before panel slides out");
+}
 static void font_check(void)
 {
     const char *strings[]={"质检合格标准设定当前检测结果累计统计最近检测记录智能视觉测量仪测量设置","网络密码设备信息目标上下偏差断开连接"};
@@ -221,18 +667,23 @@ static void wifi_visual_contract(void)
 int main(void)
 {
     lv_init();lv_tick_set_cb(HAL_GetTick);CHECK(GUI_DisplayInit());CHECK(GUI_RegisterTouch(reader,NULL));font_check();color_contract();gradient_contract();
+    frame_stats_contract();
     instrument_defaults(&model);GUI_ApplyFixedCamera(&model);
     MeasurementResult r={.geometry=MEASUREMENT_RING,.status=MEASUREMENT_PENDING,.connected=true,.calibrated=true,.simulated=true};
     measurement_page_create(&page,lv_screen_active(),&r);GUI_DemoInit(&page,&model);dashboard_create(&ui,&page,&model,NULL);advance(60);
+    lv_obj_add_event_cb(page.geometry.object,observe_overlap,LV_EVENT_DRAW_MAIN,NULL);
     wifi_visual_contract();
     CHECK(page.selected_navigation==0&&!page.quality_mode&&instrument_model_check(&model));
     screenshot("measurement_idle.ppm");
+    plot_dither_contract();
     footer_contract();
+    progress_gradient_contract();
     /* 三个底部键可见区域以下一直到Y319，都必须命中原键，且相邻键不重叠。 */
     lv_obj_t *buttons[]={page.navigation[0],page.start_button,page.navigation[3]};
     int centers[]={81,240,399};
     for(unsigned i=0;i<3;++i)for(int y=310;y<=319;++y){lv_point_t p={centers[i],y};CHECK(lv_indev_search_obj(page.root,&p)==buttons[i]);}
-    tap_at(page.start_button,240,319);advance(2000);
+    tap_at(page.start_button,240,319);incremental_contract("acquiring");
+    advance(500);incremental_contract("progress/phase");advance(1500);
     CHECK(page.session.state==MEASUREMENT_COMPLETE&&model.record_count==1);
     CHECK(model.records[0].result.primary_cmm==3012&&!model.records[0].inspection);
     screenshot("measurement.ppm");
@@ -240,7 +691,7 @@ int main(void)
     uint32_t scale=page.geometry.scale_q8;tap(page.zoom[0]);CHECK(page.geometry.scale_q8>scale);
     tap(page.zoom[1]);CHECK(page.geometry.scale_q8<4096);tap(page.zoom[2]);CHECK(page.geometry.scale_q8==GEOMETRY_DEFAULT_SCALE_Q8);
     tap_at(page.navigation[0],81,319);CHECK(page.quality_mode&&page.selected_navigation==1);
-    screenshot("inspection_idle.ppm");redraw_contract(); /* 两种布局的渐变/图标都核对条带边界。 */
+    screenshot("inspection_idle.ppm");plot_dither_contract();redraw_contract(); /* 两种布局的渐变/图标都核对条带边界。 */
     tap_at(page.start_button,240,319);CHECK(page.automatic);advance(2000);
     CHECK(page.session.state==MEASUREMENT_COMPLETE&&model.inspected==1);
     uint32_t completed_at=model.records[0].uptime_ms;
@@ -315,7 +766,7 @@ int main(void)
     dashboard_close(&ui);advance(250);measurement_page_navigate(&page,0);
     model.settings.mode=MEASUREMENT_RECTANGLE;measurement_page_select_geometry(&page,MEASUREMENT_RECTANGLE);
     CHECK(measurement_page_start(&page));advance(2000);CHECK(page.session.result.primary_cmm==3200&&page.session.result.secondary_cmm==2000);
-    screenshot("rectangle.ppm");
+    screenshot("rectangle.ppm");redraw_contract();
     /* 超过容量后只保留64条，累计统计不因滚动淘汰而减少。 */
     for(unsigned i=0;i<70;++i)CHECK(instrument_add_record(&model,&page.session.result));
     CHECK(model.record_count==64&&instrument_model_check(&model));
@@ -331,7 +782,19 @@ int main(void)
     dashboard_action(&ui);CHECK(page.automatic);advance(2300);
     CHECK(page.session.state==MEASUREMENT_FAILED&&!page.automatic&&model.inspected==count);
     measurement_page_set_backend(&page,&original);
+    dirty_area_contract();
+    animation_contract();
+    strip_comparison_contract();
+    record_cache_update_contract();
+    occlusion_contract();
+    presentation_contract();
+    menu_reuse_contract();
+    padded_flush_contract();
+    asynchronous_contract();
     lv_mem_monitor_t monitor;lv_mem_monitor(&monitor);
+    CHECK(!in_flight&&dma_starts==dma_finishes&&draw_while_dma>0);
+    printf("PASS: deferred DMA ownership/tail drain; %u blocks, %u overlapping draw callbacks, %llu bytes\n",
+           dma_starts,draw_while_dma,(unsigned long long)sent_bytes);
     printf("PASS: modes, bottom touch, auto inspection, tolerance, records, scroll, rollback, Wi-Fi contracts, rectangle; heap free=%lu max_used=%lu\n",(unsigned long)monitor.free_size,(unsigned long)monitor.max_used);
     dashboard_destroy(&ui);return 0;
 }

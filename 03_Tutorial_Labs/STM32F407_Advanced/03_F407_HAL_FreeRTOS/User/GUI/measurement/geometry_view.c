@@ -52,15 +52,18 @@ bool geometry_layout_calculate(const MeasurementResult * r, uint32_t scale, Geom
 /* 网格和标注仍由LVGL绘制，二维工件贴图只作示意；真实轮廓以后从相机接入。 */
 static void arrow(lv_layer_t *l,int x,int y,int dx,int dy,uint32_t color)
 {
+    if(!ui_visible(l,x-8,y-8,17,17,2)) return; /* 三角形箭头含抗锯齿的保守范围。 */
     lv_draw_triangle_dsc_t d;lv_draw_triangle_dsc_init(&d);d.color=ui_color(color);
     d.p[0]=(lv_point_precise_t){x,y};
     d.p[1]=(lv_point_precise_t){x+dx*5-dy*3,y+dy*5+dx*3};
     d.p[2]=(lv_point_precise_t){x+dx*5+dy*3,y+dy*5-dx*3};lv_draw_triangle(l,&d);
 }
 /* 位图资源直接从Flash读入LVGL的局部绘图流程；变换只分配小条带，
- * 没有创建整屏RGBA缓存；局部RGB888混合后由flush统一量化成屏幕RGB565。 */
+ * 没有创建整屏RGBA缓存；ARGB颜色/透明度由LVGL直接混合到局部RGB565。 */
 static void image_xy(lv_layer_t *l,const lv_image_dsc_t *src,int x,int y,int sx,int sy)
 {
+    if(!ui_visible(l,x,y,((int)src->header.w*sx+255)/256,
+                       ((int)src->header.h*sy+255)/256,2)) return;
     lv_draw_image_dsc_t d;lv_draw_image_dsc_init(&d);d.src=src;
     d.scale_x=sx;d.scale_y=sy;d.pivot=(lv_point_t){0,0};d.antialias=1;
     d.recolor=ui_color(0x8CA9BD); /* A8柔影改浅蓝灰，避免暗影盖黑预览背景。 */
@@ -68,20 +71,27 @@ static void image_xy(lv_layer_t *l,const lv_image_dsc_t *src,int x,int y,int sx,
 }
 static void image_at(lv_layer_t *l,const lv_image_dsc_t *src,int x,int y,int scale)
 {image_xy(l,src,x,y,scale,scale);}
-static void draw(lv_event_t *e)
+static void draw_content(lv_event_t *e)
 {
     GeometryView *v=lv_event_get_user_data(e);lv_layer_t *l=lv_event_get_layer(e);
     lv_area_t a;lv_obj_get_coords(v->object,&a);int ox=a.x1,oy=a.y1;
     int width=lv_area_get_width(&a);
-    /* 在屏幕最终分辨率生成RGB888，避免低分辨率放大及提前565量化形成方块。 */
+    /* 在最终分辨率使用预计算抖色565背景，避免低分辨率放大及重复逐像素计算。 */
     ui_skin_draw_plot(l,ox,oy,v->quality_mode);
     /* 细网格与背景只保留很小亮度差；避免首版过亮、过密的棋盘效果。 */
     if(v->show_grid) {
         /* 去掉10像素密网格，只保留参考图的主虚线，避免与色阶叠成棋盘。 */
         const int mx[]={27,v->quality_mode?138:146,width-27},my[]={84,128,174};
+        /* 保留每段原始起点与9px周期，只枚举条带附近的短线；多留7px覆盖端点和抗锯齿。 */
+        int first_y=3+LV_MAX(0,(l->_clip_area.y1-oy-10)/9)*9;
+        int first_x=3+LV_MAX(0,(l->_clip_area.x1-ox-10)/9)*9;
         for(unsigned i=0;i<3;++i) {
-            for(int y=3;y<230;y+=9)ui_line_opa(l,ox+mx[i],oy+y,ox+mx[i],oy+y+4,0xEDF5FF,1,110);
-            for(int x=3;x<width-2;x+=9)ui_line_opa(l,ox+x,oy+my[i],ox+x+4,oy+my[i],0xEDF5FF,1,110);
+            if(ui_visible(l,ox+mx[i],oy+3,1,231,3))
+                for(int y=first_y;y<230&&oy+y<=l->_clip_area.y2+3;y+=9)
+                    ui_line_opa(l,ox+mx[i],oy+y,ox+mx[i],oy+y+4,0xEDF5FF,1,110);
+            if(ui_visible(l,ox+3,oy+my[i],width-2,1,3))
+                for(int x=first_x;x<width-2&&ox+x<=l->_clip_area.x2+3;x+=9)
+                    ui_line_opa(l,ox+x,oy+my[i],ox+x+4,oy+my[i],0xEDF5FF,1,110);
         }
     }
     ui_rect(l,ox,oy,width,232,0,0,9,UI_WHITE,1);
@@ -89,8 +99,12 @@ static void draw(lv_event_t *e)
     ui_line(l,ox+11,oy+217,ox+28,oy+217,0xFF4F75,2);arrow(l,ox+29,oy+217,-1,0,0xFF4F75);
     ui_text(l,ox+7,oy+185,12,&ui_font_12,0x16B76A,"Y",LV_TEXT_ALIGN_LEFT);
     ui_text(l,ox+31,oy+211,14,&ui_font_12,0xF13F62,"X",LV_TEXT_ALIGN_LEFT);
-    char scale_text[28];uint32_t q=v->has_geometry?v->layout.effective_scale_q8:v->scale_q8;
-    snprintf(scale_text,sizeof(scale_text),"%.1fmm/div",2560.0/q);
+    /* 仅此小标尺条带需要文字时才格式化，其他条带不重复执行浮点snprintf。 */
+    char scale_text[28]="";
+    if(ui_visible(l,ox+width-72,oy+211,65,ui_font_12.line_height,2)) {
+        uint32_t q=v->has_geometry?v->layout.effective_scale_q8:v->scale_q8;
+        snprintf(scale_text,sizeof(scale_text),"%.1fmm/div",2560.0/q);
+    }
     ui_rect(l,ox+width-76,oy+209,70,20,0x7892AB,170,6,0xD7E5F2,1);
     ui_text(l,ox+width-72,oy+211,65,&ui_font_12,UI_WHITE,scale_text,LV_TEXT_ALIGN_LEFT);
     /* 普通页没有参考图之外的“工件测量预览”标题条；质检才显示自动状态。 */
@@ -134,12 +148,20 @@ static void draw(lv_event_t *e)
         highlight.start_angle=0;highlight.end_angle=360;lv_draw_arc(l,&highlight);
     } else {
         ui_rect(l,p.x1+2,p.y1+4,w+1,h+1,0x536B84,80,4,0,0);
-        ui_gradient(l,p.x1,p.y1,w+1,h+1,0xEFF8FF,0xAEC7DA,4,0xFFFFFF);
-        for(int y=p.y1+3;y<p.y2-2;y+=3)for(int x=p.x1+3;x<p.x2-2;x+=4)
+        if(ui_visible(l,p.x1,p.y1,w+1,h+1,2)) {
+            ui_skin_draw_material(l,p.x1,p.y1,w+1,h+1);
+            ui_rect(l,p.x1,p.y1,w+1,h+1,0,LV_OPA_TRANSP,4,0xFFFFFF,1);
+        }
+        /* 保持纹理原始坐标和周期，只枚举裁剪条带附近的行/列。 */
+        int ys=p.y1+3+LV_MAX(0,(l->_clip_area.y1-2-(p.y1+3))/3)*3;
+        int xs=p.x1+3+LV_MAX(0,(l->_clip_area.x1-3-(p.x1+3))/4)*4;
+        for(int y=ys;y<p.y2-2&&y<=l->_clip_area.y2+2;y+=3)
+            for(int x=xs;x<p.x2-2&&x<=l->_clip_area.x2+2;x+=4)
             if(((x*37+y*19)%11)<3)ui_line(l,x,y,x+1,y,0xD0E4F0,1);
     }
     /* 中心参考线只在工件中心细虚线标记，避免把整圈涂成醒目白线。 */
-    for(int y=oy+3;y<oy+230;y+=9)ui_line(l,p.cx,y,p.cx,y+4,0xD7E6F0,1);
+    int first_center_y=oy+3+LV_MAX(0,(l->_clip_area.y1-oy-10)/9)*9;
+    for(int y=first_center_y;y<oy+230&&y<=l->_clip_area.y2+3;y+=9)ui_line(l,p.cx,y,p.cx,y+4,0xD7E6F0,1);
     ui_line(l,p.cx-6,p.cy,p.cx+6,p.cy,UI_WHITE,1);ui_line(l,p.cx,p.cy-6,p.cx,p.cy+6,UI_WHITE,1);
     if(!v->show_dimensions)return;
     /* 两种模式共用深色尺寸线、箭头和尺寸数字，浅底及内孔处都有足够对比。 */
@@ -161,6 +183,17 @@ static void draw(lv_event_t *e)
         arrow(l,p.dimension_x,p.y1,0,1,c);arrow(l,p.dimension_x,p.y2,0,-1,c);
         ui_text(l,p.dimension_x+7,p.cy-8,69,&ui_font_14_bold,c,v->secondary_text,LV_TEXT_ALIGN_LEFT);
     }
+}
+
+/* 单独包住原绘图函数，保证原函数各个提前return都不会漏还裁剪框。
+ * 图元坐标/缩放/透明度完全不变，只减少最终必被菜单盖住的像素和任务。 */
+static void draw(lv_event_t *e)
+{
+    GeometryView *v=lv_event_get_user_data(e);lv_layer_t *l=lv_event_get_layer(e);
+    lv_area_t saved;
+    if(!ui_underlay_begin(l,v->opaque_cover,&saved)) return;
+    draw_content(e);
+    l->_clip_area=saved;
 }
 
 void geometry_view_create(GeometryView * v, lv_obj_t * parent)
@@ -234,6 +267,7 @@ bool geometry_view_set_scale(GeometryView * v, uint32_t scale)
 void geometry_view_set_options(GeometryView * v, bool grid, bool dimensions, bool contour, bool inches)
 {
     if(!v || !v->object) return;
+    if(v->show_grid==grid && v->show_dimensions==dimensions && v->show_contour==contour && v->inches==inches) return;
     bool units_changed = v->inches != inches;
     v->show_grid = grid; v->show_dimensions = dimensions; v->show_contour = contour; v->inches = inches;
     if(units_changed && v->has_geometry) {

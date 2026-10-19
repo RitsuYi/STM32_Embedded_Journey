@@ -120,7 +120,8 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  .preinit_array : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  /* 当前工具链GCC13.3.1：初始化函数地址表只读，明确去掉Flash LOAD段的W标记。 */
+  .preinit_array (READONLY) :
   {
     . = ALIGN(4);
     PROVIDE_HIDDEN (__preinit_array_start = .);
@@ -129,7 +130,7 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  .init_array : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  .init_array (READONLY) :
   {
     . = ALIGN(4);
     PROVIDE_HIDDEN (__init_array_start = .);
@@ -139,7 +140,7 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  .fini_array : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  .fini_array (READONLY) :
   {
     . = ALIGN(4);
     PROVIDE_HIDDEN (__fini_array_start = .);
@@ -150,6 +151,17 @@ SECTIONS
   } >FLASH
 
   _siccmram = LOADADDR(.ccmram);
+
+  /* H7.1纯CPU内存池，初始化由GUI_LVGL_PoolAlloc显式完成，不占Flash装载镜像。
+   * 与通用.ccmram独立，链接器检查64KiB容量；DMA缓冲仍属于普通.bss。 */
+  .lvgl_ccm (NOLOAD) : ALIGN(8)
+  {
+    _slvgl_ccm = .;
+    KEEP(*(.lvgl_ccm))
+    . = ALIGN(8);
+    _elvgl_ccm = .;
+  } >CCMRAM
+  ASSERT(SIZEOF(.lvgl_ccm) == 52 * 1024, "LVGL CCM pool size mismatch")
 
   /* CCM-RAM section
   *

@@ -74,6 +74,7 @@ void vGUI_Task(void *pvParameters)
             GUI_AppKey(key);
         GUI_AppProcess();
         uint32_t delay = lv_timer_handler();
+        GUI_DisplayService(); /* DMA异常的完整重绘请求必须在本次LVGL刷新结束后提交。 */
         if(delay == LV_NO_TIMER_READY || delay > 10U) delay = 10U;
         if(delay < 1U) delay = 1U;
         vTaskDelay(pdMS_TO_TICKS(delay));

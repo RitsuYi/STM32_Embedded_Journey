@@ -12,7 +12,8 @@ SPI_HandleTypeDef hspi1;
 static GPIO_PinState pins[6];
 static unsigned locked, calls, fail_at, dma_calls;
 static bool lock_fails;
-static uint8_t transmitted[4096];
+static uint8_t transmitted[65545];
+static HAL_StatusTypeDef wait_status=HAL_OK;
 static unsigned transmitted_count;
 bool SPI1_Bus_Init(void) { return true; }
 bool SPI1_Bus_Lock(void) { if(lock_fails) return false; ++locked; return true; }
@@ -27,7 +28,7 @@ void HAL_GPIO_WritePin(GPIO_TypeDef *port, uint16_t pin, GPIO_PinState state)
 static HAL_StatusTypeDef capture(const uint8_t *data,uint16_t count)
 {
     CHECK(locked && pins[LCD_CS_Pin] == GPIO_PIN_RESET && pins[FLASH_CS_Pin] == GPIO_PIN_SET);
-    CHECK(count && count <= 960);
+    CHECK(count);
     ++calls;
     if(calls == fail_at) return HAL_ERROR;
     CHECK(transmitted_count + count <= sizeof(transmitted));
@@ -41,10 +42,17 @@ HAL_StatusTypeDef SPI1_Bus_TransmitDMA(const uint8_t *data,uint16_t count,TickTy
     CHECK(timeout==pdMS_TO_TICKS(100));CHECK(pins[LCD_DC_Pin]==GPIO_PIN_SET);
     ++dma_calls;return capture(data,count);
 }
+/* 原同步接口回归仍保留；新增异步接口在后面的专用总线/显示测试中注入时序。 */
+HAL_StatusTypeDef SPI1_Bus_StartDMA(const uint8_t *data,uint16_t count)
+{++dma_calls;return capture(data,count);}
+HAL_StatusTypeDef SPI1_Bus_WaitDMA(TickType_t timeout)
+{CHECK(timeout==pdMS_TO_TICKS(100));return wait_status;}
+bool SPI1_Bus_DMAOwnedByCaller(void){return true;}
+void SPI1_Bus_AbortPolling(void){CHECK(locked);}
 static void reset(unsigned failure)
 {
     for(unsigned i = 0; i < 6; ++i) pins[i] = GPIO_PIN_SET;
-    calls = transmitted_count = locked = dma_calls = 0; fail_at = failure; lock_fails = false;
+    calls = transmitted_count = locked = dma_calls = 0; fail_at = failure; lock_fails = false;wait_status=HAL_OK;
 }
 int main(void)
 {
@@ -79,6 +87,23 @@ int main(void)
         unsigned src = row*962 + pixel*2, dst = 11 + row*960 + pixel*2;
         CHECK(transmitted[dst] == wide[src+1] && transmitted[dst+1] == wide[src]);
     }
-    puts("PASS: RGB565 byte order, padded rows, window endpoints, chunking, error cleanup and bounds");
+    /* 新接口直接读取LCD字节序的连续块；CS和外层锁必须跨越Start返回直到Finish。 */
+    static uint8_t block[65534];for(unsigned i=0;i<sizeof(block);++i)block[i]=(uint8_t)i;
+    reset(0);CHECK(ST7796_StartRGB565DMA(0,0,480,8,block)==HAL_OK);
+    CHECK(dma_calls==1&&transmitted_count==11+7680&&locked==1&&pins[LCD_CS_Pin]==GPIO_PIN_RESET);
+    CHECK(!memcmp(transmitted+11,block,7680));unsigned before=calls;
+    CHECK(ST7796_StartRGB565DMA(0,8,480,8,block)==HAL_BUSY&&calls==before&&locked==1);
+    CHECK(ST7796_FinishRGB565DMA()==HAL_OK&&!locked&&pins[LCD_CS_Pin]==GPIO_PIN_SET);
+    CHECK(ST7796_FinishRGB565DMA()==HAL_ERROR);
+    for(unsigned i=1;i<=6;++i) {
+        reset(i);CHECK(ST7796_StartRGB565DMA(1,2,3,4,block)==HAL_ERROR);
+        CHECK(calls==i&&!locked&&pins[LCD_CS_Pin]==GPIO_PIN_SET);
+    }
+    reset(0);CHECK(ST7796_StartRGB565DMA(0,0,217,151,block)==HAL_OK); /* 恰好65534字节。 */
+    CHECK(dma_calls==1&&transmitted_count==65545);wait_status=HAL_TIMEOUT;
+    CHECK(ST7796_FinishRGB565DMA()==HAL_TIMEOUT&&!locked&&pins[LCD_CS_Pin]==GPIO_PIN_SET);
+    reset(0);CHECK(ST7796_StartRGB565DMA(0,0,256,128,block)==HAL_ERROR); /* 65536不能截成uint16。 */
+    CHECK(ST7796_StartRGB565DMA(479,319,2,1,block)==HAL_ERROR&&!calls);
+    puts("PASS: native/padded RGB565 and contiguous DMA, exact 65534/65536 limit, window, CS/lock lifetime, errors");
     return 0;
 }

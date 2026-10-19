@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 project(ui_dashboard C CXX)
 set(CMAKE_C_STANDARD 11)
+# 与H7.1固件使用同一优化等级，避免只在-O0下验证缓冲生命周期和中断共享状态。
+add_compile_options(-O2 -g3)
 get_filename_component(F407_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 set(LV_BUILD_CONF_PATH "${F407_ROOT}/lv_conf.h" CACHE FILEPATH "" FORCE)
 set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
@@ -21,6 +23,9 @@ target_include_directories(ui_dashboard_test PRIVATE "${F407_ROOT}/User/GUI"
     "${F407_ROOT}/User/Hardware")
 target_compile_options(ui_dashboard_test PRIVATE -Wall -Wextra -Werror -Wformat=2)
 target_link_libraries(ui_dashboard_test PRIVATE lvgl m)
+# 仅主机测试拦截真实绘图任务的提交点，统计菜单遮挡裁剪前后的任务/像素包围面积。
+# 包装函数继续调用原函数，不改LVGL核心，也不把探测器或测试统计编进F407。
+target_link_options(ui_dashboard_test PRIVATE "-Wl,--wrap=lv_draw_finalize_task_creation")
 enable_testing()
 add_test(NAME ui_dashboard COMMAND ui_dashboard_test)
 
@@ -31,3 +36,9 @@ target_include_directories(rgb565_transfer_test PRIVATE "${F407_ROOT}/tests/gui_
     "${F407_ROOT}/User/Hardware")
 target_compile_options(rgb565_transfer_test PRIVATE -Wall -Wextra -Werror)
 add_test(NAME rgb565_transfer COMMAND rgb565_transfer_test)
+
+# H7.1新增异步总线边界：真实总线实现+可控中断/硬件状态，不访问开发板。
+add_executable(spi_async_test ../spi_async/spi_async_test.c "${F407_ROOT}/User/Hardware/SPI1_Bus.c")
+target_include_directories(spi_async_test PRIVATE ../spi_async/stubs "${F407_ROOT}/User/Hardware")
+target_compile_options(spi_async_test PRIVATE -Wall -Wextra -Werror)
+add_test(NAME spi_async COMMAND spi_async_test)

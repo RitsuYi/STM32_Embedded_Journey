@@ -5,6 +5,58 @@
 #include "ST7796.h"
 #include "SPI1_Bus.h"
 
+/* 单GUI任务只允许一个LCD事务在途；另一绘图缓冲由CPU使用，不代表第二条SPI事务。 */
+static bool lcd_dma_active;
+
+HAL_StatusTypeDef ST7796_StartRGB565DMA(uint16_t x,uint16_t y,uint16_t width,uint16_t height,
+                                       const uint8_t *pixels)
+{
+    uint32_t xe=(uint32_t)x+width,ye=(uint32_t)y+height;
+    uint32_t bytes=(uint32_t)width*height*2U;
+    if(!pixels || !width || !height || xe>ST7796_WIDTH || ye>ST7796_HEIGHT || bytes>65534U)
+        return HAL_ERROR;
+    if(lcd_dma_active) return HAL_BUSY;
+    if(!SPI1_Bus_Lock()) return HAL_ERROR;
+    uint16_t x1=(uint16_t)(xe-1U),y1=(uint16_t)(ye-1U);
+    uint8_t commands[]={0x2A,0x2B,0x2C};
+    uint8_t params[2][4]={
+        {(uint8_t)(x>>8),(uint8_t)x,(uint8_t)(x1>>8),(uint8_t)x1},
+        {(uint8_t)(y>>8),(uint8_t)y,(uint8_t)(y1>>8),(uint8_t)y1}};
+    HAL_StatusTypeDef status;
+    HAL_GPIO_WritePin(FLASH_CS_GPIO_Port,FLASH_CS_Pin,GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LCD_CS_GPIO_Port,LCD_CS_Pin,GPIO_PIN_RESET);
+    /* 地址命令很短，仍用轮询；有限20ms超时避免新异步链路卡在命令阶段。 */
+    for(unsigned i=0;i<3;++i) {
+        HAL_GPIO_WritePin(LCD_DC_GPIO_Port,LCD_DC_Pin,GPIO_PIN_RESET);
+        status=HAL_SPI_Transmit(&hspi1,&commands[i],1,20);
+        if(status!=HAL_OK) goto polling_failed;
+        HAL_GPIO_WritePin(LCD_DC_GPIO_Port,LCD_DC_Pin,GPIO_PIN_SET);
+        if(i<2) {
+            status=HAL_SPI_Transmit(&hspi1,params[i],4,20);
+            if(status!=HAL_OK) goto polling_failed;
+        }
+    }
+    status=SPI1_Bus_StartDMA(pixels,(uint16_t)bytes);
+    if(status==HAL_OK) {lcd_dma_active=true;return HAL_OK;}
+    goto failed;
+polling_failed:
+    SPI1_Bus_AbortPolling(); /* 包括SPI移位寄存器未发送完的命令超时。 */
+failed:
+    /* Start失败时底层已安全停止自己启动的DMA；没有开始的BUSY不会误停别人的发送。 */
+    HAL_GPIO_WritePin(LCD_CS_GPIO_Port,LCD_CS_Pin,GPIO_PIN_SET);
+    SPI1_Bus_Unlock();return status;
+}
+
+HAL_StatusTypeDef ST7796_FinishRGB565DMA(void)
+{
+    if(!lcd_dma_active || !SPI1_Bus_DMAOwnedByCaller()) return HAL_ERROR;
+    HAL_StatusTypeDef status=SPI1_Bus_WaitDMA(pdMS_TO_TICKS(100));
+    /* Wait已经确认DMA EN和SPI BSY清零，才可取消LCD片选并归还外层总线锁。 */
+    lcd_dma_active=false;
+    HAL_GPIO_WritePin(LCD_CS_GPIO_Port,LCD_CS_Pin,GPIO_PIN_SET);
+    SPI1_Bus_Unlock();return status;
+}
+
 void ST7796_WriteCommand(uint8_t cmd)
 {
     if(!SPI1_Bus_Lock()) return;

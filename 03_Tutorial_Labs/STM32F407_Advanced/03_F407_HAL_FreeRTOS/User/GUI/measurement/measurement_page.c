@@ -39,6 +39,9 @@ static const char *state_text(const MeasurementSession *s)
  * 不再把带矩形底色的裁剪图盖到另一块渐变上，按钮按下时也能自然融合。 */
 static void triangle(lv_layer_t *l,int x1,int y1,int x2,int y2,int x3,int y3,uint32_t c)
 {
+    if(!ui_visible(l,LV_MIN(x1,LV_MIN(x2,x3)),LV_MIN(y1,LV_MIN(y2,y3)),
+        LV_MAX(x1,LV_MAX(x2,x3))-LV_MIN(x1,LV_MIN(x2,x3))+1,
+        LV_MAX(y1,LV_MAX(y2,y3))-LV_MIN(y1,LV_MIN(y2,y3))+1,2)) return;
     lv_draw_triangle_dsc_t d;lv_draw_triangle_dsc_init(&d);d.color=ui_color(c);
     d.p[0]=(lv_point_precise_t){x1,y1};d.p[1]=(lv_point_precise_t){x2,y2};
     d.p[2]=(lv_point_precise_t){x3,y3};lv_draw_triangle(l,&d);
@@ -58,22 +61,26 @@ static void draw_header(lv_event_t *e)
      * 两种图形都离线取字，运行时不以细线覆盖，避免条带端点产生微小裁切差异。 */
     ui_icon(l,384,7,16,UI_WIFI,p->wifi_connected?UI_ICON_WIFI:UI_ICON_WIFI_OFF);
     ui_line(l,413,7,413,24,0xD5E5F4,1);
-    char t[24];uint32_t seconds=lv_tick_get()/1000U;
+    char t[24];uint32_t seconds=p->clock_seconds;
     snprintf(t,sizeof(t),"%02" PRIu32 ":%02" PRIu32 ":%02" PRIu32,seconds/3600U,seconds/60U%60U,seconds%60U);
     ui_text(l,419,7,54,&ui_font_12,UI_MUTED,t,LV_TEXT_ALIGN_RIGHT);
 }
-static void draw_result_panel(lv_event_t *e)
+static void draw_result_content(lv_event_t *e)
 {
     MeasurementPage *p=lv_event_get_user_data(e);lv_layer_t *l=lv_event_get_layer(e);
-    bool ring=p->session.geometry==MEASUREMENT_RING,complete=p->session.state==MEASUREMENT_COMPLETE;
-    const MeasurementResult *r=&p->session.result;char value[24],buf[80];
+    /* displayed是已有的最后一次控件同步快照，不额外复制整页或测量模型。
+     * 过渡中会话继续变化，底图仍使用同一份可见结果，结束后再统一提交最新值。 */
+    const MeasurementSession *s=p->presentation_paused?&p->displayed:&p->session;
+    bool ring=s->geometry==MEASUREMENT_RING,complete=s->state==MEASUREMENT_COMPLETE;
+    const MeasurementResult *r=&s->result;char value[24],buf[80];
     /* 卡片与文字在屏幕原尺寸绘制；不再保留截图里已经缩小的标题和纯黑笔画。 */
     int left=p->quality_mode?292:307,width=p->quality_mode?183:168;
     ui_gradient(l,left,35,width,237,UI_WHITE,0xFCFBF8,9,UI_BORDER);
     if(!p->quality_mode) {
         ui_icon(l,312,42,16,UI_CYAN,UI_ICON_STATS);
         text(l,336,42,86,&ui_font_14_bold,UI_INK,"本次结果");
-        uint32_t seconds=lv_tick_get()/1000U;snprintf(buf,sizeof(buf),"%02" PRIu32 ":%02" PRIu32,seconds/60U,seconds%60U);
+        uint32_t seconds=p->presentation_paused?p->presentation_clock:p->clock_seconds;
+        snprintf(buf,sizeof(buf),"%02" PRIu32 ":%02" PRIu32,seconds/60U,seconds%60U);
         text(l,430,45,41,&ui_font_12,UI_MUTED,buf);
         for(unsigned i=0;i<2;++i) {
             int y=72+(int)i*47;uint32_t c=i?UI_PURPLE:UI_CYAN;
@@ -87,12 +94,12 @@ static void draw_result_panel(lv_event_t *e)
             text_baseline(l,373,y+27,74,f,c,value);text_baseline(l,447,y+27,23,&ui_font_12,c,p->inches?"in":"mm");
         }
         ui_icon(l,312,172,16,UI_CYAN,UI_ICON_TARGET);text(l,338,171,125,&ui_font_14_bold,UI_INK,"识别状态");
-        text(l,319,194,135,&ui_font_14_bold,UI_MUTED,state_text(&p->session));
-        snprintf(buf,sizeof(buf),"%u%%",p->session.progress);text(l,440,216,33,&ui_font_12,UI_MUTED,buf);
+        text(l,319,194,135,&ui_font_14_bold,UI_MUTED,state_text(s));
+        snprintf(buf,sizeof(buf),"%u%%",s->progress);text(l,440,216,33,&ui_font_12,UI_MUTED,buf);
         if(complete)measurement_format_cmm(value,sizeof(value),r->residual_cmm);else strcpy(value,"--");
         text(l,319,238,69,&ui_font_12,UI_MUTED,"拟合残差");text(l,399,238,72,&ui_font_12,UI_MUTED,"测量状态");
         text_baseline(l,319,264,70,&ui_font_16_bold,UI_INK,value);
-        text_baseline(l,399,264,72,&ui_font_12,UI_CYAN,state_text(&p->session));
+        text_baseline(l,399,264,72,&ui_font_12,UI_CYAN,state_text(s));
         return;
     }
     /* 四个区域各有独立的完整图标，文字起点统一，不能为调浅颜色而丢掉图标。 */
@@ -107,7 +114,7 @@ static void draw_result_panel(lv_event_t *e)
             p->verdict==1?UI_ICON_PASS:p->verdict?UI_ICON_FAIL:UI_ICON_TARGET);
     /* 结论与两行参数各占一列；名称向中间移动，消除结论后方的大块空白。
      * 已完成的质检值保留到下一次有效结果，采集期间不再闪回“--”。 */
-    bool quality_result=p->session.has_result&&p->verdict!=0;
+    bool quality_result=s->has_result&&p->verdict!=0;
     ui_text(l,300,105,57,&ui_font_16_bold,p->verdict==1?UI_GREEN:p->verdict?0xE97488:UI_MUTED,
             p->verdict==1?"合格":p->verdict?"不合格":"待检测",LV_TEXT_ALIGN_CENTER);
     ui_line(l,359,101,359,126,UI_BORDER,1);
@@ -148,6 +155,16 @@ static void draw_result_panel(lv_event_t *e)
         text(l,444,y,29,&ui_font_12,pass?UI_GREEN:0xED778A,pass?"合格":"超差");
     }
 }
+/* 结果卡包含很多文字/圆弧；全被盖住时连格式化都跳过，结束后归还原裁剪框。 */
+static void draw_result_panel(lv_event_t *e)
+{
+    MeasurementPage *p=lv_event_get_user_data(e);lv_layer_t *l=lv_event_get_layer(e);
+    lv_area_t saved;
+    if(!ui_underlay_begin(l,p->opaque_cover,&saved)) return;
+    draw_result_content(e);
+    l->_clip_area=saved;
+}
+
 /* 底部按钮的父对象是整屏，因此Y319的触点不会被较短的导航背景截断。
  * 相邻按钮外扩4像素仍保留间隔；只放宽下方，不修改任何触摸坐标。 */
 static void bottom_hit(lv_event_t *e)
@@ -230,6 +247,16 @@ static lv_obj_t *make_button(lv_obj_t *parent,int x,int y,int w,int h,const char
     lv_obj_set_style_bg_grad_color(o,ui_color(0xA9D2F0),LV_STATE_PRESSED);
     lv_obj_set_style_bg_color(o,ui_color(0xD1DCEA),LV_STATE_DISABLED);
     lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_NONE,LV_STATE_DISABLED);
+    /* 页脚的静态渐变预计算为抖色565，避免原生565竖向渐变出现明显横带。
+     * 图片仍使用按钮原圆角/阴影/边框；禁用态恢复原纯灰，按下态有独立渐变。 */
+    if(h==36) {
+        lv_obj_set_style_bg_image_src(o,ui_skin_gradient_source(w,h,blue?0xB6E0FF:0xFFFFFF,blue?UI_CYAN:0xFBFBF8),0);
+        lv_obj_set_style_bg_image_src(o,ui_skin_gradient_source(w,h,0xCAE6FA,0xA9D2F0),LV_STATE_PRESSED);
+        lv_obj_set_style_bg_opa(o,LV_OPA_TRANSP,0);
+        lv_obj_set_style_bg_image_opa(o,LV_OPA_COVER,0);
+        lv_obj_set_style_bg_image_opa(o,LV_OPA_TRANSP,LV_STATE_DISABLED);
+        lv_obj_set_style_bg_opa(o,LV_OPA_COVER,LV_STATE_DISABLED);
+    }
     lv_obj_set_style_text_color(o,ui_color(blue?UI_WHITE:UI_INK),0);
     lv_obj_set_style_text_font(o,&ui_font_14_bold,0);
     lv_obj_set_style_shadow_width(o,8,0);lv_obj_set_style_shadow_color(o,ui_color(0xBFD9EC),0);
@@ -239,12 +266,21 @@ static lv_obj_t *make_button(lv_obj_t *parent,int x,int y,int w,int h,const char
 }
 static void sync_ui(MeasurementPage *p)
 {
+    /* 不在每次进度/结果到达时重排被覆盖的控件；恢复时会按session最新值补一次。 */
+    if(p->presentation_paused) return;
     MeasurementSession *s=&p->session;
+    bool mode_changed=!p->ui_synced || p->geometry.quality_mode!=p->quality_mode;
+    bool automatic_changed=p->geometry.automatic!=p->automatic;
     const char *button=p->quality_mode?(p->automatic?"停止质检":"启动质检"):
         measurement_session_busy(s)?"测量中...":"开始测量";
-    if(strcmp(lv_label_get_text(p->start_label),button)) lv_label_set_text(p->start_label,button);
-    lv_label_set_text(lv_obj_get_child(p->navigation[0],0),p->quality_mode?"测量":"质检");
-    bottom_layout(p->navigation[0]);bottom_layout(p->start_button);bottom_layout(p->navigation[3]);
+    if(strcmp(lv_label_get_text(p->start_label),button)) {
+        lv_label_set_text(p->start_label,button);bottom_layout(p->start_button);
+    }
+    lv_obj_t *mode_label=lv_obj_get_child(p->navigation[0],0);
+    const char *mode_text=p->quality_mode?"测量":"质检";
+    if(strcmp(lv_label_get_text(mode_label),mode_text)) {
+        lv_label_set_text(mode_label,mode_text);bottom_layout(p->navigation[0]);
+    }
     lv_obj_set_hidden(p->standard_button,!p->quality_mode||p->selected_navigation>=2);
     /* 自动质检进行时，中键必须仍可点，以便随时停止；普通测量忙时禁止重复请求。 */
     lv_obj_set_state(p->start_button,LV_STATE_DISABLED,p->selected_navigation>=2||
@@ -257,18 +293,46 @@ static void sync_ui(MeasurementPage *p)
     lv_obj_set_size(p->geometry.object,p->quality_mode?278:292,232);
     for(unsigned i=0;i<3;++i)lv_obj_set_pos(p->zoom[i],(p->quality_mode?191:206)+(int)i*28,7);
 
-    lv_obj_invalidate(p->start_button);lv_obj_invalidate(p->navigation[0]);
+    /* 进度变化不重画不变的按钮；自动启停会换图标，模式会换导航图标，才显式失效。 */
+    if(automatic_changed) lv_obj_invalidate(p->start_button);
+    if(mode_changed) lv_obj_invalidate(p->navigation[0]);
     lv_obj_set_pos(p->navigation[2],134,176);lv_obj_set_size(p->navigation[2],46,21);
     lv_obj_set_hidden(p->navigation[2],!p->quality_mode);
-    if(p->geometry.quality_mode!=p->quality_mode||p->geometry.automatic!=p->automatic) {
-        p->geometry.quality_mode=p->quality_mode;p->geometry.automatic=p->automatic;lv_obj_invalidate(p->geometry.object);
+    if(mode_changed||automatic_changed) {
+        p->geometry.quality_mode=p->quality_mode;p->geometry.automatic=p->automatic;
+        if(mode_changed) lv_obj_invalidate(p->geometry.object);
+        else {
+            lv_area_t a;lv_obj_get_coords(p->geometry.object,&a);
+            a.x2=a.x1+195;a.y2=a.y1+52;lv_obj_invalidate_area(p->geometry.object,&a);
+        }
     }
     lv_obj_set_pos(p->progress_bar,12,184);lv_obj_set_size(p->progress_bar,117,8);
     if(lv_bar_get_value(p->progress_bar)!=s->progress) lv_bar_set_value(p->progress_bar,s->progress,LV_ANIM_OFF);
-    if(memcmp(s,&p->displayed,sizeof(*s))) {
-        lv_obj_invalidate(p->header);lv_obj_invalidate(p->result_panel);lv_obj_invalidate(p->caption);
+    if(!p->ui_synced || p->displayed.connected!=s->connected || p->displayed.simulated!=s->simulated) {
+        const lv_area_t a={322,5,385,28};lv_obj_invalidate_area(p->header,&a);
     }
-    p->displayed=*s;
+    if(mode_changed || p->displayed.geometry!=s->geometry || p->displayed.state==(MeasurementState)-1) {
+        lv_obj_invalidate(p->result_panel);
+    } else if(p->quality_mode) {
+        if(p->displayed.has_result!=s->has_result || memcmp(&s->result,&p->displayed.result,sizeof(s->result))) {
+            const lv_area_t result={294,72,474,133};lv_obj_invalidate_area(p->result_panel,&result);
+        }
+    } else {
+        bool values_changed=(p->displayed.state==MEASUREMENT_COMPLETE)!=(s->state==MEASUREMENT_COMPLETE) ||
+            memcmp(&s->result,&p->displayed.result,sizeof(s->result));
+        if(values_changed) {
+            const lv_area_t values={312,67,472,160},residual={317,248,393,270};
+            lv_obj_invalidate_area(p->result_panel,&values);lv_obj_invalidate_area(p->result_panel,&residual);
+        }
+        if(p->displayed.state!=s->state) {
+            const lv_area_t state={317,192,462,215},bottom={398,248,473,270};
+            lv_obj_invalidate_area(p->result_panel,&state);lv_obj_invalidate_area(p->result_panel,&bottom);
+        }
+        if(p->displayed.progress!=s->progress) {
+            const lv_area_t progress={438,215,474,234};lv_obj_invalidate_area(p->result_panel,&progress);
+        }
+    }
+    p->displayed=*s;p->ui_synced=true;
 }
 void measurement_page_create(MeasurementPage *p,lv_obj_t *screen,const MeasurementResult *initial)
 {
@@ -289,7 +353,12 @@ void measurement_page_create(MeasurementPage *p,lv_obj_t *screen,const Measureme
     lv_obj_set_style_radius(p->progress_bar,5,0);lv_obj_set_style_bg_opa(p->progress_bar,255,LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(p->progress_bar,ui_color(0xA0D8FF),LV_PART_INDICATOR);
     lv_obj_set_style_bg_grad_color(p->progress_bar,ui_color(UI_CYAN),LV_PART_INDICATOR);
-    lv_obj_set_style_bg_grad_dir(p->progress_bar,LV_GRAD_DIR_HOR,LV_PART_INDICATOR);
+    /* 固定117×8横向蓝色渐变已离线抖为565，运行时只从Flash取像素。
+     * LVGL的bar会按实际进度裁剪整幅渐变，并保留指示条圆角，不重新压缩色阶。 */
+    lv_obj_set_style_bg_grad_dir(p->progress_bar,LV_GRAD_DIR_NONE,LV_PART_INDICATOR);
+    lv_obj_set_style_bg_image_src(p->progress_bar,
+        ui_skin_gradient_source(117,8,0xA0D8FF,UI_CYAN),LV_PART_INDICATOR);
+    lv_obj_set_style_bg_image_opa(p->progress_bar,LV_OPA_COVER,LV_PART_INDICATOR);
     lv_obj_set_style_radius(p->progress_bar,5,LV_PART_INDICATOR);lv_bar_set_range(p->progress_bar,0,100);
     lv_obj_t *footer=plain_object(p->root,0,275,480,45);
     lv_obj_set_style_bg_color(footer,ui_color(UI_WHITE),0);lv_obj_set_style_bg_opa(footer,150,0);
@@ -334,10 +403,10 @@ void measurement_page_navigate(MeasurementPage * p, unsigned destination)
     if(!p || destination > 3 || p->selected_navigation == destination) return;
     p->selected_navigation = destination;
     if(destination < 2) p->quality_mode = destination == 1;
-    lv_obj_set_hidden(p->geometry.object, destination >= 2);
-    lv_obj_set_hidden(p->result_panel, destination >= 2);
+    /* 二级页是滑动覆盖层，主图必须留作动画底图；提前隐藏会出现空白/跳变。
+     * 不透明菜单由LVGL正常遮挡裁剪，透明输入层负责防止触摸点穿。 */
     lv_obj_set_hidden(p->standard_button, destination >= 2 || !p->quality_mode);
-    lv_obj_invalidate(p->root);
+    /* LVGL的位置/大小/隐藏更新会覆盖新旧区域；共同页头保持，不请求整屏切页。 */
     if(p->navigation_changed) p->navigation_changed(p->application_context, destination);
     sync_ui(p);
 }
@@ -364,7 +433,8 @@ void measurement_page_invalidate_result(MeasurementPage * p)
     p->session.state = MEASUREMENT_IDLE; p->session.error = MEASUREMENT_ERROR_NONE;
     p->session.has_result = false; p->session.progress = 0;
     p->session.result = (MeasurementResult){.geometry = p->session.geometry, .status = MEASUREMENT_PENDING};
-    geometry_view_clear(&p->geometry); sync_ui(p);
+    if(!p->presentation_paused) geometry_view_clear(&p->geometry);
+    sync_ui(p);
 }
 void measurement_page_show_notice(MeasurementPage * p, const char * text, bool warning)
 {
@@ -378,6 +448,25 @@ void measurement_page_set_backend(MeasurementPage * p, const MeasurementBackend 
     if(!p || measurement_session_busy(&p->session)) return;
     p->backend = backend ? *backend : (MeasurementBackend){0};
     sync_ui(p);
+}
+
+void measurement_page_pause_presentation(MeasurementPage *p,bool paused)
+{
+    if(!p || p->presentation_paused==paused) return;
+    if(paused) {
+        p->presentation_clock=p->clock_seconds;
+        p->presentation_paused=true;
+        return;
+    }
+    p->presentation_paused=false;
+    /* 只在解除覆盖时同步最后的有效轮廓；期间没有丢掉任何会话结果。
+     * has_result保留上一有效值，所以新一轮采集仍沿用既有的结果保持规则。 */
+    if(p->session.has_result) geometry_view_update(&p->geometry,&p->session.result);
+    else geometry_view_clear(&p->geometry);
+    sync_ui(p);
+    if(!p->quality_mode && p->presentation_clock!=p->clock_seconds) {
+        const lv_area_t time={429,44,473,63};lv_obj_invalidate_area(p->result_panel,&time);
+    }
 }
 
 bool measurement_page_start(MeasurementPage * p)
@@ -396,7 +485,8 @@ bool measurement_page_start(MeasurementPage * p)
 bool measurement_page_select_geometry(MeasurementPage * p, MeasurementGeometry geometry)
 {
     if(!p || !p->root || !measurement_session_select(&p->session, geometry)) return false;
-    if(p->geometry.has_geometry && p->geometry.result.geometry != geometry) geometry_view_clear(&p->geometry);
+    if(!p->presentation_paused && p->geometry.has_geometry && p->geometry.result.geometry != geometry)
+        geometry_view_clear(&p->geometry);
     sync_ui(p);
     return true;
 }
@@ -423,7 +513,7 @@ bool measurement_page_complete(MeasurementPage * p, uint32_t id, const Measureme
         sync_ui(p);
         return false;
     }
-    geometry_view_update(&p->geometry, &p->session.result);
+    if(!p->presentation_paused) geometry_view_update(&p->geometry, &p->session.result);
     sync_ui(p);
     if(p->result_completed) p->result_completed(p->application_context, &p->session.result);
     return true;

@@ -1,77 +1,142 @@
 #include "lvgl_port.h"
 #include "ST7796.h"
+#include "main.h"
 
-/* 仍只占19200字节普通SRAM：内部先以RGB888（每色8位）绘图和混合透明边缘，
- * 全宽可放13行；送屏前原地压成RGB565。屏幕、SPI及DMA的像素格式仍是RGB565。
- * PARTIAL表示只保存当前小矩形，发送结束后其内容即可丢弃，不能用于整屏/DIRECT模式。 */
-static uint8_t draw_buffer[19200U] __attribute__((aligned(4)));
+/* 两块480×32 RGB565局部缓冲共61440B，必须位于DMA可读的普通SRAM。
+ * CPU绘制B时SPI发送A；没有整屏缓存，不把CCM内的LVGL软件图层直接交给DMA。 */
+static uint8_t draw_buffer[2][GUI_DRAW_BUFFER_BYTES] __attribute__((aligned(4)));
+static lv_display_t *lcd_display;
+static bool pending, retry_full;
+static uint32_t retry_after;
 static GUI_TouchReader touch_reader;
 static void *touch_context;
 static lv_indev_t *touch_device;
-/* 松手或读失败时沿用最后有效位置，避免在释放事件中突然跳到(0,0)。 */
+/* 松手保留最后有效点，避免释放事件跳到(0,0)。 */
 static lv_point_t last_touch_point;
 
-/* 有序抖色：用固定的单像素亮度差分担不足一档的颜色误差，缓解RGB565渐变色带。
- * 阈值取屏幕绝对坐标，不能从每个flush的第0行重新开始，否则条带边缘会出现接缝。
- * 不使用随机数，静止画面、局部重绘和不同缓冲行数都会得到相同像素。 */
-static const uint8_t bayer[8][8] = {
-    {0,48,12,60,3,51,15,63},{32,16,44,28,35,19,47,31},
-    {8,56,4,52,11,59,7,55},{40,24,36,20,43,27,39,23},
-    {2,50,14,62,1,49,13,61},{34,18,46,30,33,17,45,29},
-    {10,58,6,54,9,57,5,53},{42,26,38,22,41,25,37,21}
-};
-static unsigned channel_level(unsigned value, unsigned levels, unsigned threshold)
+/* 只有GUI任务写统计；OLED任务在短临界区复制，不从别的任务访问LVGL对象。
+ * 一次刷新可能分成多块DMA，必须等整帧成功后才计1帧，不能把块数当FPS。 */
+static GUI_DisplayStats display_stats;
+static uint32_t rate_started_ms, rate_frames;
+static uint32_t frame_started_ms, frame_blocks, frame_bytes;
+static uint32_t frame_wait_ms, frame_pack_ms;
+static bool frame_tracking, frame_failed;
+
+static void refresh_event(lv_event_t *event)
 {
-    /* levels为红/蓝31、绿色63。余数按阈值决定升一档；0和255始终保持端点。 */
-    unsigned scaled = value * levels;
-    return scaled / 255U + ((scaled % 255U) * 64U > threshold * 255U + 127U);
+    if(lv_event_get_code(event) == LV_EVENT_REFR_START) {
+        /* 从布局/绘图之前计时，才能包含CPU绘图，而不只量最后一块SPI发送。 */
+        frame_started_ms = HAL_GetTick();
+        frame_blocks = 0U;
+        frame_bytes = 0U;
+        frame_wait_ms=0U;frame_pack_ms=0U;
+        frame_failed = false;
+        frame_tracking = true;
+    } else if(lv_event_get_code(event) == LV_EVENT_REFR_READY) {
+        /* 当前尾块在flush中主动Finish，READY到来时像素发送已结束。
+         * 没有脏区的空刷新、任一块失败的刷新均不算成功帧。 */
+        if(frame_tracking && frame_blocks != 0U && !frame_failed) {
+            display_stats.last_frame_ms = HAL_GetTick() - frame_started_ms;
+            if(display_stats.last_frame_ms > display_stats.max_frame_ms)
+                display_stats.max_frame_ms = display_stats.last_frame_ms;
+            display_stats.last_frame_blocks = frame_blocks;
+            display_stats.last_frame_bytes = frame_bytes;
+            display_stats.last_frame_wait_ms=frame_wait_ms;
+            display_stats.last_frame_pack_ms=frame_pack_ms;
+            ++display_stats.completed_frames;
+            ++rate_frames;
+        }
+        frame_tracking = false;
+    }
 }
-static void pack_rgb565(uint8_t *pixels, uint32_t source_stride, const lv_area_t *area)
+
+void GUI_DisplayGetStats(GUI_DisplayStats *out)
 {
-    unsigned width = (unsigned)lv_area_get_width(area), height = (unsigned)lv_area_get_height(area);
-    uint8_t *destination = pixels;
-    for(unsigned y = 0; y < height; ++y) {
-        const uint8_t *source = pixels + y * source_stride;
-        for(unsigned x = 0; x < width; ++x) {
-            /* LVGL的RGB888内存顺序为B、G、R。先取完整像素，再向低地址写两个字节；
-             * 每行输出2*width小于输入步幅，因此不会覆盖尚未读取的源数据。 */
-            unsigned b = source[0], g = source[1], r = source[2];
-            unsigned threshold = bayer[(area->y1 + y) & 7U][(area->x1 + x) & 7U];
-            uint16_t color = (uint16_t)((channel_level(r,31,threshold) << 11) |
-                                       (channel_level(g,63,threshold) << 5) |
-                                        channel_level(b,31,threshold));
-            *destination++ = (uint8_t)color;
-            *destination++ = (uint8_t)(color >> 8);
-            source += 3;
+    if(out) *out = display_stats;
+}
+
+static void failed_flush(void)
+{
+    ++display_stats.transfer_errors;
+    frame_failed = true;
+    /* 丢失的矩形不能靠下一次小数字重绘修复；安全任务阶段限速请求完整重绘。
+     * 错误不在刷新回调内直接invalidate，避免本轮失效列表被递归修改。 */
+    retry_full=true;retry_after=HAL_GetTick()+100U;
+}
+static void wait_flush(lv_display_t *display)
+{
+    if(pending) {
+        uint32_t began=HAL_GetTick();
+        HAL_StatusTypeDef status=ST7796_FinishRGB565DMA();
+        frame_wait_ms+=HAL_GetTick()-began;
+        pending=false;
+        if(status!=HAL_OK) failed_flush();
+    }
+    /* 只有Finish完成或已安全中止后才通知；此处与所有LVGL调用均在GUI任务内。 */
+    lv_display_flush_ready(display);
+}
+static void flush(lv_display_t *display,const lv_area_t *area,uint8_t *pixels)
+{
+    lv_draw_buf_t *buffer=lv_display_get_buf_active(display);
+    uint32_t width=(uint32_t)lv_area_get_width(area),height=(uint32_t)lv_area_get_height(area);
+    if(!buffer || area->x1<0 || area->y1<0 || area->x2>=ST7796_WIDTH || area->y2>=ST7796_HEIGHT ||
+       area->x1>area->x2 || area->y1>area->y2 || buffer->header.cf!=LV_COLOR_FORMAT_RGB565 ||
+       buffer->header.stride<width*2U || width*height*2U>65534U) {
+        failed_flush();lv_display_flush_ready(display);return;
+    }
+    /* 原生565让透明混合留在LVGL内；这里只做一次字节换序。
+     * 有padding的窄条带同时向前紧密化，先取两个源字节再写，绝不发送行尾填充。
+     * PARTIAL缓冲发送后即丢弃，不能把此操作复用到DIRECT或整帧模式。 */
+    uint32_t began=HAL_GetTick();
+    uint8_t *dst=pixels;
+    for(uint32_t y=0;y<height;++y) {
+        uint8_t *src=pixels+y*buffer->header.stride;
+        for(uint32_t x=0;x<width;++x) {
+            uint8_t lo=src[0],hi=src[1];*dst++=hi;*dst++=lo;src+=2;
         }
     }
-}
-static void flush(lv_display_t *display, const lv_area_t *area, uint8_t *pixels)
-{
-    lv_draw_buf_t *buffer = lv_display_get_buf_active(display);
-    if(buffer && area->x1 >= 0 && area->y1 >= 0 && area->x2 < ST7796_WIDTH &&
-       area->y2 < ST7796_HEIGHT && area->x1 <= area->x2 && area->y1 <= area->y2 &&
-       buffer->header.cf == LV_COLOR_FORMAT_RGB888 &&
-       buffer->header.stride >= (uint32_t)lv_area_get_width(area) * 3U) {
-        /* 所有渐变、字体抗锯齿、图片缩放和透明阴影混合完成后，只在这里量化一次。
-         * 原地压缩后行间不再保留RGB888的padding，传给LCD的是紧密排列的RGB565。 */
-        pack_rgb565(pixels, buffer->header.stride, area);
-        (void)ST7796_WriteRGB565((uint16_t)area->x1, (uint16_t)area->y1,
-                    (uint16_t)lv_area_get_width(area), (uint16_t)lv_area_get_height(area),
-                    pixels, (uint32_t)lv_area_get_width(area) * 2U);
-    }
-    /* 底层完成发送或安全停止失败传输后才返回，此时DMA已不再使用像素缓冲。
-     * 无论成功还是出错，都要归还缓冲使用权，避免LVGL永远等待本次刷新。 */
-    lv_display_flush_ready(display);
+    frame_pack_ms+=HAL_GetTick()-began;
+    HAL_StatusTypeDef status=ST7796_StartRGB565DMA((uint16_t)area->x1,(uint16_t)area->y1,
+                              (uint16_t)width,(uint16_t)height,pixels);
+    if(status!=HAL_OK) {failed_flush();lv_display_flush_ready(display);return;}
+    ++frame_blocks;
+    frame_bytes += width * height * 2U;
+    pending=true;
+    /* 尾块主动等待：即使下次没有刷新，也要及时释放CS/总线和源缓冲。
+     * 其他块由LVGL的flush_wait在B绘好后等待A，所以绘图与发送可以重叠。 */
+    if(lv_display_flush_is_last(display)) wait_flush(display);
 }
 lv_display_t *GUI_DisplayInit(void)
 {
-    lv_display_t *display = lv_display_create(480, 320);
+    lv_display_t *display=lv_display_create(ST7796_WIDTH,ST7796_HEIGHT);
     if(!display) return NULL;
-    lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB888);
-    lv_display_set_buffers(display, draw_buffer, NULL, sizeof(draw_buffer), LV_DISPLAY_RENDER_MODE_PARTIAL);
-    lv_display_set_flush_cb(display, flush);
-    return display;
+    lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
+    lv_display_set_buffers(display,draw_buffer[0],draw_buffer[1],sizeof(draw_buffer[0]),LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_flush_cb(display,flush);lv_display_set_flush_wait_cb(display,wait_flush);
+    /* 使用本地9.6的刷新起止事件，不启用LCD上的LVGL性能浮窗。 */
+    lv_display_add_event_cb(display,refresh_event,LV_EVENT_REFR_START,NULL);
+    lv_display_add_event_cb(display,refresh_event,LV_EVENT_REFR_READY,NULL);
+    display_stats = (GUI_DisplayStats){0};
+    rate_started_ms = HAL_GetTick();
+    rate_frames = 0U;
+    lcd_display=display;return display;
+}
+void GUI_DisplayService(void)
+{
+    /* 放在lv_timer_handler之后调用；只在失败后修复LCD可能遗漏的区域，正常帧无额外重绘。 */
+    if(pending) wait_flush(lcd_display);
+    uint32_t now = HAL_GetTick();
+    uint32_t elapsed = now - rate_started_ms;
+    if(elapsed >= 1000U) {
+        /* 按真实经过的毫秒数计算，不能假设GUI每次恰好1秒被调度；无符号差值兼容回绕。
+         * 乘10000是把“每毫秒帧数”换为“每秒帧数×10”，64位中间值避免乘法溢出。 */
+        display_stats.fps_x10 = (uint32_t)(((uint64_t)rate_frames * 10000U + elapsed / 2U) / elapsed);
+        rate_frames = 0U;
+        rate_started_ms = now;
+    }
+    if(retry_full && (int32_t)(HAL_GetTick()-retry_after)>=0) {
+        retry_full=false;lv_obj_invalidate(lv_display_get_screen_active(lcd_display));
+    }
 }
 static void touch_read(lv_indev_t *indev, lv_indev_data_t *data)
 {

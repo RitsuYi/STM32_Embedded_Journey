@@ -56,9 +56,16 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
 /** Size of the pool `lv_malloc()` allocates from. Needs to be at least 2kB (2048). */
-/* RGB888混合及ARGB圆环变换需要稍多连续空间，菜单切换主机测试曾发生碎片化。
+/* 保留52KiB容量以覆盖ARGB圆环变换/菜单峰值；此前48KiB主机曾发生碎片化。
  * 留出4KiB余量，使转换用小块能同时分配；这不是整屏帧缓冲。 */
 #define LV_MEM_SIZE (52 * 1024U)
+
+/* CCM只供CPU访问：控件、解码和软件图层在此池分配，最终SPI DMA只读显式普通SRAM缓冲。
+ * 分配函数负责开时钟并清零，不能依赖当前启动汇编初始化CCM。 */
+#if defined(GUI_USE_CCM_POOL)
+    #define LV_MEM_POOL_INCLUDE "gui_lvgl_memory.h"
+    #define LV_MEM_POOL_ALLOC GUI_LVGL_PoolAlloc
+#endif
 
 /** Place the pool at a fixed address instead of allocating it as a normal array.
  *  0: unused.
@@ -179,7 +186,7 @@
  *  buffered into a "simple" layer in chunks of this size.
  *  "Transformed layers" (if `transform_angle/zoom` are set) use larger buffers and can't be chunked.
  */
-/* 半透明菜单仍分块绘制；RGB888主绘图及ARGB圆环缩放会同时使用临时内存。
+/* 半透明菜单仍分块绘制；RGB565主绘图与ARGB圆环缩放会同时使用临时内存。
  * 将单个简单图层上限减为12KiB，为图片变换留空间。 */
 #define LV_DRAW_LAYER_SIMPLE_BUF_SIZE 12288
 
