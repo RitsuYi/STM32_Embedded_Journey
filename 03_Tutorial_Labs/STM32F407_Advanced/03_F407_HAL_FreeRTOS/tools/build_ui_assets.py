@@ -1,7 +1,8 @@
 """将已生成的材质转换为LVGL 9.6只读资源，并生成柔和的低分辨率预览背景。
 
 这是工程资产的缩放/格式打包步骤，不是生成新的界面效果图。
-颜色采用RGB565，透明度采用独立A8平面；输出可以直接编入F407 Flash。
+圆环保留ARGB8888精度以便缩放/混合后统一抖色；历史背景仍为RGB565。
+输出直接编入Flash，不在普通SRAM展开整张图片。
 """
 from pathlib import Path
 import math
@@ -13,18 +14,23 @@ ASSETS=ROOT/'User/GUI/assets'
 
 
 def pack(name,im,alpha):
-    im=im.convert('RGBA');w,h=im.size;rgb=bytearray();mask=bytearray()
+    im=im.convert('RGBA');w,h=im.size;rgb=bytearray()
     flat=im.tobytes()
     for i in range(0,len(flat),4):
         r,g,b,a=flat[i:i+4]
-        pixel=((r*31+127)//255<<11)|((g*63+127)//255<<5)|((b*31+127)//255)
-        rgb.extend((pixel&255,pixel>>8));mask.append(a)
-    data=rgb+mask if alpha else rgb
+        if alpha:
+            # LVGL的ARGB8888在小端F407内存中按B/G/R/A排列，保留原始8位颜色。
+            rgb.extend((b,g,r,a))
+        else:
+            pixel=((r*31+127)//255<<11)|((g*63+127)//255<<5)|((b*31+127)//255)
+            rgb.extend((pixel&255,pixel>>8))
+    data=rgb
+    color_format='ARGB8888' if alpha else 'RGB565'
     out=['/* 由tools/build_ui_assets.py生成，只读Flash资源；禁止放入可写帧缓冲。 */',
          '#include "ui_assets.h"',f'static const uint8_t pixels[{len(data)}] = {{']
     for i in range(0,len(data),24):out.append('    '+','.join(f'0x{x:02x}' for x in data[i:i+24])+',')
     out+=['};',f'const lv_image_dsc_t {name} = {{',
-          f'    .header={{.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565{"A8" if alpha else ""},.w={w},.h={h},.stride={w*2}}},',
+          f'    .header={{.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_{color_format},.w={w},.h={h},.stride={w*(4 if alpha else 2)}}},',
           f'    .data_size={len(data)},.data=pixels','};']
     (ASSETS/(name+'.c')).write_text('\n'.join(out)+'\n',encoding='utf-8')
     print(f'{name}: {w}x{h}, {len(data)} bytes')

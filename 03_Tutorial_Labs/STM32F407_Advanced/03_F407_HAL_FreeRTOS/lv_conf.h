@@ -56,7 +56,9 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
 /** Size of the pool `lv_malloc()` allocates from. Needs to be at least 2kB (2048). */
-#define LV_MEM_SIZE (48 * 1024U) /* Four-page pool; profiled by tests/gui_migration. */
+/* RGB888混合及ARGB圆环变换需要稍多连续空间，菜单切换主机测试曾发生碎片化。
+ * 留出4KiB余量，使转换用小块能同时分配；这不是整屏帧缓冲。 */
+#define LV_MEM_SIZE (52 * 1024U)
 
 /** Place the pool at a fixed address instead of allocating it as a normal array.
  *  0: unused.
@@ -177,7 +179,9 @@
  *  buffered into a "simple" layer in chunks of this size.
  *  "Transformed layers" (if `transform_angle/zoom` are set) use larger buffers and can't be chunked.
  */
-#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE 24576
+/* 半透明菜单仍分块绘制；RGB888主绘图及ARGB圆环缩放会同时使用临时内存。
+ * 将单个简单图层上限减为12KiB，为图片变换留空间。 */
+#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE 12288
 
 /** Limit for simple and transformed layers together; 0 means no limit.
  *  Must be at least `LV_DRAW_LAYER_SIMPLE_BUF_SIZE`, and with transformed layers large enough

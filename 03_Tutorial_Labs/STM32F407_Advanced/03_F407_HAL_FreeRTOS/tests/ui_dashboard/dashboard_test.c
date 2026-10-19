@@ -54,34 +54,92 @@ static void screenshot(const char *path)
         fputc(((p>>11)&31)*255/31,f);fputc(((p>>5)&63)*255/63,f);fputc((p&31)*255/31,f);}
     fclose(f);
 }
+/* 只在电脑记录当前结论卡片像素，验证自动采集时不会把上一份数字闪成“--”。
+ * 不比较时钟、进度等应当变化的区域，也不为F407增加截图内存。 */
+static void retain_result_contract(uint16_t *saved,bool capture)
+{
+    lv_obj_invalidate(page.result_panel);lv_refr_now(lv_display_get_default());
+    for(unsigned y=0;y<39;++y) {
+        const uint16_t *row=frame+(94+y)*480+296;
+        if(capture)memcpy(saved+y*174,row,174*2);
+        else CHECK(!memcmp(saved+y*174,row,174*2));
+    }
+}
+/* 检查实际蓝色按钮上下边缘轮廓：下圆角应与上圆角对称，不能被一条平直裁切线截断。
+ * 用蓝色通道优势识别填充，允许抗锯齿与RGB565抖色带来最多2px的边界差。 */
+static void footer_contract(void)
+{
+    lv_area_t a;lv_obj_get_coords(page.start_button,&a);
+    for(int dy=1;dy<7;++dy) {
+        int top=0,bottom=0;
+        for(int x=a.x1;x<=a.x2;++x) {
+            uint16_t t=frame[(a.y1+dy)*480+x],b=frame[(a.y2-dy)*480+x];
+            top+=((t&31U)>((t>>11)&31U)+4U);
+            bottom+=((b&31U)>((b>>11)&31U)+4U);
+        }
+        CHECK(top>90&&abs(top-bottom)<=2);
+    }
+}
 /* 通过真实LVGL绘图和当前flush捕获纯色，检查白色及RGB565分量。
  * 这些是电脑上的数字像素检查，不代表液晶面板亮度/伽马已经实测正确。 */
 static void color_contract(void)
 {
-    const uint32_t colors[]={0xFFFFFF,0xFF0000,0x00FF00,0x0000FF,0x808080,0x000000};
-    const uint16_t expected[]={0xFFFF,0xF800,0x07E0,0x001F,0x8410,0x0000};
+    const uint32_t colors[]={0xFFFFFF,0xFF0000,0x00FF00,0x0000FF,0x000000};
+    const uint16_t expected[]={0xFFFF,0xF800,0x07E0,0x001F,0x0000};
     lv_obj_t *group=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(group);
     lv_obj_set_size(group,240,24);lv_obj_set_scrollable(group,false);
-    for(unsigned i=0;i<6;++i) {
+    for(unsigned i=0;i<5;++i) {
         lv_obj_t *o=lv_obj_create(group);lv_obj_remove_style_all(o);
         lv_obj_set_pos(o,(int)i*40,0);lv_obj_set_size(o,40,24);
         lv_obj_set_style_bg_color(o,ui_color(colors[i]),0);lv_obj_set_style_bg_opa(o,255,0);
     }
     lv_refr_now(lv_display_get_default());
-    for(unsigned i=0;i<6;++i)CHECK(frame[12*480+i*40+20]==expected[i]);
+    for(unsigned i=0;i<5;++i)for(unsigned y=0;y<24;++y)for(unsigned x=0;x<40;++x)
+        CHECK(frame[y*480+i*40+x]==expected[i]);
     lv_obj_delete(group);
 }
-/* 固定同一时刻，分别用1/7/20行缓冲重绘，再裁成不对齐的小矩形重绘。
+/* 渐变由真实LVGL生成，检查32像素小段内的均值能持续变化，不会整行卡在同一档。
+ * 同时用中性灰核对抖色均值：每个通道只相差相邻一档，平均亮度接近原始128。
+ * 该检查针对送屏数字像素，不能代替面板本身的伽马/刷新速度测量。 */
+static void gradient_contract(void)
+{
+    lv_obj_t *o=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(o);
+    lv_obj_set_size(o,64,128);lv_obj_set_scrollable(o,false);
+    lv_obj_set_style_bg_color(o,lv_color_hex(0xA0C0E0),0);
+    lv_obj_set_style_bg_grad_color(o,lv_color_hex(0xB0D0F0),0);
+    lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_VER,0);lv_obj_set_style_bg_opa(o,255,0);
+    lv_refr_now(lv_display_get_default());
+    unsigned distinct=0,last=0;
+    for(unsigned y=0;y<128;y+=8) {
+        unsigned sum=0;for(unsigned yy=y;yy<y+8;++yy)for(unsigned x=0;x<64;++x)sum+=(frame[yy*480+x]>>11)&31U;
+        CHECK(sum>=last);distinct+=(sum>last);last=sum;
+    }
+    CHECK(distinct>=12);
+    lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_NONE,0);lv_obj_set_style_bg_color(o,lv_color_hex(0x808080),0);
+    lv_refr_now(lv_display_get_default());
+    unsigned red=0,green=0,blue=0;
+    for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x) {
+        uint16_t c=frame[y*480+x];unsigned r=c>>11,g=(c>>5)&63U,b=c&31U;
+        CHECK((r==15||r==16)&&(g==31||g==32)&&(b==15||b==16));red+=r;green+=g;blue+=b;
+    }
+    CHECK(abs((int)red*255-(128*31*64))<=255);
+    CHECK(abs((int)green*255-(128*63*64))<=255);
+    CHECK(red==blue);lv_obj_delete(o);
+    puts("PASS: final RGB565 gradient levels and neutral-gray dither mean");
+}
+/* 固定同一时刻，分别用1/7/13/20行缓冲重绘，再裁成不对齐的小矩形重绘。
  * 整幅RGB565必须逐字节一致，才能排除步幅、解码起点或局部刷新引入的方块/接缝。 */
 static void redraw_contract(void)
 {
     lv_display_t *display=lv_display_get_default();
     uint8_t *pixels=lv_display_get_buf_active(display)->data;
+    /* 20行RGB888只在电脑分配；固件仍为19200B，不能把此测试缓冲写入F407。 */
+    uint8_t *test_pixels=malloc(480U*20U*3U);CHECK(test_pixels);
     lv_obj_invalidate(page.root);lv_refr_now(display);
     uint16_t *reference=malloc(sizeof(frame));CHECK(reference);memcpy(reference,frame,sizeof(frame));
-    const unsigned heights[]={1,7,20};
-    for(unsigned i=0;i<3;++i) {
-        lv_display_set_buffers(display,pixels,NULL,480U*2U*heights[i],LV_DISPLAY_RENDER_MODE_PARTIAL);
+    const unsigned heights[]={1,7,13,20};
+    for(unsigned i=0;i<4;++i) {
+        lv_display_set_buffers(display,test_pixels,NULL,480U*3U*heights[i],LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_obj_invalidate(page.root);lv_refr_now(display);
         if(memcmp(reference,frame,sizeof(frame))) {
             unsigned count=0;int x1=480,y1=320,x2=0,y2=0;
@@ -99,7 +157,8 @@ static void redraw_contract(void)
         lv_obj_invalidate_area(page.root,&areas[i]);lv_refr_now(display);
         CHECK(!memcmp(reference,frame,sizeof(frame)));
     }
-    free(reference);puts("PASS: RGB565 white/primary colors, 1/7/20-row and cropped redraw consistency");
+    lv_display_set_buffers(display,pixels,NULL,19200U,LV_DISPLAY_RENDER_MODE_PARTIAL);
+    free(test_pixels);free(reference);puts("PASS: RGB565 white/primary colors, 1/7/13/20-row and cropped redraw consistency");
 }
 static unsigned connects,disconnects;
 static bool connect_request(void *context,const char *ssid,const char *password)
@@ -126,9 +185,18 @@ static void font_check(void)
         CHECK(!d.is_placeholder&&d.resolved_font==fonts[f]&&d.box_w>0&&d.box_h>0);
         CHECK(d.ofs_x+(int)d.box_w<=(f?28:24)&&d.box_h<=fonts[f]->line_height);
     }
+    /* 页脚五个轻轮廓字形必须完全落在16px方框内，不能依赖裁切掩盖超大图标。 */
+    for(uint32_t cp=0xE101;cp<=0xE105;++cp) {
+        lv_font_glyph_dsc_t d;CHECK(lv_font_get_glyph_dsc(&ui_footer_icons_16,&d,cp,0));
+        CHECK(!d.is_placeholder&&d.resolved_font==&ui_footer_icons_16&&d.box_w&&d.box_h);
+        CHECK(d.ofs_x>=0&&d.ofs_x+(int)d.box_w<=16&&d.box_h<=16&&d.adv_w<=16);
+    }
     lv_point_t size;
     lv_text_get_size(&size,"30.12",&ui_font_26_bold,0,0,LV_COORD_MAX,0);CHECK(size.x<=74);
     lv_text_get_size(&size,"30.12",&ui_font_16_bold,0,0,LV_COORD_MAX,0);CHECK(size.x<=49);
+    /* 100%省略小数后，以及最宽的非整数百分比，都必须放得进环内40px。 */
+    lv_text_get_size(&size,"100%",&ui_font_12,0,0,LV_COORD_MAX,0);CHECK(size.x<=36);
+    lv_text_get_size(&size,"99.9%",&ui_font_12,0,0,LV_COORD_MAX,0);CHECK(size.x<=40);
 }
 /* 同一时刻观察真实渲染后的Wi-Fi区域：连接/未连接必须不同，分隔线位置固定。
  * 只改变软件后端状态，不连接真实网络；两个状态都必须保留蓝色像素。 */
@@ -137,26 +205,29 @@ static void wifi_visual_contract(void)
     uint16_t disconnected[24*24];lv_display_t *display=lv_display_get_default();
     lv_obj_invalidate(page.header);lv_refr_now(display);
     for(unsigned y=0;y<24;++y)memcpy(disconnected+y*24,frame+(y+3)*480+384,24*2);
-    CHECK(frame[15*480+413]==0xD73E);
+    uint16_t separator=frame[15*480+413];
+    /* 末级抖色会按绝对坐标选取邻档，检查分隔线存在且网络状态变化不改变它。 */
+    CHECK(separator!=frame[15*480+412]);
     dashboard_network_status(&ui,true,"Test","192.0.2.1");lv_refr_now(display);
     unsigned different=0,blue_on=0,blue_off=0;
     for(unsigned y=0;y<24;++y)for(unsigned x=0;x<24;++x) {
         uint16_t on=frame[(y+3)*480+x+384],off=disconnected[y*24+x];different+=(on!=off);
         blue_on+=((on&31)>((on>>11)&31)+5U);blue_off+=((off&31)>((off>>11)&31)+5U);
     }
-    CHECK(different>5&&blue_on>10&&blue_off>10&&frame[15*480+413]==0xD73E);
+    CHECK(different>5&&blue_on>10&&blue_off>10&&frame[15*480+413]==separator);
     screenshot("wifi_connected.ppm");dashboard_network_status(&ui,false,NULL,NULL);
     screenshot("wifi_disconnected.ppm");
 }
 int main(void)
 {
-    lv_init();lv_tick_set_cb(HAL_GetTick);CHECK(GUI_DisplayInit());CHECK(GUI_RegisterTouch(reader,NULL));font_check();color_contract();
+    lv_init();lv_tick_set_cb(HAL_GetTick);CHECK(GUI_DisplayInit());CHECK(GUI_RegisterTouch(reader,NULL));font_check();color_contract();gradient_contract();
     instrument_defaults(&model);GUI_ApplyFixedCamera(&model);
     MeasurementResult r={.geometry=MEASUREMENT_RING,.status=MEASUREMENT_PENDING,.connected=true,.calibrated=true,.simulated=true};
     measurement_page_create(&page,lv_screen_active(),&r);GUI_DemoInit(&page,&model);dashboard_create(&ui,&page,&model,NULL);advance(60);
     wifi_visual_contract();
     CHECK(page.selected_navigation==0&&!page.quality_mode&&instrument_model_check(&model));
     screenshot("measurement_idle.ppm");
+    footer_contract();
     /* 三个底部键可见区域以下一直到Y319，都必须命中原键，且相邻键不重叠。 */
     lv_obj_t *buttons[]={page.navigation[0],page.start_button,page.navigation[3]};
     int centers[]={81,240,399};
@@ -169,10 +240,21 @@ int main(void)
     uint32_t scale=page.geometry.scale_q8;tap(page.zoom[0]);CHECK(page.geometry.scale_q8>scale);
     tap(page.zoom[1]);CHECK(page.geometry.scale_q8<4096);tap(page.zoom[2]);CHECK(page.geometry.scale_q8==GEOMETRY_DEFAULT_SCALE_Q8);
     tap_at(page.navigation[0],81,319);CHECK(page.quality_mode&&page.selected_navigation==1);
-    screenshot("inspection_idle.ppm"); /* 待检测时也必须保留四个完整标题图标。 */
-    tap_at(page.start_button,240,319);CHECK(page.automatic);advance(4500);
-    CHECK(model.inspected>=2&&model.passed==model.inspected&&page.total_count==model.inspected);
+    screenshot("inspection_idle.ppm");redraw_contract(); /* 两种布局的渐变/图标都核对条带边界。 */
+    tap_at(page.start_button,240,319);CHECK(page.automatic);advance(2000);
+    CHECK(page.session.state==MEASUREMENT_COMPLETE&&model.inspected==1);
+    uint32_t completed_at=model.records[0].uptime_ms;
+    CHECK(ui.next_auto_ms-completed_at==2500U);
+    uint16_t *saved_result=malloc(174U*39U*2U);CHECK(saved_result);
+    retain_result_contract(saved_result,true);
     screenshot("inspection_pass.ppm");
+    /* 2.5秒截止前仍应是完成态；下一轮采集时结果卡片逐像素保持，随后才增加统计。 */
+    advance(2500U-(now-completed_at)-5U);
+    CHECK(page.session.state==MEASUREMENT_COMPLETE&&model.inspected==1);
+    advance(150);CHECK(measurement_session_busy(&page.session)&&model.inspected==1);
+    retain_result_contract(saved_result,false);free(saved_result);
+    screenshot("inspection_acquiring.ppm");advance(1900);
+    CHECK(model.inspected==2&&model.passed==model.inspected&&page.total_count==model.inspected);
     tap_at(page.start_button,240,319);CHECK(!page.automatic);
     /* 下一次改变标准后的失败要记到历史；旧记录仍然合格。 */
     model.settings.tolerance[0][0].target_cmm=2900;
@@ -242,7 +324,7 @@ int main(void)
     tx=260;ty=245;down=true;advance(40);
     for(int y=245;y>=90;y-=10){ty=y;advance(20);}down=false;advance(200);CHECK(lv_obj_get_scroll_y(ui.body)>0);
     screenshot("records_scroll.ppm");dashboard_close(&ui);advance(250);
-    /* 重复打开不同二级页，检查销毁/重建不会把48KB池耗尽。 */
+    /* 重复打开不同二级页，检查销毁/重建不会耗尽当前配置的LVGL池。 */
     for(unsigned i=0;i<30;++i){dashboard_open(&ui,(DashboardMenu)(i%7));advance(200);dashboard_close(&ui);advance(200);CHECK(lv_mem_test()==LV_RESULT_OK);}
     MeasurementBackend original=page.backend,quiet={.start=silent_backend};measurement_page_set_backend(&page,&quiet);
     measurement_page_navigate(&page,1);page.session.timeout_ms=2000;uint32_t count=model.inspected;

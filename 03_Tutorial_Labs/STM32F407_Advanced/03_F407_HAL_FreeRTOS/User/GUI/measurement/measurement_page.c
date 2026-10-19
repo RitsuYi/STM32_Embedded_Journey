@@ -18,6 +18,10 @@ static lv_obj_t *plain_object(lv_obj_t *parent,int x,int y,int w,int h)
 }
 static void text(lv_layer_t *l,int x,int y,int w,const lv_font_t *f,uint32_t c,const char *s)
 { ui_text(l,x,y,w,f,c,s,LV_TEXT_ALIGN_LEFT); }
+/* baseline是文字落在同一条水平线上的位置；不同字号的顶部不能直接共用同一个y。
+ * 用字体的行高和基线修正，数字、中文名称和单位就能自然对齐。 */
+static void text_baseline(lv_layer_t *l,int x,int baseline,int w,const lv_font_t *f,uint32_t c,const char *s)
+{ text(l,x,baseline-f->line_height+f->base_line,w,f,c,s); }
 static const char *state_text(const MeasurementSession *s)
 {
     switch(s->state) {
@@ -42,7 +46,7 @@ static void triangle(lv_layer_t *l,int x1,int y1,int x2,int y2,int x3,int y3,uin
 static void draw_header(lv_event_t *e)
 {
     MeasurementPage *p=lv_event_get_user_data(e);lv_layer_t *l=lv_event_get_layer(e);
-    ui_gradient(l,0,0,480,30,UI_WHITE,0xF1F8FF,0,0);
+    ui_gradient(l,0,0,480,30,UI_WHITE,0xFAF9F6,0,0);
     /* 每个菱形面拆成两个三角形，形成完整立方体，白色细缝区分三个面。 */
     triangle(l,21,5,30,10,21,15,0x6CD9FF);triangle(l,21,5,21,15,12,10,0x6CD9FF);
     triangle(l,12,11,20,16,20,25,0x53BFFF);triangle(l,12,11,20,25,12,20,0x53BFFF);
@@ -65,7 +69,7 @@ static void draw_result_panel(lv_event_t *e)
     const MeasurementResult *r=&p->session.result;char value[24],buf[80];
     /* 卡片与文字在屏幕原尺寸绘制；不再保留截图里已经缩小的标题和纯黑笔画。 */
     int left=p->quality_mode?292:307,width=p->quality_mode?183:168;
-    ui_gradient(l,left,35,width,237,UI_WHITE,0xF0F8FF,9,UI_BORDER);
+    ui_gradient(l,left,35,width,237,UI_WHITE,0xFCFBF8,9,UI_BORDER);
     if(!p->quality_mode) {
         ui_icon(l,312,42,16,UI_CYAN,UI_ICON_STATS);
         text(l,336,42,86,&ui_font_14_bold,UI_INK,"本次结果");
@@ -73,20 +77,22 @@ static void draw_result_panel(lv_event_t *e)
         text(l,430,45,41,&ui_font_12,UI_MUTED,buf);
         for(unsigned i=0;i<2;++i) {
             int y=72+(int)i*47;uint32_t c=i?UI_PURPLE:UI_CYAN;
-            ui_gradient(l,312,y-5,158,44,UI_WHITE,0xF6FAFF,7,0xE6EFF8);
+            ui_gradient(l,312,y-5,158,44,UI_WHITE,0xFBFBF9,7,UI_BORDER);
             ui_arc(l,325,y+16,7,2,c,0,360);
             int32_t n=i?r->secondary_cmm:r->primary_cmm;
             if(complete){if(p->inches)snprintf(value,sizeof(value),"%.3f",n/2540.0);else measurement_format_cmm(value,sizeof(value),(uint32_t)n);}else strcpy(value,"--");
             const lv_font_t *f=strlen(value)>7?&ui_font_12:strlen(value)>5?&ui_font_16_bold:&ui_font_26_bold;
-            text(l,338,y+9,31,&ui_font_14_bold,UI_INK,ring?(i?"内径":"外径"):(i?"宽度":"长度"));
-            text(l,373,y,74,f,c,value);text(l,447,y+17,23,&ui_font_12,c,p->inches?"in":"mm");
+            /* 每行向卡片中部收拢，并共用基线，避免大数字看起来悬在名称上方。 */
+            text_baseline(l,338,y+27,31,&ui_font_14_bold,UI_INK,ring?(i?"内径":"外径"):(i?"宽度":"长度"));
+            text_baseline(l,373,y+27,74,f,c,value);text_baseline(l,447,y+27,23,&ui_font_12,c,p->inches?"in":"mm");
         }
         ui_icon(l,312,172,16,UI_CYAN,UI_ICON_TARGET);text(l,338,171,125,&ui_font_14_bold,UI_INK,"识别状态");
         text(l,319,194,135,&ui_font_14_bold,UI_MUTED,state_text(&p->session));
         snprintf(buf,sizeof(buf),"%u%%",p->session.progress);text(l,440,216,33,&ui_font_12,UI_MUTED,buf);
         if(complete)measurement_format_cmm(value,sizeof(value),r->residual_cmm);else strcpy(value,"--");
         text(l,319,238,69,&ui_font_12,UI_MUTED,"拟合残差");text(l,399,238,72,&ui_font_12,UI_MUTED,"测量状态");
-        text(l,319,251,70,&ui_font_16_bold,UI_INK,value);text(l,399,251,72,&ui_font_12,UI_CYAN,state_text(&p->session));
+        text_baseline(l,319,264,70,&ui_font_16_bold,UI_INK,value);
+        text_baseline(l,399,264,72,&ui_font_12,UI_CYAN,state_text(&p->session));
         return;
     }
     /* 四个区域各有独立的完整图标，文字起点统一，不能为调浅颜色而丢掉图标。 */
@@ -94,34 +100,45 @@ static void draw_result_panel(lv_event_t *e)
     text(l,321,41,126,&ui_font_14_bold,UI_INK,"标准设定");ui_icon(l,449,43,16,UI_MUTED,UI_ICON_NEXT);
     ui_line(l,298,66,468,66,UI_BORDER,1);
     text(l,321,73,148,&ui_font_14_bold,UI_INK,"当前检测结果");
-    ui_gradient(l,296,94,174,45,p->verdict>1?0xFFF3F5:0xF2FCF7,UI_WHITE,7,0);
+    ui_gradient(l,296,94,174,39,p->verdict>1?0xFFF3F5:0xF2FCF7,UI_WHITE,7,0);
     /* 超差时用粉红提示覆盖原参考图的合格底色，避免红字仍配绿色结论卡片。 */
     /* 标题图标随本次结果变化，不能把参考图的合格状态作为固定结论。 */
     ui_icon(l,295,74,16,p->verdict==1?UI_GREEN:p->verdict?0xF29AA9:UI_CYAN,
             p->verdict==1?UI_ICON_PASS:p->verdict?UI_ICON_FAIL:UI_ICON_TARGET);
-    text(l,302,104,65,&ui_font_16_bold,p->verdict==1?UI_GREEN:p->verdict?0xE97488:UI_MUTED,p->verdict==1?"合格":p->verdict?"不合格":"待检测");
+    /* 结论与两行参数各占一列；名称向中间移动，消除结论后方的大块空白。
+     * 已完成的质检值保留到下一次有效结果，采集期间不再闪回“--”。 */
+    bool quality_result=p->session.has_result&&p->verdict!=0;
+    ui_text(l,300,105,57,&ui_font_16_bold,p->verdict==1?UI_GREEN:p->verdict?0xE97488:UI_MUTED,
+            p->verdict==1?"合格":p->verdict?"不合格":"待检测",LV_TEXT_ALIGN_CENTER);
+    ui_line(l,359,101,359,126,UI_BORDER,1);
     for(unsigned i=0;i<2;++i){
-        if(complete){int32_t n=i?r->secondary_cmm:r->primary_cmm;if(p->inches)snprintf(value,sizeof(value),"%.3f",n/2540.0);else measurement_format_cmm(value,sizeof(value),(uint32_t)n);}else strcpy(value,"--");
-        text(l,402,95+(int)i*20,49,strlen(value)>6?&ui_font_12:&ui_font_16_bold,i?UI_PURPLE:UI_CYAN,value);
-        text(l,374,98+(int)i*20,28,&ui_font_12,UI_INK,ring?(i?"内径":"外径"):(i?"宽度":"长度"));
-        text(l,452,100+(int)i*20,22,&ui_font_12,i?UI_PURPLE:UI_CYAN,p->inches?"in":"mm");
+        int baseline=112+(int)i*19;
+        if(quality_result){int32_t n=i?r->secondary_cmm:r->primary_cmm;if(p->inches)snprintf(value,sizeof(value),"%.3f",n/2540.0);else measurement_format_cmm(value,sizeof(value),(uint32_t)n);}else strcpy(value,"--");
+        text_baseline(l,392,baseline,54,strlen(value)>6?&ui_font_12:&ui_font_16_bold,i?UI_PURPLE:UI_CYAN,value);
+        text_baseline(l,365,baseline,26,&ui_font_12,UI_INK,ring?(i?"内径":"外径"):(i?"宽度":"长度"));
+        text_baseline(l,449,baseline,22,&ui_font_12,i?UI_PURPLE:UI_CYAN,p->inches?"in":"mm");
     }
     /* 缩小屏幕下省略括号，保留mm单位，避免表头换行压住第一条记录。 */
-    ui_line(l,298,143,468,143,UI_BORDER,1);ui_icon(l,295,148,16,UI_CYAN,UI_ICON_STATS);
-    text(l,321,147,148,&ui_font_14_bold,UI_INK,"累计统计");
-    text(l,301,174,39,&ui_font_12,UI_MUTED,"总数");text(l,340,174,39,&ui_font_12,UI_MUTED,"合格");
-    text(l,379,174,39,&ui_font_12,UI_MUTED,"超差");
+    /* 收紧结果卡片下沿与统计留白，把省下的8px交给最近记录，两行间距增至20px。 */
+    ui_line(l,298,135,468,135,UI_BORDER,1);ui_icon(l,295,140,16,UI_CYAN,UI_ICON_STATS);
+    text(l,321,139,148,&ui_font_14_bold,UI_INK,"累计统计");
+    text(l,301,162,39,&ui_font_12,UI_MUTED,"总数");text(l,340,162,39,&ui_font_12,UI_MUTED,"合格");
+    text(l,379,162,39,&ui_font_12,UI_MUTED,"超差");
     uint32_t counts[]={p->total_count,p->pass_count,p->fail_count};
-    for(unsigned i=0;i<3;++i){snprintf(buf,sizeof(buf),"%" PRIu32,counts[i]);text(l,301+(int)i*39,190,38,strlen(buf)>4?&ui_font_12:&ui_font_16_bold,i==1?UI_GREEN:i==2?0xED778A:UI_INK,buf);}
+    for(unsigned i=0;i<3;++i){snprintf(buf,sizeof(buf),"%" PRIu32,counts[i]);text(l,301+(int)i*39,180,38,strlen(buf)>4?&ui_font_12:&ui_font_16_bold,i==1?UI_GREEN:i==2?0xED778A:UI_INK,buf);}
     uint32_t rate=p->total_count?(uint32_t)((uint64_t)p->pass_count*1000U/p->total_count):0;
-    ui_arc(l,441,190,22,4,0xE0F1E8,0,360);if(rate)ui_arc(l,441,190,22,4,UI_GREEN,270,270+(int)(rate*360U/1000U));
-    snprintf(buf,sizeof(buf),"%" PRIu32 ".%" PRIu32 "%%",rate/10,rate%10);ui_text(l,417,184,48,&ui_font_12,UI_INK,p->total_count?buf:"--",LV_TEXT_ALIGN_CENTER);
-    ui_line(l,298,216,468,216,UI_BORDER,1);ui_icon(l,295,220,16,UI_CYAN,UI_ICON_RECORDS);
-    text(l,321,219,106,&ui_font_14_bold,UI_INK,"最近检测记录");
-    text(l,432,222,35,&ui_font_12,UI_MUTED,"更多 >");
+    /* 圆环内径40px；整数百分比省略无意义的“.0”，其余仍保留一位小数。
+     * 文字按真实字体行高居中，100%也不会伸到圆环笔画上。 */
+    ui_arc(l,442,180,24,4,0xE0F1E8,0,360);if(rate)ui_arc(l,442,180,24,4,UI_GREEN,270,270+(int)(rate*360U/1000U));
+    if(rate%10U)snprintf(buf,sizeof(buf),"%" PRIu32 ".%" PRIu32 "%%",rate/10,rate%10);
+    else snprintf(buf,sizeof(buf),"%" PRIu32 "%%",rate/10);
+    ui_text(l,422,180-ui_font_12.line_height/2,40,&ui_font_12,UI_INK,p->total_count?buf:"--",LV_TEXT_ALIGN_CENTER);
+    ui_line(l,298,208,468,208,UI_BORDER,1);ui_icon(l,295,212,16,UI_CYAN,UI_ICON_RECORDS);
+    text(l,321,211,106,&ui_font_14_bold,UI_INK,"最近检测记录");
+    text(l,432,214,35,&ui_font_12,UI_MUTED,"更多 >");
     /* 主界面只保留两条清晰摘要；完整开机时间、单位与结果仍可点箭头在记录页查看。
      * 不把五列内容挤进9像素字体；模型中保存的数据和64条容量没有减少。 */
-    for(unsigned i=0;i<2;++i){int y=240+(int)i*16;
+    for(unsigned i=0;i<2;++i){int y=235+(int)i*20;
         if(!p->recent_records[i].id){if(!i)text(l,299,y,170,&ui_font_12,UI_MUTED,"暂无检测记录");continue;}
         bool pass=p->recent_records[i].pass;
         snprintf(buf,sizeof(buf),"#%" PRIu32,p->recent_records[i].id);text(l,299,y,32,&ui_font_12,UI_MUTED,buf);
@@ -139,19 +156,31 @@ static void bottom_hit(lv_event_t *e)
     lv_obj_get_coords(lv_event_get_target_obj(e),&a);
     h->res=h->point->x>=a.x1-4&&h->point->x<=a.x2+4&&h->point->y>=a.y1-4&&h->point->y<=319;
 }
+/* 图标16px+8px间距+实际文字宽度组成一个整体，在按钮内居中。
+ * 两字、四字及“测量中...”都走同一规则，不再分别硬编码文字偏移。 */
+static void bottom_layout(lv_obj_t *button)
+{
+    lv_obj_t *label=lv_obj_get_child(button,0);
+    lv_obj_align(label,LV_ALIGN_CENTER,12,0); /* (16px图标+8px间距)/2，使组合中心不偏。 */
+}
 /* 底部三键沿用参考图布局，背景/图标原生绘制，文字和状态由LVGL控件管理。 */
 static void bottom_icon(lv_event_t *e)
 {
     MeasurementPage *p=lv_event_get_user_data(e);lv_obj_t *o=lv_event_get_target_obj(e);
     lv_area_t a;lv_obj_get_coords(o,&a);lv_layer_t *l=lv_event_get_layer(e);
     /* 按钮自己的圆角背景已由LVGL画好，这里只叠加透明的状态提示与图标。 */
-    if(lv_obj_has_state(o,LV_STATE_PRESSED))ui_rect(l,a.x1,a.y1,lv_area_get_width(&a),lv_area_get_height(&a),0x2D7DD3,25,16,0,0);
-    if(lv_obj_has_state(o,LV_STATE_DISABLED))ui_rect(l,a.x1,a.y1,lv_area_get_width(&a),lv_area_get_height(&a),0xCDD7E4,95,16,0,0);
-    /* 底部直接使用20px的完整齿轮/直尺/质检/播放字形，不再拼接短线段。
-     * 图标与标签各占独立位置，不能被标签或按钮边界裁掉。 */
-    const char *symbol=o==p->start_button?(p->automatic?UI_ICON_STOP:UI_ICON_PLAY):
-        o==p->navigation[3]?UI_ICON_SETTINGS:p->quality_mode?UI_ICON_MEASURE:UI_ICON_INSPECT;
-    ui_icon(l,a.x1+30,a.y1+6,20,o==p->start_button?UI_WHITE:UI_INK,symbol);
+    /* 状态遮罩沿用同一个胶囊圆角，按下或禁用时也不会把圆弧涂成方角。 */
+    if(lv_obj_has_state(o,LV_STATE_PRESSED))ui_rect(l,a.x1,a.y1,lv_area_get_width(&a),lv_area_get_height(&a),0x2D7DD3,25,LV_RADIUS_CIRCLE,0,0);
+    if(lv_obj_has_state(o,LV_STATE_DISABLED))ui_rect(l,a.x1,a.y1,lv_area_get_width(&a),lv_area_get_height(&a),0xCDD7E4,95,LV_RADIUS_CIRCLE,0,0);
+    /* 页脚采用原尺寸细轮廓：盾牌勾、带刻度直尺、完整齿轮；播放键略小。
+     * 先测量当前标签再定位图标，宽度变化时两者仍作为一组居中。 */
+    const char *symbol=o==p->start_button?(p->automatic?UI_FOOTER_STOP:UI_FOOTER_PLAY):
+        o==p->navigation[3]?UI_FOOTER_SETTINGS:p->quality_mode?UI_FOOTER_MEASURE:UI_FOOTER_INSPECT;
+    lv_point_t size;lv_obj_t *label=lv_obj_get_child(o,0);
+    lv_text_get_size(&size,lv_label_get_text(label),&ui_font_14_bold,0,0,LV_COORD_MAX,0);
+    int x=a.x1+(lv_area_get_width(&a)-size.x-24)/2;
+    int y=a.y1+(lv_area_get_height(&a)-ui_footer_icons_16.line_height)/2;
+    ui_text(l,x,y,16,&ui_footer_icons_16,o==p->start_button?UI_WHITE:UI_INK,symbol,LV_TEXT_ALIGN_LEFT);
 }
 static void nav_click(lv_event_t *e)
 {
@@ -164,7 +193,7 @@ static void nav_click(lv_event_t *e)
 static void footer_draw(lv_event_t *e)
 {
     /* 页脚留白与主背景一致，按钮自己的圆角渐变/阴影负责边缘融合。 */
-    ui_gradient(lv_event_get_layer(e),0,274,480,46,0xF7FBFF,0xEDF6FF,0,0);
+    ui_gradient(lv_event_get_layer(e),0,274,480,46,0xFCFBF9,0xF5F5F1,0,0);
 }
 static void start_click(lv_event_t *e)
 {
@@ -190,12 +219,15 @@ static lv_obj_t *make_button(lv_obj_t *parent,int x,int y,int w,int h,const char
 {
     lv_obj_t *o=lv_button_create(parent); lv_obj_remove_style_all(o);
     lv_obj_set_pos(o,x,y);lv_obj_set_size(o,w,h);
-    lv_obj_set_style_radius(o,h/2,0);lv_obj_set_style_bg_opa(o,255,0);
-    lv_obj_set_style_bg_color(o,ui_color(blue?0xA0D8FF:0xFFFFFF),0);
-    lv_obj_set_style_bg_grad_color(o,ui_color(blue?0x7DBEFF:0xF7FBFF),0);
+    /* 明确使用完整胶囊圆角，页脚增加高度后上下弧线仍保持对称。 */
+    lv_obj_set_style_radius(o,LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_opa(o,255,0);
+    lv_obj_set_style_bg_color(o,ui_color(blue?0xB6E0FF:0xFFFFFF),0);
+    lv_obj_set_style_bg_grad_color(o,ui_color(blue?UI_CYAN:0xFBFBF8),0);
     lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_VER,0);
-    lv_obj_set_style_border_width(o,1,0);lv_obj_set_style_border_color(o,ui_color(blue?0x78CFFF:0xDAE7FB),0);
-    lv_obj_set_style_bg_color(o,ui_color(0xBBDCFB),LV_STATE_PRESSED);
+    lv_obj_set_style_border_width(o,1,0);lv_obj_set_style_border_color(o,ui_color(blue?0xAED9F5:UI_BORDER),0);
+    /* 按下态的两个端点一起改变，避免只改顶部却残留另一套渐变。 */
+    lv_obj_set_style_bg_color(o,ui_color(0xCAE6FA),LV_STATE_PRESSED);
+    lv_obj_set_style_bg_grad_color(o,ui_color(0xA9D2F0),LV_STATE_PRESSED);
     lv_obj_set_style_bg_color(o,ui_color(0xD1DCEA),LV_STATE_DISABLED);
     lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_NONE,LV_STATE_DISABLED);
     lv_obj_set_style_text_color(o,ui_color(blue?UI_WHITE:UI_INK),0);
@@ -212,6 +244,7 @@ static void sync_ui(MeasurementPage *p)
         measurement_session_busy(s)?"测量中...":"开始测量";
     if(strcmp(lv_label_get_text(p->start_label),button)) lv_label_set_text(p->start_label,button);
     lv_label_set_text(lv_obj_get_child(p->navigation[0],0),p->quality_mode?"测量":"质检");
+    bottom_layout(p->navigation[0]);bottom_layout(p->start_button);bottom_layout(p->navigation[3]);
     lv_obj_set_hidden(p->standard_button,!p->quality_mode||p->selected_navigation>=2);
     /* 自动质检进行时，中键必须仍可点，以便随时停止；普通测量忙时禁止重复请求。 */
     lv_obj_set_state(p->start_button,LV_STATE_DISABLED,p->selected_navigation>=2||
@@ -225,7 +258,7 @@ static void sync_ui(MeasurementPage *p)
     for(unsigned i=0;i<3;++i)lv_obj_set_pos(p->zoom[i],(p->quality_mode?191:206)+(int)i*28,7);
 
     lv_obj_invalidate(p->start_button);lv_obj_invalidate(p->navigation[0]);
-    lv_obj_set_pos(p->navigation[2],134,184);lv_obj_set_size(p->navigation[2],46,21);
+    lv_obj_set_pos(p->navigation[2],134,176);lv_obj_set_size(p->navigation[2],46,21);
     lv_obj_set_hidden(p->navigation[2],!p->quality_mode);
     if(p->geometry.quality_mode!=p->quality_mode||p->geometry.automatic!=p->automatic) {
         p->geometry.quality_mode=p->quality_mode;p->geometry.automatic=p->automatic;lv_obj_invalidate(p->geometry.object);
@@ -261,15 +294,16 @@ void measurement_page_create(MeasurementPage *p,lv_obj_t *screen,const Measureme
     lv_obj_t *footer=plain_object(p->root,0,275,480,45);
     lv_obj_set_style_bg_color(footer,ui_color(UI_WHITE),0);lv_obj_set_style_bg_opa(footer,150,0);
     lv_obj_set_style_radius(footer,23,0);lv_obj_add_event_cb(footer,footer_draw,LV_EVENT_DRAW_MAIN,NULL);
-    p->navigation[0]=make_button(p->root,18,276,131,33,"质检",false);
-    p->start_button=make_button(p->root,165,276,150,33,"开始测量",true);
+    /* 36px高的完整胶囊在Y311收尾，下面仍留8px给阴影与触摸容错。 */
+    p->navigation[0]=make_button(p->root,18,276,131,36,"质检",false);
+    p->start_button=make_button(p->root,165,276,150,36,"开始测量",true);
     p->start_label=lv_obj_get_child(p->start_button,0);
-    p->navigation[3]=make_button(p->root,332,276,131,33,"设置",false);
+    p->navigation[3]=make_button(p->root,332,276,131,36,"设置",false);
     lv_obj_t *bottom[]={p->navigation[0],p->start_button,p->navigation[3]};
     for(unsigned i=0;i<3;++i) {
         /* 按钮保留原触摸范围，只用原生背景替代带底色贴图。 */
-        lv_obj_set_style_translate_x(lv_obj_get_child(bottom[i],0),i==1?12:i==2?18:6,0);
-        /* 可见底边Y308，向下11像素才能让LVGL先搜索到Y319，再交精确命中回调。 */
+        bottom_layout(bottom[i]);
+        /* 可见底边Y311；外框11px足够搜索到Y319，最终由回调限制实际命中范围。 */
         lv_obj_set_ext_click_area(bottom[i],11);lv_obj_set_adv_hittest(bottom[i],true);
         lv_obj_add_event_cb(bottom[i],bottom_hit,LV_EVENT_HIT_TEST,NULL);
         lv_obj_add_event_cb(bottom[i],bottom_icon,LV_EVENT_DRAW_MAIN,p);

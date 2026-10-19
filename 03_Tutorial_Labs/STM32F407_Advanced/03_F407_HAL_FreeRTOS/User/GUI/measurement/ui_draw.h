@@ -3,26 +3,28 @@
 
 #include "lvgl/lvgl.h"
 
-/* 浅蓝白色仪器主题，RGB565会量化到屏幕实际能显示的颜色。 */
-/* 取RGB565转换后仍偏浅蓝的一档，避免红/蓝已满而绿色少一档时底色泛粉。 */
-#define UI_BG       0xF3FAFF
+/* 略暖的中性白底，蓝色及深色字继续提亮；统一在flush末端抖色量化到RGB565。
+ * 背景只轻微减少蓝分量，保留仪器界面的洁净感，不把白色面板染黄。 */
+#define UI_BG       0xFAF9F6
 #define UI_PANEL    0xFFFFFF
 #define UI_PLOT     0xC5D9EB
 #define UI_GRID     0xB3C9DB
-#define UI_BORDER   0xDCE8F6
+#define UI_BORDER   0xE0E5EA
 #define UI_WHITE    0xFFFFFF
-#define UI_INK      0x60768E
-#define UI_MUTED    0x7D94AC
-#define UI_UNIT     0x6B80A2
-#define UI_CYAN     0x7DBEFF
-#define UI_WIFI     0x69AFFF
+#define UI_INK      0x78899B
+#define UI_MUTED    0x8E9DAC
+#define UI_UNIT     0x8795A8
+#define UI_CYAN     0x98CBFA
+#define UI_WIFI     0x87BCF5
 #define UI_YELLOW   0xFFFF62
 #define UI_TAG      0x809AB4
-#define UI_SELECTED 0x217AFF
+#define UI_SELECTED 0x98CBFA
 #define UI_GREEN    0x8ADCB0
 #define UI_PURPLE   0xBAA6F5
+/* 尺寸线覆盖在浅色背景和金属工件上，单独使用深蓝灰，保证线与数字都清楚。 */
+#define UI_DIMENSION 0x49627A
 
-/* LVGL内部先用完整的8位颜色做透明混合，最后才转RGB565。
+/* LVGL局部缓冲用完整的8位颜色做透明混合，flush最后才转RGB565。
  * 不在混合前把白色预先压成248/252/248，否则半透明文字、高光会再次损失亮度。
  * 深色文字采用蓝灰色，避免本屏上接近纯黑的笔画显得过重；纯白仍能输出0xFFFF。 */
 static inline lv_color_t ui_color(uint32_t rgb)

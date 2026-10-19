@@ -119,7 +119,9 @@ static void completed(void *context,const MeasurementResult *result)
         else ++m->failed;
     }
     if(!persist(u))u->page->automatic=false;
-    summary(u);u->next_auto_ms=lv_tick_get()+700U;
+    /* 结果完成后至少留2.5秒阅读时间，再请求下一件；使用期限比较，不阻塞GUI触摸。
+     * 下一轮采集仍保留上一份有效结果，只有新结果完成才替换数值与结论。 */
+    summary(u);u->next_auto_ms=lv_tick_get()+2500U;
     /* 保存失败会停止自动检测，同步按钮文字和禁用状态，不能留下“停止”假象。 */
     measurement_page_set_backend(u->page,&u->page->backend);
 }
@@ -133,7 +135,7 @@ static void apply(DashboardUI *u)
     measurement_page_set_device(u->page,u->page->session.connected,instrument_calibration_ready(u->model));
 }
 /* 自动模式发起下一次请求的入口。真实相机接入后应由后端保证一件工件只回报一次；
- * 目前700ms间隔只是模拟重复检测，不能当成产线工件去重或真实检测速度。 */
+ * 目前2.5秒阅读间隔只是模拟重复检测，不能当成产线工件去重或真实检测速度。 */
 void dashboard_action(DashboardUI *u)
 {
     if(!u||u->page->selected_navigation>=2)return;
@@ -458,6 +460,12 @@ void dashboard_create(DashboardUI *u,MeasurementPage *p,InstrumentModel *m,const
     lv_obj_set_pos(u->keyboard,7,121);lv_obj_set_size(u->keyboard,466,192);
     lv_obj_set_style_bg_color(u->keyboard,ui_color(UI_BG),0);lv_obj_set_style_bg_color(u->keyboard,ui_color(UI_PANEL),LV_PART_ITEMS);
     lv_obj_set_style_text_color(u->keyboard,ui_color(UI_INK),LV_PART_ITEMS);
+    /* 键盘的确认/切换键使用CHECKED样式，默认主题会把它们重新画成深灰黑。
+     * 单独覆盖该状态及按下状态，让特殊键也沿用浅色主题；按键含义不变。 */
+    lv_obj_set_style_bg_color(u->keyboard,ui_color(0xEAECE9),LV_PART_ITEMS|LV_STATE_CHECKED);
+    lv_obj_set_style_text_color(u->keyboard,ui_color(UI_INK),LV_PART_ITEMS|LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(u->keyboard,ui_color(0xDCEBFA),LV_PART_ITEMS|LV_STATE_PRESSED);
+    lv_obj_set_style_text_color(u->keyboard,ui_color(UI_INK),LV_PART_ITEMS|LV_STATE_PRESSED);
     lv_keyboard_set_mode(u->keyboard,LV_KEYBOARD_MODE_NUMBER);lv_keyboard_set_textarea(u->keyboard,NULL);
     lv_obj_set_ext_click_area(u->keyboard,7);lv_obj_set_adv_hittest(u->keyboard,true);
     u->keyboard_pressed_key=LV_BUTTONMATRIX_BUTTON_NONE;

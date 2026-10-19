@@ -22,4 +22,6 @@ LV_FONT_DECLARE(ui_font_12);
 LV_FONT_DECLARE(ui_font_14_bold);
 LV_FONT_DECLARE(ui_icons_16);
 LV_FONT_DECLARE(ui_icons_20);
+/* 页脚专用16px轻轮廓，与标题区域的实心图标分开，保持按钮视觉比例。 */
+LV_FONT_DECLARE(ui_footer_icons_16);
 #endif

@@ -58,7 +58,7 @@ static void arrow(lv_layer_t *l,int x,int y,int dx,int dy,uint32_t color)
     d.p[2]=(lv_point_precise_t){x+dx*5+dy*3,y+dy*5-dx*3};lv_draw_triangle(l,&d);
 }
 /* 位图资源直接从Flash读入LVGL的局部绘图流程；变换只分配小条带，
- * 没有创建整屏RGBA缓存，继续沿用已验收的480×20 RGB565刷新路径。 */
+ * 没有创建整屏RGBA缓存；局部RGB888混合后由flush统一量化成屏幕RGB565。 */
 static void image_xy(lv_layer_t *l,const lv_image_dsc_t *src,int x,int y,int sx,int sy)
 {
     lv_draw_image_dsc_t d;lv_draw_image_dsc_init(&d);d.src=src;
@@ -73,7 +73,7 @@ static void draw(lv_event_t *e)
     GeometryView *v=lv_event_get_user_data(e);lv_layer_t *l=lv_event_get_layer(e);
     lv_area_t a;lv_obj_get_coords(v->object,&a);int ox=a.x1,oy=a.y1;
     int width=lv_area_get_width(&a);
-    /* 在屏幕最终分辨率生成RGB565，避免146×116贴图放大后把色阶放成方块。 */
+    /* 在屏幕最终分辨率生成RGB888，避免低分辨率放大及提前565量化形成方块。 */
     ui_skin_draw_plot(l,ox,oy,v->quality_mode);
     /* 细网格与背景只保留很小亮度差；避免首版过亮、过密的棋盘效果。 */
     if(v->show_grid) {
@@ -95,14 +95,16 @@ static void draw(lv_event_t *e)
     ui_text(l,ox+width-72,oy+211,65,&ui_font_12,UI_WHITE,scale_text,LV_TEXT_ALIGN_LEFT);
     /* 普通页没有参考图之外的“工件测量预览”标题条；质检才显示自动状态。 */
     if(v->quality_mode) {
-        ui_rect(l,ox+5,oy+5,87,20,0x5B96C8,230,9,0,0);
-        ui_arc(l,ox+16,oy+13,5,2,UI_WHITE,0,360);
-        ui_line(l,ox+16,oy+6,ox+16,oy+20,0x397EB8,1);ui_line(l,ox+9,oy+13,ox+23,oy+13,0x397EB8,1);
-        ui_text(l,ox+25,oy+7,66,&ui_font_12,UI_WHITE,v->automatic?"自动检测中":"质检已停止",LV_TEXT_ALIGN_LEFT);
-        ui_text(l,ox+8,oy+28,185,&ui_font_12,UI_WHITE,v->automatic?"已识别工件，正在检测...":"点击启动，等待检测",LV_TEXT_ALIGN_LEFT);
+        /* 加宽并放大启停状态；提示另用灰字，避免白字在浅色预览底上消失。
+         * 自动状态只表示流程已启动，不能在没有相机证据时宣称已识别工件。 */
+        ui_rect(l,ox+5,oy+5,114,24,0x5B96C8,230,11,0,0);
+        ui_arc(l,ox+17,oy+17,5,2,UI_WHITE,0,360);
+        ui_line(l,ox+17,oy+10,ox+17,oy+24,0x397EB8,1);ui_line(l,ox+10,oy+17,ox+24,oy+17,0x397EB8,1);
+        ui_text(l,ox+30,oy+9,83,&ui_font_14_bold,UI_WHITE,v->automatic?"自动检测中":"质检已停止",LV_TEXT_ALIGN_LEFT);
+        ui_text(l,ox+8,oy+34,185,&ui_font_12,UI_INK,v->automatic?"等待工件，自动检测中":"点击启动，等待检测",LV_TEXT_ALIGN_LEFT);
     }
     if(!v->has_geometry||!v->show_contour) {
-        ui_text(l,ox+40,oy+107,212,&ui_font_14_bold,UI_WHITE,
+        ui_text(l,ox+40,oy+107,212,&ui_font_14_bold,UI_INK,
             v->show_contour?"放置工件后开始测量":"轮廓已隐藏",LV_TEXT_ALIGN_CENTER);return;
     }
     GeometryLayout p=v->layout;
@@ -140,7 +142,8 @@ static void draw(lv_event_t *e)
     for(int y=oy+3;y<oy+230;y+=9)ui_line(l,p.cx,y,p.cx,y+4,0xD7E6F0,1);
     ui_line(l,p.cx-6,p.cy,p.cx+6,p.cy,UI_WHITE,1);ui_line(l,p.cx,p.cy-6,p.cx,p.cy+6,UI_WHITE,1);
     if(!v->show_dimensions)return;
-    uint32_t c=v->quality_mode?0xAEFF76:0xFFFF63;
+    /* 两种模式共用深色尺寸线、箭头和尺寸数字，浅底及内孔处都有足够对比。 */
+    uint32_t c=UI_DIMENSION;
     ui_line(l,p.x1,p.dimension_y-4,p.x1,ring?p.cy:p.y1,c,1);
     ui_line(l,p.x2,p.dimension_y-4,p.x2,ring?p.cy:p.y1,c,1);
     ui_line(l,p.x1,p.dimension_y,p.x2,p.dimension_y,c,1);

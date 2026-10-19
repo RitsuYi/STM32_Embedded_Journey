@@ -25,8 +25,10 @@ def convert(node, converter, name, size, font, symbols):
     source = source.replace(".subpx = LV_FONT_SUBPX_NONE,",
                             ".static_bitmap = 1, /* 无压缩只读字形，不在RAM常驻整份字体。 */\n"
                             "    .subpx = LV_FONT_SUBPX_NONE,")
-    source = ("/* 屏幕原尺寸字形；官方lv_font_conv 1.5.3，4bpp、强网格微调、无缩放。\n"
-              " * Noto Sans SC或Font Awesome的来源/许可见本目录README及source/。 */\n" + source)
+    # 原创页脚轮廓与第三方字体来源分别标明，避免给原创图标附上错误的来源说明。
+    origin = (" * 原创页脚轮廓来自tools/build_ui_icon_font.cjs。 */\n" if name == "ui_footer_icons_16" else
+              " * Noto Sans SC或Font Awesome的来源/许可见本目录README及source/。 */\n")
+    source = ("/* 屏幕原尺寸字形；官方lv_font_conv 1.5.3，4bpp、强网格微调、无缩放。\n" + origin + source)
     target.write_text(source, encoding="utf-8")
     print(name, "pixels=", size, "glyphs=", len(symbols))
 
@@ -59,6 +61,10 @@ def main():
     icon_font = ROOT / "build/FontTools/fonts/MeasurementUIIcons.ttf"
     for size in (16, 20):
         convert(args.node, args.converter, f"ui_icons_{size}", size, icon_font, icons)
+    # 页脚使用独立的轻轮廓字形；统一16px方框，原尺寸取字，避免大实心图标失衡。
+    convert(args.node, args.converter, "ui_footer_icons_16", 16,
+            ROOT / "build/FontTools/fonts/MeasurementFooterIcons.ttf",
+            {chr(c) for c in range(0xE101, 0xE106)})
 
 
 if __name__ == "__main__":
