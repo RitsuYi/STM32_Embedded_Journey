@@ -23,6 +23,29 @@ static uint32_t rx_recover_until;
 static unsigned transient_offline;
 static bool stuck_receiver, suppress_pongs, large_reads;
 static uint32_t first_timeout_age;
+/* 同一正式接收入口先收到错误、再收到健康快照：旧错误必须随恢复清除。
+ * 扫描失败独立于是否联网，不能因后来一个正常心跳就丢掉缺项提示。 */
+static void wifi_error_recovery_contract(void)
+{
+    CameraNetworkState saved=network;
+    uint8_t state[8]={0};put32(state,local_session);
+    network.scan=CAMERA_SCAN_IDLE;network.error=CAMERA_NET_OK;
+    state[4]=CAMERA_WIFI_UNKNOWN;state[7]=1;
+    receive_frame(WIFI_STATE,0,camera_session,state,sizeof(state),ticks);
+    assert(network.error==CAMERA_NET_REJECTED);
+    state[4]=CAMERA_WIFI_CONNECTED;state[7]=0;
+    receive_frame(WIFI_STATE,0,camera_session,state,sizeof(state),ticks);
+    assert(network.error==CAMERA_NET_OK && network.online);
+    network.error=CAMERA_NET_TIMEOUT;
+    state[4]=CAMERA_WIFI_OFFLINE;
+    receive_frame(WIFI_STATE,0,camera_session,state,sizeof(state),ticks);
+    assert(network.error==CAMERA_NET_OK && network.wifi==CAMERA_WIFI_OFFLINE);
+    network.scan=CAMERA_SCAN_FAILED;network.error=CAMERA_NET_INCOMPLETE;
+    receive_frame(WIFI_STATE,0,camera_session,state,sizeof(state),ticks);
+    assert(network.scan==CAMERA_SCAN_FAILED && network.error==CAMERA_NET_INCOMPLETE);
+    network=saved;publish();
+    puts("PASS: current Wi-Fi health clears stale errors and retains independent scan failure");
+}
 uint32_t HAL_GetTick(void) { return ticks; }
 uint32_t HAL_GetUIDw0(void) { return 0x10; }
 uint32_t HAL_GetUIDw1(void) { return 0x20; }
@@ -133,6 +156,7 @@ int main(int argc,char **argv)
         assert(result.scan==CAMERA_SCAN_FAILED && result.count==0);
         assert(result.error==CAMERA_NET_INCOMPLETE);
     }
+    wifi_error_recovery_contract();
     /* 实际F407编码最坏64B密码转义，让Python相机真实解析，检查字符不会丢失。 */
     assert(!valid_name((const uint8_t *)"\xED\xA0\x80",3));
     assert(!valid_name((const uint8_t *)"\xF0\xA0",2));

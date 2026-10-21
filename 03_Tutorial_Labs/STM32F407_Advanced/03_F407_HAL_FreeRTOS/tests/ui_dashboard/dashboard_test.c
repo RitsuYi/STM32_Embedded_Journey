@@ -588,6 +588,36 @@ static void wifi_scan_contract(void)
     dashboard_set_network(&ui,NULL);dashboard_close(&ui);advance(250);
     puts("PASS: Wi-Fi scan/SSID isolation; pending target survives offline, success at 7s, timeout at 15s, late success and cancel");
 }
+/* 检查页面真正展示的最后一个标签，不以connected布尔值代替用户看到的文字。 */
+static const char *wifi_footer(void)
+{
+    return lv_label_get_text(lv_obj_get_child(ui.body,(int32_t)lv_obj_get_child_count(ui.body)-1));
+}
+static void wifi_footer_contract(void)
+{
+    CameraNetworkState state={.online=1,.wifi=CAMERA_WIFI_CONNECTED,.error=CAMERA_NET_REJECTED};
+    snprintf(state.ssid,sizeof(state.ssid),"Lab_WiFi");snprintf(state.ip,sizeof(state.ip),"192.0.2.5");
+    /* 复现旧快照/旧提示仍携带错误，但本轮实际已经联网的现场矛盾。 */
+    snprintf(ui.message,sizeof(ui.message),"网络暂不可用，请重试。");
+    dashboard_network_update(&ui,&state);dashboard_open(&ui,DASH_NETWORK);advance(250);
+    CHECK(ui.connected&&!strcmp(wifi_footer(),"Wi-Fi 已连接"));
+    lv_obj_scroll_to_view(lv_obj_get_child(ui.body,-1),LV_ANIM_OFF);advance(30);
+    screenshot("wifi_footer_connected.ppm");
+    /* 失败和恢复都要显示；不能简单删除错误提示来掩盖实际故障。 */
+    state.wifi=CAMERA_WIFI_OFFLINE;dashboard_network_update(&ui,&state);
+    CHECK(!strcmp(wifi_footer(),"网络暂不可用，请重试。"));
+    screenshot("wifi_footer_unavailable.ppm");
+    state.wifi=CAMERA_WIFI_CONNECTED;state.error=0;dashboard_network_update(&ui,&state);
+    CHECK(!strcmp(wifi_footer(),"Wi-Fi 已连接"));
+    state.scan=CAMERA_SCAN_FAILED;state.error=CAMERA_NET_INCOMPLETE;
+    dashboard_network_update(&ui,&state);CHECK(strstr(wifi_footer(),"列表不完整"));
+    state.scan=CAMERA_SCAN_IDLE;state.error=0;state.wifi=CAMERA_WIFI_OFFLINE;
+    dashboard_network_update(&ui,&state);CHECK(!strcmp(wifi_footer(),"未连接Wi-Fi，请选择网络。"));
+    state.online=0;state.error=CAMERA_NET_LINK_LOST;dashboard_network_update(&ui,&state);
+    CHECK(!strcmp(wifi_footer(),"网络暂不可用，请重试。"));
+    dashboard_close(&ui);advance(250);
+    puts("PASS: Wi-Fi footer follows live state, recovers from errors, preserves scan failure and healthy offline");
+}
 static bool reject_save(void *context,const InstrumentModel *m){(void)context;(void)m;return false;}
 static bool silent_backend(void *context,uint32_t id,MeasurementGeometry geometry)
 {(void)context;(void)id;(void)geometry;return true; /* 模拟已受理但不回结果的相机。 */}
@@ -773,12 +803,13 @@ static void update_entry_contract(void)
 }
 static void font_check(void)
 {
-    const char *strings[]={"质检合格标准设定当前检测结果累计统计最近检测记录智能视觉测量仪测量设置","网络密码设备信息目标上下偏差断开连接检查更新当前版本固件升级服务暂未接入连接中连接等待超时请检查网络状态联网接口未接入或请求忙"};
+    const char *strings[]={"质检合格标准设定当前检测结果累计统计最近检测记录智能视觉测量仪测量设置","网络密码设备信息目标上下偏差断开连接检查更新当前版本固件升级服务暂未接入连接中连接等待超时请检查网络状态连接失败请重试网络暂不可用扫描暂不可用正在扫描附近网络请稍候未连接Wi-Fi请选择网络"};
     for(unsigned f=0;f<2;++f)for(unsigned i=0;i<2;++i){
         const lv_font_t *font=f==0?&ui_font_12:&ui_font_14_bold;
         const char *p=strings[i];while(*p){uint32_t cp;unsigned char c=(unsigned char)*p++;
             if(c<128)cp=c;else{cp=c&15;cp=(cp<<6)|((unsigned char)*p++&63);cp=(cp<<6)|((unsigned char)*p++&63);}
-            lv_font_glyph_dsc_t d;if(!lv_font_get_glyph_dsc(font,&d,cp,0)) {fprintf(stderr,"Missing glyph U+%04lx font %u\n",(unsigned long)cp,f);exit(1);}}
+            /* LVGL缺字时可能返回占位方框，不能只看API是否返回true。 */
+            lv_font_glyph_dsc_t d;if(!lv_font_get_glyph_dsc(font,&d,cp,0)||d.is_placeholder) {fprintf(stderr,"Missing glyph U+%04lx font %u\n",(unsigned long)cp,f);exit(1);}}
     }
     /* 图标必须来自独立字体的真实字形，不能由缺字占位框或中文fallback冒充。 */
     const uint32_t icons[]={0xE001,0xF013,0xF545,0xF3ED,0xF46C,0xF080,0xF15C,0xF1EB,0xF00E,
@@ -950,6 +981,7 @@ int main(void)
     screenshot("wifi.ppm");tap(ui.rows[1]);CHECK(disconnects==1&&ui.connected);
     dashboard_network_status(&ui,false,NULL,NULL);CHECK(!ui.connected);
     wifi_scan_contract();
+    wifi_footer_contract();
     dashboard_open(&ui,DASH_DEVICE);advance(250);screenshot("device.ppm");
     /* 公差边界两端都合格，超出一单位失败；无效测量不能合格。 */
     InstrumentSettings s=model.settings;MeasurementResult q={.geometry=MEASUREMENT_RING,.primary_cmm=2980,.secondary_cmm=1190,.status=MEASUREMENT_VALID};

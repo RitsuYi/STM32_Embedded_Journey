@@ -192,6 +192,12 @@ static void receive_frame(uint8_t kind,uint16_t seq,uint32_t session,
         memcpy(network.ssid,p+8,p[5]); network.ssid[p[5]]=0;
         memcpy(network.ip,p+8+p[5],p[6]); network.ip[p[6]]=0;
         if (p[7] && network.error==CAMERA_NET_OK) network.error=CAMERA_NET_REJECTED;
+        /* p[7]是本次Wi-Fi快照的错误标志，不是永久故障锁存。
+         * 后台恢复后清除旧拒绝/超时；扫描失败仍由自己的完成结果负责，
+         * 不能用一个正常Wi-Fi心跳掩盖列表缺项或扫描失败。 */
+        else if (!p[7] && network.scan!=CAMERA_SCAN_FAILED &&
+                 (network.error==CAMERA_NET_REJECTED || network.error==CAMERA_NET_TIMEOUT))
+            network.error=CAMERA_NET_OK;
         publish(); return;
     }
     if (kind==ACK && pending.kind && seq==command_seq && json_number(p,n,"peer_session",&peer) &&

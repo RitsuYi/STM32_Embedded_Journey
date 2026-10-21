@@ -514,9 +514,16 @@ static void render(DashboardUI *u)
         row(u,1,y,"断开网络",u->network.disconnect?"断开连接  >":"暂不可用");y+=47;
         const char *message=u->message;
         if(!u->connect_requested) {
-            if(u->wireless.scan==CAMERA_SCAN_DONE)message=u->wireless.count?"请选择网络；可向上滑动查看列表。":"未发现网络，可刷新或手动输入。";
-            if(u->wireless.scan==CAMERA_SCAN_FAILED)message=u->wireless.error==CAMERA_NET_INCOMPLETE?"网络列表不完整，请刷新重试。":"扫描失败，请刷新重试。";
-            else if(u->wireless.error)message="网络暂不可用，请重试。";
+            /* 没有用户连接请求在等待时，提示由当前状态决定，不沿用旧操作文字。
+             * 扫描失败仅说明本次列表有问题；已连接不能被历史错误说成网络不可用。 */
+            if(scanning)message="正在扫描附近网络，请稍候";
+            else if(u->wireless.scan==CAMERA_SCAN_FAILED)message=u->wireless.error==CAMERA_NET_INCOMPLETE?"网络列表不完整，请刷新重试。":"扫描失败，请刷新重试。";
+            else if(u->connected)message="Wi-Fi 已连接";
+            else if(u->connecting)message="正在连接网络，请稍候";
+            else if(u->wireless.wifi==CAMERA_WIFI_DISCONNECTING)message="正在断开网络，请稍候";
+            else if(!u->wireless.online||u->wireless.error)message="网络暂不可用，请重试。";
+            else if(u->wireless.scan==CAMERA_SCAN_DONE)message=u->wireless.count?"请选择网络；可向上滑动查看列表。":"未发现网络，可刷新或手动输入。";
+            else message="未连接Wi-Fi，请选择网络。";
         }
         label(u->body,16,y,425,*message?message:"点击刷新获取附近的Wi-Fi列表。",false,UI_MUTED);
     } else if(u->menu==DASH_UPDATE) {

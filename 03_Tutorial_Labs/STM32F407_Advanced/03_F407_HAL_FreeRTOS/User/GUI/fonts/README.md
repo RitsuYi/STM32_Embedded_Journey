@@ -20,4 +20,6 @@ python tools/generate_screen_fonts.py
 
 Python在当前步骤只使用标准库调用转换器；`--regular/--bold/--node/--converter`可指定本机路径。字形覆盖、数字宽度、图标边界、Wi-Fi状态及1/7/20行重绘一致性由`tests/ui_dashboard`核查。主机清晰度不等于LCD实物已验收。
 
+文案新增汉字后运行`python tools/generate_screen_fonts.py --text-only`，只为12px正文和14px标题补齐当前页面用字，同时保留已有字形，不重建数字/图标。修改字符串不会自动更新编入固件的裁剪字库；GUI回归还会检查关键文案不能落到缺字占位方框。
+
 2026-10-19页脚比例整改：新增`ui_footer_icons_16`，只含5个原创矢量轮廓（U+E101盾牌勾、E102直尺、E103齿轮、E104播放、E105停止）。路径在`tools/build_ui_icon_font.cjs`中按16×16设计，再经同一转换器直接输出16px/4bpp；播放/停止的实际图形略小。不是Font Awesome派生字形，也没有把20px位图缩小。标题区保留原完整图标，页脚按16px图标+8px间距+当前文字组合居中；测试确认每个新字形落在16px框内，两布局1/7/13/20行与裁剪重绘一致。

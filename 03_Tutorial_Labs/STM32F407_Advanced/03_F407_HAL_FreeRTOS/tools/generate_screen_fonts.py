@@ -40,6 +40,8 @@ def main():
                         default=ROOT / "build/FontTools/node_modules/lv_font_conv/lv_font_conv.js")
     parser.add_argument("--regular", type=Path, default=Path("C:/Windows/Fonts/Noto Sans SC (TrueType).otf"))
     parser.add_argument("--bold", type=Path, default=Path("C:/Windows/Fonts/Noto Sans SC Bold (TrueType).otf"))
+    parser.add_argument("--text-only", action="store_true",
+                        help="只为12px正文和14px标题补齐界面字形，保留已有字形和其他字体")
     args = parser.parse_args()
     chars = set(chr(c) for c in range(32, 127))
     for relative in ["measurement/measurement_page.c", "measurement/geometry_view.c", "instrument/dashboard_ui.c"]:
@@ -47,8 +49,20 @@ def main():
         source = re.sub(r"/\*.*?\*/|//[^\n]*", "", source, flags=re.S)
         for literal in re.findall(r'"(?:\\.|[^"\\])*"', source):
             chars.update(c for c in literal if ord(c) >= 127 and c not in "\r\n")
+    if args.text_only:
+        # 转换器在文件头记录了原--symbols字符表。补字时保留它，
+        # 避免删除其他页面仍可能使用的旧字；数字和图标字体也不必重建。
+        for name in ("ui_font_12", "ui_font_14_bold"):
+            previous = (OUT / (name + ".c")).read_text(encoding="utf-8")
+            symbols = re.search(r"--symbols (.*?) --autohint-strong", previous)
+            if not symbols:
+                raise ValueError("font_symbols_metadata_missing: " + name)
+            chars.update(symbols.group(1))
     convert(args.node, args.converter, "ui_font_12", 12, args.regular, chars)
     convert(args.node, args.converter, "ui_font_14_bold", 14, args.bold, chars)
+    # 文案改动只需更新这两份汉字子集，避免无关字体/图标资源也被重写。
+    if args.text_only:
+        return
     # 16px用于主标题和统计；26px只放尺寸数字，均直接按目标尺寸取字，取消84%压缩。
     title_chars = set(chr(c) for c in range(32, 127)) | set("智能视觉测量仪合格不合格待检测")
     convert(args.node, args.converter, "ui_font_16_bold", 16, args.bold, title_chars)
