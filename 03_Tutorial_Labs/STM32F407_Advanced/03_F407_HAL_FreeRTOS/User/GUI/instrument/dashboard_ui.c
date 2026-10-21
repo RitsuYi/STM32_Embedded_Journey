@@ -1,6 +1,7 @@
 #include "dashboard_ui.h"
 #include "../measurement/ui_draw.h"
 #include "../fonts/measurement_fonts.h"
+#include "../gui_version.h"
 #include "src/core/lv_obj_event_private.h"
 #include "src/widgets/buttonmatrix/lv_buttonmatrix_private.h"
 #include <stdio.h>
@@ -11,12 +12,38 @@
 
 /* 二级页面共用一个可垂直滚动的容器，每次仅创建当前菜单。
  * 历史采用8条一段的滚动列表，64条记录不会同时占用LVGL的52KiB内存池。
- * 页面从右侧滑入/滑出，列表保留惯性滑动，手指拖动不会误当成按钮点击。 */
+ * 页面从右侧滑入，返回时直接显示准备好的主页，减少SPI连续整页传输。
+ * 列表保留惯性滑动，手指拖动不会误当成按钮点击。 */
 enum { EDIT_OFF, EDIT_TARGET, EDIT_SAMPLES_NEW, EDIT_TIMEOUT_NEW, EDIT_RESIDUAL_NEW,
        EDIT_SSID, EDIT_PASSWORD };
 static void render(DashboardUI *u);
 static void apply(DashboardUI *u);
 static void row_event(lv_event_t *e);
+/* 字体只带界面需要的中文，不能为任意热点常驻整套中文字库。
+ * 缺字显示为Unicode编号，真实SSID仍原样保存、连接；ASCII/已有字形正常显示。 */
+static void hotspot_name(char *out,size_t capacity,const char *ssid)
+{
+    size_t written=0;
+    const unsigned char *p=(const unsigned char *)ssid;
+    while(*p&&written+1<capacity) {
+        unsigned bytes=*p<0x80?1:(*p&0xE0)==0xC0?2:(*p&0xF0)==0xE0?3:4;
+        uint32_t code=*p&((1U<<(7U-bytes))-1U);
+        if(bytes==1)code=*p;
+        for(unsigned i=1;i<bytes;++i)code=(code<<6)|(p[i]&0x3F);
+        lv_font_glyph_dsc_t glyph;
+        bool present=lv_font_get_glyph_dsc(&ui_font_14_bold,&glyph,code,0)&&!glyph.is_placeholder;
+        if(present) {
+            if(written+bytes>=capacity)break;
+            memcpy(out+written,p,bytes);written+=bytes;
+        } else {
+            int n=snprintf(out+written,capacity-written,"\\u%04" PRIX32,code);
+            if(n<0||(size_t)n>=capacity-written)break;
+            written+=(size_t)n;
+        }
+        p+=bytes;
+    }
+    out[written]=0;
+}
 /* 历史表格一行只占一个按钮对象，五列文字在绘图时按固定列宽绘制，
  * 不为64条历史各分配五个标签，减少F407内存和菜单滑入时的绘图峰值。 */
 static void draw_record(lv_event_t *e)
@@ -65,6 +92,28 @@ static void note(DashboardUI *u,const char *s)
 {
     snprintf(u->message,sizeof(u->message),"%s",s);
     measurement_page_show_notice(u->page,s,false);
+}
+/* 所有联网等待都在现有GUI任务中推进；转场/密码输入期间只保存状态。
+ * 普通状态变化保留列表滚动位置，不因心跳跳回页面顶部。 */
+static void refresh_network(DashboardUI *u)
+{
+    if(u->edit||lv_obj_is_hidden(u->panel)||(u->menu!=DASH_NETWORK&&u->menu!=DASH_UPDATE))return;
+    if(u->animating)u->menu_dirty=true;
+    else {
+        int32_t scroll=lv_obj_get_scroll_y(u->body);
+        render(u);lv_obj_scroll_to_y(u->body,scroll,LV_ANIM_OFF);
+    }
+}
+/* true只代表请求已入队，不能提前显示连接成功。密码仍由调用处立即清零。
+ * 15秒仅限制界面等待，不截断相机的认证/自动重连；迟到的真实成功仍可显示。 */
+static void connect_feedback(DashboardUI *u,bool accepted)
+{
+    if(accepted) {
+        u->connect_requested=true;u->connecting=true;u->connect_started_ms=lv_tick_get();
+        snprintf(u->connecting_ssid,sizeof(u->connecting_ssid),"%s",u->target_ssid);
+    }
+    note(u,accepted?"正在连接网络，请稍候":"连接失败，请重试");
+    render(u);
 }
 static bool idle(DashboardUI *u)
 {
@@ -177,6 +226,11 @@ static void timer_tick(lv_timer_t *t)
 {
     DashboardUI *u=lv_timer_get_user_data(t);MeasurementPage *p=u->page;
     uint32_t now=lv_tick_get();
+    /* 无符号减法允许毫秒计数回绕；即使没有新串口状态，也会到期退出等待。
+     * 复用100ms定时器，不额外创建RTOS任务、定时器或动态缓冲。 */
+    if(u->connect_requested&&u->connecting&&now-u->connect_started_ms>=15000U) {
+        u->connecting=false;note(u,"连接等待超时，请检查网络状态。");refresh_network(u);
+    }
     if(u->header_second!=now/1000U) {
         u->header_second=now/1000U;
         p->clock_seconds=u->header_second;
@@ -195,14 +249,6 @@ static void timer_tick(lv_timer_t *t)
     }
 }
 static void slide_x(void *object,int32_t x) {lv_obj_set_x(object,x);}
-static void closed(lv_anim_t *a)
-{
-    DashboardUI *u=lv_anim_get_user_data(a);lv_obj_set_hidden(u->panel,true);
-    u->animating=false;u->closing=false;
-    measurement_page_pause_presentation(u->page,false);summary(u);
-    /* 底图已准备好后才归还输入，避免结束帧与新的触摸操作交叉。 */
-    lv_obj_set_clickable(u->transition_guard,false);
-}
 static void opened(lv_anim_t *a)
 {
     DashboardUI *u=lv_anim_get_user_data(a);u->animating=false;
@@ -211,15 +257,15 @@ static void opened(lv_anim_t *a)
         render(u);lv_obj_scroll_to_y(u->body,scroll,LV_ANIM_OFF);
     }
 }
-static void slide(DashboardUI *u,bool close)
+static void slide_in(DashboardUI *u)
 {
     lv_anim_delete(u->panel,slide_x);lv_anim_t a;lv_anim_init(&a);
     lv_anim_set_var(&a,u->panel);lv_anim_set_exec_cb(&a,slide_x);
-    /* 动画被返回/再次打开打断时从当前位置继续，避免跳回屏幕外再进场。 */
-    lv_anim_set_values(&a,lv_obj_get_x(u->panel),close?480:0);
+    /* 可见菜单再次打开时从当前位置滑入；已关闭的菜单由open放回屏幕右侧。 */
+    lv_anim_set_values(&a,lv_obj_get_x(u->panel),0);
     lv_anim_set_duration(&a,180);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
     u->animating=true;lv_anim_set_user_data(&a,u);
-    lv_anim_set_completed_cb(&a,close?closed:opened);
+    lv_anim_set_completed_cb(&a,opened);
     lv_anim_start(&a);
 }
 void dashboard_open(DashboardUI *u,DashboardMenu menu)
@@ -237,22 +283,32 @@ void dashboard_open(DashboardUI *u,DashboardMenu menu)
     lv_obj_set_hidden(u->panel,false);lv_obj_move_foreground(u->panel);
     render(u);lv_obj_scroll_to_y(u->body,0,LV_ANIM_OFF);
     lv_obj_update_layout(u->panel);
-    if(hidden || lv_obj_get_x(u->panel)!=0)slide(u,false);
+    if(hidden || lv_obj_get_x(u->panel)!=0)slide_in(u);
     else u->animating=false;
 }
 void dashboard_close(DashboardUI *u)
 {
     if(!u||u->closing||lv_obj_is_hidden(u->panel))return;
-    /* 恢复主画面后，覆盖层仍拦截触摸直到滑出完成，不会点穿到底部按钮。 */
+    /* 返回不再逐帧移动菜单。先取消可能仍在执行的滑入，防止旧动画回调
+     * 在关闭后继续移动菜单；closing只防止本次状态整理被重复调用。 */
+    u->closing=true;lv_anim_delete(u->panel,slide_x);u->animating=false;
+    lv_obj_stop_scroll_anim(u->body);
     u->page->selected_navigation=u->last_main;
     lv_obj_set_hidden(u->page->geometry.object,false);lv_obj_set_hidden(u->page->result_panel,false);
-    /* 在菜单仍盖住主页时准备最新结果/按钮；滑出期间固定这一份底图。
-     * 列表的惯性只暂停到当前位置，不让列表滚动和整页移动同时争用刷新。 */
-    lv_obj_stop_scroll_anim(u->body);
+    /* 菜单仍盖着主页时，解除显示合并并提交最新轮廓、统计、结果及按钮。
+     * 业务一直在运行，这里只把被覆盖期间积累的最终状态同步到控件。 */
     measurement_page_pause_presentation(u->page,false);summary(u);
     measurement_page_set_backend(u->page,&u->page->backend);
-    measurement_page_pause_presentation(u->page,true);
-    u->closing=true;slide(u,true);
+    /* 在同一次GUI调用内最后隐藏菜单，再归还输入。LVGL随后正常刷新最终
+     * 主页，不创建180ms返回动画；SPI仍按条带发送，不代表屏幕瞬时整页替换。 */
+    lv_obj_set_hidden(u->panel,true);
+    /* 恢复旧版退出后的屏外位置，进入函数和180ms滑入保持原样。
+     * set_x只登记目标位置，update_layout才真正移动对象；必须在隐藏期间
+     * 完成这两步，否则下次显示菜单会按旧X=0申请一次整菜单重绘。
+     * 此处没有位移动画，隐藏对象也不会因复位而发送菜单像素。 */
+    lv_obj_set_x(u->panel,480);lv_obj_update_layout(u->panel);
+    u->menu_dirty=false;u->closing=false;
+    lv_obj_set_clickable(u->transition_guard,false);
 }
 static void navigation(void *context,unsigned destination)
 {
@@ -285,7 +341,7 @@ static void open_editor(DashboardUI *u,unsigned edit,const char *title,const cha
     if(!u->edit)u->edit_scroll=lv_obj_get_scroll_y(u->body);
     lv_obj_clean(u->body);memset(u->rows,0,sizeof(u->rows));
     u->edit=edit;lv_label_set_text(u->editor_title,title);
-    lv_label_set_text(u->editor_hint,edit>=EDIT_SSID?"仅预留联网接口，需后端回报连接状态":"数值单位mm，最多两位小数；右下确认保存");
+    lv_label_set_text(u->editor_hint,edit>=EDIT_SSID?"请输入网络名称和密码":"数值单位mm，最多两位小数；右下确认保存");
     lv_textarea_set_accepted_chars(u->textarea,edit>=EDIT_SSID?NULL:"0123456789.");
     lv_textarea_set_max_length(u->textarea,edit==EDIT_SSID?32:edit==EDIT_PASSWORD?64:12);
     lv_textarea_set_password_mode(u->textarea,edit==EDIT_PASSWORD);
@@ -309,13 +365,14 @@ static void keyboard_event(lv_event_t *e)
     const char *s=lv_textarea_get_text(u->textarea);
     if(u->edit==EDIT_SSID) {
         if(!*s||strlen(s)>=sizeof(u->ssid)) {lv_label_set_text(u->editor_hint,"网络名称需为1至32字节");return;}
-        snprintf(u->ssid,sizeof(u->ssid),"%s",s);open_editor(u,EDIT_PASSWORD,"Wi-Fi 密码","");return;
+        snprintf(u->target_ssid,sizeof(u->target_ssid),"%s",s);open_editor(u,EDIT_PASSWORD,"Wi-Fi 密码","");return;
     }
     if(u->edit==EDIT_PASSWORD) {
+        /* LVGL限制的是字符数，此处再按UTF-8字节验长度，避免截断后发送错误密码。 */
+        if(strlen(s)>=sizeof(u->password)) {lv_label_set_text(u->editor_hint,"密码最多64字节");return;}
         snprintf(u->password,sizeof(u->password),"%s",s);close_editor(u);
-        bool accepted=u->network.connect&&u->network.connect(u->network.context,u->ssid,u->password);
-        memset(u->password,0,sizeof(u->password));u->connecting=accepted;
-        note(u,accepted?"连接请求已发送，等待设备回报":"联网接口未接入，未发起真实连接");render(u);return;
+        bool accepted=u->network.connect&&u->network.connect(u->network.context,u->target_ssid,u->password);
+        memset(u->password,0,sizeof(u->password));connect_feedback(u,accepted);return;
     }
     char *end;double n=strtod(s,&end);
     bool whole=u->edit==EDIT_SAMPLES_NEW||u->edit==EDIT_TIMEOUT_NEW;
@@ -345,14 +402,35 @@ static void row_event(lv_event_t *e)
     unsigned i=(unsigned)(uintptr_t)lv_obj_get_user_data(lv_event_get_target_obj(e));
     char value[28];InstrumentSettings *s=&u->model->settings;
     if(u->menu==DASH_SETTINGS) {
-        static const DashboardMenu dest[]={DASH_NETWORK,DASH_DEVICE,DASH_MEASUREMENT,DASH_DISPLAY,DASH_STANDARDS,DASH_RECORDS};
-        if(i<6) {if(i==5)u->record_offset=0;dashboard_open(u,dest[i]);}return;
+        /* 最后一行只进入更新准备页，不在GUI任务中等待网络或写入固件。 */
+        static const DashboardMenu dest[]={DASH_NETWORK,DASH_DEVICE,DASH_MEASUREMENT,DASH_DISPLAY,DASH_STANDARDS,DASH_RECORDS,DASH_UPDATE};
+        if(i<7) {if(i==5)u->record_offset=0;dashboard_open(u,dest[i]);}return;
     }
     if(u->menu==DASH_NETWORK) {
         if(i==0)open_editor(u,EDIT_SSID,"Wi-Fi 网络名称",u->ssid);
         else if(i==1) {
             bool ok=u->network.disconnect&&u->network.disconnect(u->network.context);
-            note(u,ok?"断开请求已发送，等待设备回报":"联网接口未接入");render(u);
+            if(ok) {u->connect_requested=false;u->connecting=false;}
+            note(u,ok?"正在断开网络，请稍候":"断开失败，请重试");render(u);
+        } else if(i==2) {
+            /* 离线时立即说明原因，不让按钮进入无效的扫描等待。
+             * 相机握手成功后再点击刷新，仍走原静态队列和真实扫描流程。 */
+            if(!u->wireless.online) {
+                u->wireless.scan=CAMERA_SCAN_FAILED;u->wireless.error=CAMERA_NET_LINK_LOST;
+                note(u,"扫描暂不可用，请重试");render(u);return;
+            }
+            bool ok=u->network.scan&&u->network.scan(u->network.context);
+            if(ok) {u->wireless.scan=CAMERA_SCAN_WAITING;u->wireless.count=0;u->wireless.error=0;}
+            note(u,ok?"正在扫描附近网络，请稍候":"扫描失败，请重试");render(u);
+        } else if(i>=8U && i<8U+u->wireless.count) {
+            const CameraAccessPoint *ap=&u->wireless.ap[i-8];
+            snprintf(u->target_ssid,sizeof(u->target_ssid),"%s",ap->ssid);
+            /* 只复制SSID，不把列表标签的显示替代文字作为真实网络名称。 */
+            if(ap->secured) open_editor(u,EDIT_PASSWORD,"Wi-Fi 密码","");
+            else {
+                bool ok=u->network.connect&&u->network.connect(u->network.context,u->target_ssid,"");
+                connect_feedback(u,ok);
+            }
         }
         return;
     }
@@ -385,21 +463,21 @@ static void row_event(lv_event_t *e)
 }
 static void render(DashboardUI *u)
 {
-    /* 只复用同一设置菜单已有的六行；切换到其他菜单仍按原内存策略仅保留当前页。
+    /* 只复用同一设置菜单已有的七行；切换到其他菜单仍按原内存策略仅保留当前页。
      * 文字相同时不调用set_text，避免无意义的分配、布局和整行重绘。 */
     bool reuse=u->menu==DASH_SETTINGS && u->rendered_menu==DASH_SETTINGS && u->rows[0];
     /* 删除的是当前菜单的LVGL对象，涉及内存释放，不是删除任何磁盘文件。 */
     if(!reuse) {lv_obj_clean(u->body);memset(u->rows,0,sizeof(u->rows));}
     u->rendered_menu=u->menu;u->menu_dirty=false;
-    static const char *titles[]={"设置","Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录","检测记录详情"};
+    static const char *titles[]={"设置","Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录","检测记录详情","检查更新"};
     if(strcmp(lv_label_get_text(u->title),titles[u->menu]))lv_label_set_text(u->title,titles[u->menu]);
     char value[128],a[20],b[20];
     InstrumentModel *m=u->model;InstrumentSettings *s=&m->settings;
     int y=4;
     if(u->menu==DASH_SETTINGS) {
-        const char *names[]={"Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录"};
-        const char *vals[]={u->connected?u->ssid:"未连接  >","固件 / 屏幕 / 相机  >","工件 / 采样 / 超时  >","网格 / 标注 / 单位  >","目标尺寸与上下公差  >","滑动查看历史  >"};
-        for(unsigned i=0;i<6;++i) {
+        const char *names[]={"Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录","检查更新"};
+        const char *vals[]={u->connected?u->ssid:"未连接  >","固件 / 屏幕 / 相机  >","工件 / 采样 / 超时  >","网格 / 标注 / 单位  >","目标尺寸与上下公差  >","滑动查看历史  >","当前版本 " GUI_FIRMWARE_VERSION "  >"};
+        for(unsigned i=0;i<7;++i) {
             if(reuse) {
                 lv_obj_t *v=lv_obj_get_child(u->rows[i],1);
                 if(strcmp(lv_label_get_text(v),vals[i]))lv_label_set_text(v,vals[i]);
@@ -407,18 +485,52 @@ static void render(DashboardUI *u)
             y+=45;
         }
     } else if(u->menu==DASH_NETWORK) {
-        label(u->body,16,y,430,u->connected?"当前状态：已连接":u->connecting?"当前状态：连接中":"当前状态：未连接",true,UI_INK);y+=28;
-        snprintf(value,sizeof(value),"SSID：%s",u->connected?u->ssid:"--");label(u->body,16,y,430,value,false,UI_MUTED);y+=23;
-        snprintf(value,sizeof(value),"IP：%s",u->connected?u->ip:"--");label(u->body,16,y,430,value,false,UI_MUTED);y+=29;
-        row(u,0,y,"连接Wi-Fi","输入网络名称和密码  >");y+=46;
-        row(u,1,y,"断开网络",u->network.disconnect?"发送断开请求":"接口预留");y+=47;
-        label(u->body,16,y,425,u->message[0]?u->message:"尚未接入联网模块，不显示虚构热点或连接成功。",false,UI_MUTED);y+=49;
-        label(u->body,16,y,425,"联网后由后端回报SSID和IP；密码不写入检测记录。",false,UI_MUTED);
+        /* 同一滚动容器中最多5个热点行，关闭编辑器会回到原滚动位置。 */
+        memset(u->ap_rows,0,sizeof(u->ap_rows));
+        const char *status=u->connected?"当前状态：已连接":"当前状态：未连接";
+        if(u->wireless.wifi==CAMERA_WIFI_DISCONNECTING)status="当前状态：断开中";
+        if(u->connecting) {
+            char name[97];hotspot_name(name,sizeof(name),u->connect_requested?u->connecting_ssid:u->wireless.ssid);
+            snprintf(value,sizeof(value),"连接中：%s",name);status=value;
+        }
+        lv_label_set_long_mode(label(u->body,16,y,430,status,true,UI_INK),LV_LABEL_LONG_DOT);y+=28;
+        snprintf(value,sizeof(value),"SSID：%s",u->connecting&&u->connect_requested?u->connecting_ssid:u->connected?u->ssid:"--");
+        lv_label_set_long_mode(label(u->body,16,y,430,value,false,UI_MUTED),LV_LABEL_LONG_DOT);y+=23;
+        snprintf(value,sizeof(value),"IP：%s",u->connected&&!u->connecting?u->ip:"--");label(u->body,16,y,430,value,false,UI_MUTED);y+=29;
+        bool scanning=u->wireless.scan==CAMERA_SCAN_WAITING||u->wireless.scan==CAMERA_SCAN_RUNNING;
+        /* 反馈直接放在可见的刷新行，避免提示位于滚动页底部而看起来没有响应。 */
+        const char *scan_text=!u->wireless.online?"扫描暂不可用":scanning?"扫描中，请稍候":
+            u->wireless.scan==CAMERA_SCAN_FAILED?"扫描失败，请重试":"扫描附近网络  >";
+        row(u,2,y,"刷新Wi-Fi列表",scan_text);y+=46;
+        if(scanning)lv_obj_add_state(u->rows[2],LV_STATE_DISABLED);
+        for(unsigned i=0;i<u->wireless.count&&i<CAMERA_AP_LIMIT;++i) {
+            char detail[32],name[97];
+            hotspot_name(name,sizeof(name),u->wireless.ap[i].ssid);
+            snprintf(detail,sizeof(detail),"%d dBm  %s",u->wireless.ap[i].rssi,u->wireless.ap[i].secured?"密码  >":"开放  >");
+            u->ap_rows[i]=row(u,8+i,y,name,detail);
+            lv_label_set_long_mode(lv_obj_get_child(u->ap_rows[i],0),LV_LABEL_LONG_DOT);y+=45;
+        }
+        row(u,0,y,"连接Wi-Fi","手动输入网络名称和密码  >");y+=46;
+        row(u,1,y,"断开网络",u->network.disconnect?"断开连接  >":"暂不可用");y+=47;
+        const char *message=u->message;
+        if(!u->connect_requested) {
+            if(u->wireless.scan==CAMERA_SCAN_DONE)message=u->wireless.count?"请选择网络；可向上滑动查看列表。":"未发现网络，可刷新或手动输入。";
+            if(u->wireless.scan==CAMERA_SCAN_FAILED)message=u->wireless.error==CAMERA_NET_INCOMPLETE?"网络列表不完整，请刷新重试。":"扫描失败，请刷新重试。";
+            else if(u->wireless.error)message="网络暂不可用，请重试。";
+        }
+        label(u->body,16,y,425,*message?message:"点击刷新获取附近的Wi-Fi列表。",false,UI_MUTED);
+    } else if(u->menu==DASH_UPDATE) {
+        /* 目前只提供入口和真实状态说明。网络已连上也不等于OTA服务已接入，
+         * 因此两种状态都不显示“已是最新版本”，也不发起下载或擦写Flash。 */
+        label(u->body,16,y,430,"当前版本：" GUI_FIRMWARE_VERSION,true,UI_INK);y+=40;
+        label(u->body,16,y,430,u->connected?"Wi-Fi 已连接":"Wi-Fi 未连接，请先连接网络",true,UI_INK);y+=38;
+        label(u->body,16,y,430,"OTA升级接口预留，暂未接入更新服务。",false,UI_MUTED);y+=30;
+        label(u->body,16,y,430,"后续连接Wi-Fi后，可在此检查固件更新。",false,UI_MUTED);
     } else if(u->menu==DASH_DEVICE) {
         const char *names[]={"设备名称","主控","显示屏","触摸","图形库","视觉前端","存储","运行时间"};
         snprintf(value,sizeof(value),"%" PRIu32 " 秒",lv_tick_get()/1000U);
-        const char *vals[]={"智能视觉测量仪","STM32F407VGT6 / 168MHz","ST7796 / 480 x 320 / RGB565","FT6336U / I2C2","LVGL 9.6.0 / UI 2.0",
-            u->page->session.simulated?"模拟数据 / MaixCAM2待接入":"MaixCAM2",u->services.persistent?"后端已接入":"仅内存 / 重启后清空",value};
+        const char *vals[]={"智能视觉测量仪","STM32F407VGT6 / 168MHz","ST7796 / 480 x 320 / RGB565","FT6336U / I2C2","LVGL 9.6.0 / FW " GUI_FIRMWARE_VERSION,
+            "MaixCAM2",u->services.persistent?"后端已接入":"仅内存 / 重启后清空",value};
         for(unsigned i=0;i<8;++i) {row(u,i,y,names[i],vals[i]);y+=45;lv_obj_set_clickable(u->rows[i],false);}
     } else if(u->menu==DASH_MEASUREMENT) {
         row(u,0,y,"工件类型",s->mode==MEASUREMENT_RING?"圆环  >":"矩形  >");y+=45;
@@ -516,7 +628,7 @@ void dashboard_create(DashboardUI *u,MeasurementPage *p,InstrumentModel *m,const
 {
     memset(u,0,sizeof(*u));u->page=p;u->model=m;if(services)u->services=*services;
     p->navigation_changed=navigation;p->result_completed=completed;p->application_context=u;p->primary_action=primary;
-    /* 透明对象只拦截输入，不清空/覆盖底图；结束滑出后才撤去。 */
+    /* 透明对象只拦截菜单/滑入期间的输入；返回准备好主页后立即归还输入。 */
     u->transition_guard=box(p->root,0,30,480,290,UI_BG);
     lv_obj_set_style_bg_opa(u->transition_guard,LV_OPA_TRANSP,0);
     lv_obj_set_clickable(u->transition_guard,false);
@@ -562,12 +674,36 @@ void dashboard_network_status(DashboardUI *u,bool connected,const char *ssid,con
 {
     if(!u)return;
     bool icon_changed=u->page->wifi_connected!=connected;
-    u->connected=connected;u->connecting=false;u->page->wifi_connected=connected;
+    u->connected=connected;
+    u->page->wifi_connected=connected;
     snprintf(u->ssid,sizeof(u->ssid),"%s",ssid?ssid:"");snprintf(u->ip,sizeof(u->ip),"%s",ip?ip:"");
+    if(u->connect_requested) {
+        /* 切网时旧热点仍可能短暂在线，只能由本次目标的真实成功结束等待。
+         * 普通未连接/错误快照不清除用户反馈，超时后也不被后台状态重新点亮。 */
+        if(connected&&!strcmp(u->ssid,u->connecting_ssid)) {
+            u->connect_requested=false;u->connecting=false;note(u,"Wi-Fi 已连接");
+        }
+    } else u->connecting=u->wireless.online&&(u->wireless.wifi==CAMERA_WIFI_CONNECTING||u->wireless.wifi==CAMERA_WIFI_SWITCHING);
     if(icon_changed) {const lv_area_t icon={382,5,411,28};lv_obj_invalidate_area(u->page->header,&icon);}
-    if(!u->edit&&!lv_obj_is_hidden(u->panel)&&u->menu==DASH_NETWORK) {
-        if(u->animating)u->menu_dirty=true;else render(u);
+    /* 更新准备页也随真实网络回报刷新，避免页面仍显示过时的连接状态。 */
+    refresh_network(u);
+}
+/* 快照只在GUI任务接收；原SSID按字节保留，缺字显示由字体回退处理。 */
+void dashboard_network_update(DashboardUI *u,const CameraNetworkState *state)
+{
+    if(!u||!state||!memcmp(&u->wireless,state,sizeof(*state)))return;
+    /* 仅GUI任务改变LVGL可见状态；Camera任务仍只发布普通数据。
+     * 只刷新相机图标和五字提示所在的小区域，保持触摸和显示的既有调度。 */
+    bool online=state->online!=0;
+    if(u->page->camera_online!=online) {
+        u->page->camera_online=online;
+        const lv_area_t camera={290,3,382,28};lv_obj_invalidate_area(u->page->header,&camera);
     }
+    u->wireless=*state;
+    /* 确认串口失联时无需继续等待Wi-Fi；用户主动断开也在请求处立即取消。 */
+    if(!online) {u->connect_requested=false;u->connecting=false;}
+    if(u->wireless.count>CAMERA_AP_LIMIT)u->wireless.count=CAMERA_AP_LIMIT;
+    dashboard_network_status(u,state->online&&state->wifi==CAMERA_WIFI_CONNECTED,state->ssid,state->ip);
 }
 void dashboard_destroy(DashboardUI *u)
 {

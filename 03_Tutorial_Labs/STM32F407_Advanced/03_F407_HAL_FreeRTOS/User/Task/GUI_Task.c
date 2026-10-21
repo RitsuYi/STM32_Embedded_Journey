@@ -9,6 +9,13 @@
 #include "gui_app.h"
 #include "gui_lvgl_assert.h"
 #include "FT6336U.h"
+#include "Camera_Network.h"
+
+/* GUI仅投递普通请求；扫码/串口/DMA等待由Camera任务和相机已有子进程处理。 */
+static bool network_scan(void *context) {(void)context;return Camera_RequestScan();}
+static bool network_connect(void *context,const char *ssid,const char *password)
+{(void)context;return Camera_RequestConnect(ssid,password);}
+static bool network_disconnect(void *context) {(void)context;return Camera_RequestDisconnect();}
 
 static StaticQueue_t command_queue_storage;
 static uint8_t command_queue_data[8U * sizeof(unsigned)];
@@ -65,10 +72,15 @@ void vGUI_Task(void *pvParameters)
     (void)FT6336U_Init();
     if (!GUI_RegisterTouch(read_touch, NULL)) GUI_LVGL_AssertFailed(__FILE__, __LINE__);
     GUI_AppInit(NULL); /* Flash persistence not connected: RAM-only, explicitly labelled. */
+    const DashboardNetworkOps network_ops={.connect=network_connect,.disconnect=network_disconnect,.scan=network_scan};
+    GUI_AppSetNetwork(&network_ops);
 
     for (;;)
     {
         unsigned key;
+        /* 每轮只取最新快照；队列没有数据立即返回，不等待相机或网络。 */
+        CameraNetworkState network_state;
+        if(Camera_NetworkRead(&network_state)) GUI_AppNetworkUpdate(&network_state);
         /* Bound work per iteration so queued input cannot starve rendering. */
         for(unsigned i = 0; i < 8 && xQueueReceive(command_queue, &key, 0) == pdPASS; ++i)
             GUI_AppKey(key);

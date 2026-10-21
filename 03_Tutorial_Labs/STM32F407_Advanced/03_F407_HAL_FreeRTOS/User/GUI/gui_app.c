@@ -40,3 +40,4 @@ void GUI_AppProcess(void) {measurement_page_process(&page,lv_tick_get());}
 void GUI_AppSetNetwork(const DashboardNetworkOps *ops) {dashboard_set_network(&ui,ops);}
 void GUI_AppNetworkStatus(bool connected,const char *ssid,const char *ip)
 { dashboard_network_status(&ui,connected,ssid,ip); }
+void GUI_AppNetworkUpdate(const CameraNetworkState *state) {dashboard_network_update(&ui,state);}

@@ -35,6 +35,8 @@
 #include "OLED_Task.h"
 #include "Buzzer_Task.h"
 #include "GUI_Task.h"
+#include "Camera_Task.h" /* 相机任务通过USART2接收MaixCAM2数据，与GUI任务分别负责各自业务。 */
+#include "Camera_Network.h" /* 静态请求/状态队列在任务启动前统一准备。 */
 #include "I2C2_Bus.h" /* OLED和触摸共用I2C2，启动任务前创建统一的总线锁。 */
 /* USER CODE END Includes */
 
@@ -146,6 +148,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_I2C2_Init();
   MX_SPI1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   /* 先完成OLED启动探测、HAL_Delay和刷新，再创建FreeRTOS对象。
    * 本工程在调度前创建锁会保持BASEPRI中断屏蔽，使TIM6毫秒计时停止；
@@ -175,6 +178,7 @@ int main(void)
   xTimerForLED1 = xTimerCreate("LED1Timer", pdMS_TO_TICKS(500), pdTRUE, NULL, LED1TimerCallback);
   xTimerStart(xTimerForLED1, portMAX_DELAY);
   if(!GUI_TaskPrepare()) Error_Handler();
+  if(!Camera_NetworkPrepare()) Error_Handler();
   //xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   //xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
   xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
@@ -182,6 +186,10 @@ int main(void)
   xTaskCreate(vOLED_Task, "OLED", OLED_TASK_STACK_WORDS, NULL, 1, NULL);
   xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 1, NULL);
   if(xTaskCreate(vGUI_Task, "GUI", GUI_TASK_STACK_WORDS, NULL, 2, NULL) != pdPASS)
+      Error_Handler();
+  /* 相机任务与按键同为优先级3；无数据时阻塞休眠，不占住GUI的执行时间。
+   * DMA接收由任务启动后初始化，main这里只创建任务并检查创建结果。 */
+  if(xTaskCreate(vCamera_Task, "Camera", CAMERA_TASK_STACK_WORDS, NULL, 3, NULL) != pdPASS)
       Error_Handler();
   vTaskStartScheduler();
   /* USER CODE END 2 */

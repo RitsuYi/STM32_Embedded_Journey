@@ -37,6 +37,9 @@ typedef struct {
     char hint_text[64], caption_text[96];
     /* 新主界面仍复用原测量会话；质检汇总由唯一GUI任务填入，绘制时只读。 */
     bool quality_mode, automatic, wifi_connected;
+    /* 只由Camera任务的握手/失联快照更新，不能使用模拟测量的connected标志。
+     * 初始为false：即使演示测量可用，也必须等真实UART握手后才亮绿灯。 */
+    bool camera_online;
     bool ui_synced; /* 首次创建需要完整绘制，后续按真正可见字段判定脏区。 */
     bool presentation_paused; /* 只合并底图显示更新；session仍接收进度、结果和超时。 */
     uint32_t presentation_clock; /* 暂停时的结果卡时钟，页头时钟仍正常走。 */

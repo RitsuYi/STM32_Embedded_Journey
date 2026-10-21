@@ -1,5 +1,6 @@
 #include "instrument/dashboard_ui.h"
 #include "gui_camera_config.h"
+#include "gui_version.h"
 #include "gui_demo.h"
 #include "lvgl_port.h"
 #include "ST7796.h"
@@ -242,22 +243,34 @@ static void animation_contract(void)
         if(lv_obj_get_x(ui.panel)>20)CHECK(lv_indev_search_obj(page.root,&point)==ui.transition_guard);
     }
     CHECK(lv_obj_get_x(ui.panel)==0);
+    /* 返回只提交最终主页：无需推进虚拟时钟就应结束菜单状态，第一轮增量
+     * 刷新必须完整；同一时刻再次刷新/重复返回不能再产生滑出中间帧。 */
+    GUI_DisplayStats before,after;GUI_DisplayGetStats(&before);
     dashboard_close(&ui);
-    for(unsigned i=0;i<6;++i){advance(30);incremental_contract("menu sliding out");}
     CHECK(lv_obj_is_hidden(ui.panel)&&!lv_obj_is_clickable(ui.transition_guard));
-    /* 快速返回/重开必须从当前X继续，不能闪回X=0或480，旧关闭回调不能撤去新菜单。 */
+    CHECK(!ui.animating&&!ui.closing&&!page.presentation_paused&&lv_anim_get(ui.panel,NULL)==NULL);
+    lv_refr_now(d);GUI_DisplayGetStats(&after);
+    CHECK(after.completed_frames==before.completed_frames+1U);
+    before=after;dashboard_close(&ui);lv_refr_now(d);GUI_DisplayGetStats(&after);
+    CHECK(after.completed_frames==before.completed_frames);
+    incremental_contract("direct return first frame");
+    /* 在滑入中途返回也立即关闭，重开从屏幕右侧正常入场。
+     * 原入场动画必须已取消，不能在稍后把关闭菜单或新菜单移错位置。 */
     measurement_page_navigate(&page,3);advance(40);
     int x=lv_obj_get_x(ui.panel);CHECK(x>0&&x<480);
-    dashboard_close(&ui);CHECK(lv_obj_get_x(ui.panel)==x);advance(30);
-    x=lv_obj_get_x(ui.panel);dashboard_open(&ui,DASH_SETTINGS);CHECK(lv_obj_get_x(ui.panel)==x);
+    dashboard_close(&ui);CHECK(lv_obj_is_hidden(ui.panel)&&lv_anim_get(ui.panel,NULL)==NULL);
+    CHECK(!page.presentation_paused&&!lv_obj_is_clickable(ui.transition_guard));
+    incremental_contract("return during entry");
+    dashboard_open(&ui,DASH_SETTINGS);CHECK(lv_obj_get_x(ui.panel)==480);
     /* 动画目标仍180ms；33ms刷新定时器可能在下一次采样才执行终点回调。 */
     advance(250);
     if(lv_obj_get_x(ui.panel)!=0||!lv_obj_is_clickable(ui.transition_guard))
         fprintf(stderr,"reopened x=%ld panel_hidden=%u guard_hidden=%u closing=%u\n",
                 (long)lv_obj_get_x(ui.panel),lv_obj_is_hidden(ui.panel),!lv_obj_is_clickable(ui.transition_guard),ui.closing);
     CHECK(lv_obj_get_x(ui.panel)==0&&lv_obj_is_clickable(ui.transition_guard));
-    dashboard_close(&ui);advance(250);CHECK(!lv_obj_is_clickable(ui.transition_guard));
-    puts("PASS: 180ms overlay keeps underlay; intermediate frames, input guard and interrupted animation");
+    dashboard_close(&ui);advance(250);
+    CHECK(lv_obj_is_hidden(ui.panel)&&!lv_obj_is_clickable(ui.transition_guard)&&lv_anim_get(ui.panel,NULL)==NULL);
+    puts("PASS: 180ms entry preserves underlay/input guard; direct return uses one refresh, interrupts/reopens safely");
 }
 static void padded_flush_contract(void)
 {
@@ -494,9 +507,124 @@ static unsigned connects,disconnects;
 static bool connect_request(void *context,const char *ssid,const char *password)
 {(void)context;CHECK(!strcmp(ssid,"Lab_WiFi"));CHECK(!strcmp(password,"demo12345"));++connects;return true;}
 static bool disconnect_request(void *context){(void)context;++disconnects;return true;}
+static unsigned scans;
+static bool scan_request(void *context) {(void)context;++scans;return true;}
+/* 通过正式编辑器提交，测试时只替换网络队列，不绕过GUI的连接回调。 */
+static void request_lab_wifi(void)
+{
+    lv_obj_send_event(ui.rows[0],LV_EVENT_CLICKED,NULL);
+    lv_textarea_set_text(ui.textarea,"Lab_WiFi");lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);
+    lv_textarea_set_text(ui.textarea,"demo12345");lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);
+    CHECK(ui.connecting&&!ui.password[0]);
+}
+static void wifi_scan_contract(void)
+{
+    /* 真实LVGL验证刷新、扫描中禁用、5条列表、滚动选择和密码输入。
+     * 普通数据快照替代串口，不能当作实际无线扫描证据。 */
+    DashboardNetworkOps ops={.connect=connect_request,.disconnect=disconnect_request,.scan=scan_request};
+    CameraNetworkState state={.online=1,.wifi=CAMERA_WIFI_OFFLINE};
+    dashboard_set_network(&ui,&ops);dashboard_network_update(&ui,&state);
+    dashboard_open(&ui,DASH_NETWORK);advance(250);tap(ui.rows[2]);
+    CHECK(scans==1&&ui.wireless.scan==CAMERA_SCAN_WAITING);
+    CHECK(lv_obj_has_state(ui.rows[2],LV_STATE_DISABLED));
+    state.scan=CAMERA_SCAN_RUNNING;dashboard_network_update(&ui,&state);
+    lv_obj_t *same=ui.rows[2];dashboard_network_update(&ui,&state);CHECK(same==ui.rows[2]);
+    state.scan=CAMERA_SCAN_DONE;state.count=CAMERA_AP_LIMIT;
+    for(unsigned i=0;i<CAMERA_AP_LIMIT;++i) {
+        snprintf(state.ap[i].ssid,sizeof(state.ap[i].ssid),"AP%u",i);
+        state.ap[i].rssi=(int8_t)(-30-(int)i);state.ap[i].secured=1;
+    }
+    snprintf(state.ap[0].ssid,sizeof(state.ap[0].ssid),"Lab_WiFi");
+    snprintf(state.ap[1].ssid,sizeof(state.ap[1].ssid),"\xF0\xA0\x80\x80");
+    dashboard_network_update(&ui,&state);advance(50);
+    CHECK(!lv_obj_has_state(ui.rows[2],LV_STATE_DISABLED));
+    CHECK(!strcmp(lv_label_get_text(lv_obj_get_child(ui.ap_rows[1],0)),"\\u20000"));
+    screenshot("wifi_scan.ppm");
+    lv_obj_scroll_to_view(ui.ap_rows[CAMERA_AP_LIMIT-1],LV_ANIM_OFF);advance(30);
+    CHECK(lv_obj_get_scroll_y(ui.body)>0);
+    lv_obj_scroll_to_view(ui.ap_rows[0],LV_ANIM_OFF);advance(30);tap(ui.ap_rows[0]);
+    CHECK(ui.edit&&!strcmp(ui.target_ssid,"Lab_WiFi"));
+    state.wifi=CAMERA_WIFI_CONNECTED;snprintf(state.ssid,sizeof(state.ssid),"Other_AP");
+    snprintf(state.ip,sizeof(state.ip),"192.0.2.5");dashboard_network_update(&ui,&state);
+    CHECK(!strcmp(ui.target_ssid,"Lab_WiFi"));
+    unsigned before=connects;lv_textarea_set_text(ui.textarea,"demo12345");
+    lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);CHECK(connects==before+1&&!ui.password[0]);
+    /* 旧热点/普通未连/短暂错误不能覆盖用户目标；7秒真实成功立即结束等待。 */
+    CHECK(ui.connecting&&!strcmp(ui.connecting_ssid,"Lab_WiFi"));
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.body,0)),"Lab_WiFi"));
+    lv_obj_scroll_to_y(ui.body,0,LV_ANIM_OFF);screenshot("wifi_connecting.ppm");
+    state.wifi=CAMERA_WIFI_OFFLINE;state.error=CAMERA_NET_REJECTED;
+    dashboard_network_update(&ui,&state);advance(7000);
+    CHECK(ui.connecting&&!ui.connected);
+    state.wifi=CAMERA_WIFI_CONNECTED;state.error=0;
+    snprintf(state.ssid,sizeof(state.ssid),"Lab_WiFi");dashboard_network_update(&ui,&state);
+    CHECK(ui.connected&&!ui.connecting&&!ui.connect_requested);
+    /* 无新状态时仍须到期；后台继续尝试也不能重开已过15秒的界面等待。 */
+    request_lab_wifi();state.wifi=CAMERA_WIFI_CONNECTING;dashboard_network_update(&ui,&state);
+    advance(14500);CHECK(ui.connecting);
+    advance(600);CHECK(!ui.connecting&&ui.connect_requested&&strstr(ui.message,"超时"));
+    screenshot("wifi_connect_timeout.ppm");
+    state.wifi=CAMERA_WIFI_OFFLINE;dashboard_network_update(&ui,&state);
+    state.wifi=CAMERA_WIFI_CONNECTING;dashboard_network_update(&ui,&state);CHECK(!ui.connecting);
+    state.wifi=CAMERA_WIFI_CONNECTED;dashboard_network_update(&ui,&state);
+    CHECK(ui.connected&&!ui.connecting&&!ui.connect_requested); /* 迟到成功仍是真实状态。 */
+    request_lab_wifi();
+    lv_obj_send_event(ui.rows[1],LV_EVENT_CLICKED,NULL);CHECK(!ui.connecting);
+    for(unsigned i=0;i<16;++i) {
+        state.count=(i&1U)?CAMERA_AP_LIMIT:0;state.scan=CAMERA_SCAN_DONE;
+        dashboard_network_update(&ui,&state);advance(10);
+    }
+    state.count=0;state.scan=CAMERA_SCAN_FAILED;state.error=CAMERA_NET_INCOMPLETE;
+    dashboard_network_update(&ui,&state);CHECK(ui.wireless.count==0);
+    request_lab_wifi(); /* 实际失联应取消尚未到15秒的等待，不能继续假装相机可用。 */
+    memset(&state,0,sizeof(state));dashboard_network_update(&ui,&state);advance(30);
+    CHECK(!ui.connecting&&!ui.connect_requested);
+    /* 未握手就点刷新必须立即反馈，不能发出扫描或把按钮永久置为忙。 */
+    unsigned before_scan=scans;
+    lv_obj_scroll_to_view(ui.rows[2],LV_ANIM_OFF);advance(30);tap(ui.rows[2]);
+    CHECK(scans==before_scan&&ui.wireless.scan==CAMERA_SCAN_FAILED);
+    CHECK(!lv_obj_has_state(ui.rows[2],LV_STATE_DISABLED));
+    CHECK(!strcmp(lv_label_get_text(lv_obj_get_child(ui.rows[2],1)),"扫描暂不可用"));
+    dashboard_set_network(&ui,NULL);dashboard_close(&ui);advance(250);
+    puts("PASS: Wi-Fi scan/SSID isolation; pending target survives offline, success at 7s, timeout at 15s, late success and cancel");
+}
 static bool reject_save(void *context,const InstrumentModel *m){(void)context;(void)m;return false;}
 static bool silent_backend(void *context,uint32_t id,MeasurementGeometry geometry)
 {(void)context;(void)id;(void)geometry;return true; /* 模拟已受理但不回结果的相机。 */}
+
+static void reopen_transfer_contract(void)
+{
+    /* 进入动画尚未推进、菜单完全在屏外时，重开本身不应重发主页。
+     * 只比较相同虚拟时刻的真实flush字节数，不用电脑运行时间冒充MCU速度。
+     * 同时覆盖两种主页、设置/记录，以及完整进入和中途返回后的再次打开。 */
+    MeasurementBackend original=page.backend,quiet={.start=silent_backend};
+    unsigned prior_navigation=page.selected_navigation;
+    measurement_page_set_backend(&page,&quiet);
+    lv_display_t *d=lv_display_get_default();
+    const DashboardMenu menus[]={DASH_SETTINGS,DASH_RECORDS};
+    for(unsigned mode=0;mode<2;++mode)for(unsigned menu=0;menu<2;++menu)for(unsigned interrupted=0;interrupted<2;++interrupted) {
+        measurement_page_navigate(&page,mode);advance(40);
+        dashboard_open(&ui,menus[menu]);advance(interrupted?40:250);
+        dashboard_close(&ui);lv_refr_now(d); /* 先发送应有的返回画面，不算入下一次进入。 */
+        uint64_t before=sent_bytes;
+        dashboard_open(&ui,menus[menu]);lv_refr_now(d);
+        uint64_t reopened=sent_bytes-before;
+        printf("REOPEN mode=%u menu=%u interrupted=%u initial_bytes=%llu\n",
+               mode,(unsigned)menus[menu],interrupted,(unsigned long long)reopened);
+        CHECK(lv_obj_get_x(ui.panel)==480&&ui.animating&&page.presentation_paused);
+        CHECK(reopened==0U);
+        advance(40);CHECK(lv_obj_get_x(ui.panel)>0&&lv_obj_get_x(ui.panel)<480);
+        incremental_contract("reopen original entry intermediate");
+        advance(250);CHECK(lv_obj_get_x(ui.panel)==0&&!ui.animating);
+        dashboard_close(&ui);
+        CHECK(lv_obj_is_hidden(ui.panel)&&lv_anim_get(ui.panel,NULL)==NULL);
+        CHECK(!page.presentation_paused&&!lv_obj_is_clickable(ui.transition_guard));
+        incremental_contract("reopen direct return final");
+    }
+    measurement_page_set_backend(&page,&original);
+    measurement_page_navigate(&page,prior_navigation);advance(40);
+    puts("PASS: 8 reopen cases send zero pre-animation pixels; original entry and direct return remain correct");
+}
 
 static void occlusion_contract(void)
 {
@@ -550,8 +678,8 @@ static void occlusion_contract(void)
 
 static void presentation_contract(void)
 {
-    /* 使用静默后端手动送真实进度/完成事件，精确让完成发生在滑入与滑出中间。
-     * 模型必须立即接收，底图/列表只在安全时机更新；禁止暂停计时或丢掉一份结果。 */
+    /* 使用静默后端手动送真实进度/完成事件，覆盖菜单期间与直接返回之后。
+     * 模型必须立即接收，返回首帧已有最新状态，返回后的结果也不能被继续冻结。 */
     MeasurementBackend original=page.backend,quiet={.start=silent_backend};
     measurement_page_set_backend(&page,&quiet);measurement_page_navigate(&page,1);
     CHECK(measurement_page_select_geometry(&page,MEASUREMENT_RING));
@@ -574,14 +702,16 @@ static void presentation_contract(void)
     CHECK(strcmp(old_text.id,ui.record_text[0].id)!=0);
     CHECK(ui.record_text[0].verdict==model.records[0].verdict);
     CHECK(page.total_count==old_count); /* 被盖住的主页没有反复重绘统计。 */
-    dashboard_close(&ui);CHECK(page.total_count==model.inspected&&page.presentation_paused);
-    CHECK(page.geometry.result.primary_cmm==3022);advance(30);
+    dashboard_close(&ui);CHECK(page.total_count==model.inspected&&!page.presentation_paused);
+    CHECK(page.geometry.result.primary_cmm==3022&&page.displayed.result.primary_cmm==3022);
+    CHECK(page.verdict==model.records[0].verdict&&!ui.summary_pending&&lv_obj_is_hidden(ui.panel));
+    incremental_contract("latest covered result in first return frame");advance(30);
     CHECK(measurement_page_start(&page));id=page.session.request_id;
     CHECK(measurement_page_progress(&page,id,MEASUREMENT_FITTING,90));
     r.primary_cmm=3032;CHECK(measurement_page_complete(&page,id,&r));
-    CHECK(model.inspected==old_count+2U&&page.total_count==old_count+1U);
-    CHECK(page.geometry.result.primary_cmm==3022 && page.displayed.result.primary_cmm==3022);
-    incremental_contract("result arrives while returning");advance(250);
+    CHECK(model.inspected==old_count+2U&&page.total_count==model.inspected);
+    CHECK(page.geometry.result.primary_cmm==3032 && page.displayed.result.primary_cmm==3032);
+    incremental_contract("result arrives after direct return");advance(250);
     CHECK(!page.presentation_paused&&!ui.animating&&!ui.summary_pending);
     CHECK(!lv_obj_is_clickable(ui.transition_guard)&&page.total_count==model.inspected);
     CHECK(page.displayed.result.primary_cmm==3032&&page.geometry.result.primary_cmm==3032);
@@ -594,16 +724,16 @@ static void presentation_contract(void)
     CHECK(page.displayed.state==MEASUREMENT_FAILED&&!page.presentation_paused);
     incremental_contract("timeout under overlay");
     measurement_page_set_backend(&page,&original);
-    puts("PASS: progress/results/records/timeouts continue; presentation coalesces at slide boundaries");
+    puts("PASS: progress/results/records/timeouts continue; direct return shows latest data and resumes updates");
 }
 
 static void menu_reuse_contract(void)
 {
     dashboard_open(&ui,DASH_SETTINGS);advance(250);
-    lv_obj_t *saved[6];for(unsigned i=0;i<6;++i)saved[i]=ui.rows[i];
+    lv_obj_t *saved[7];for(unsigned i=0;i<7;++i)saved[i]=ui.rows[i];
     dashboard_close(&ui);advance(250);dashboard_network_status(&ui,true,"ReuseTest","192.0.2.9");
     dashboard_open(&ui,DASH_SETTINGS);advance(250);
-    for(unsigned i=0;i<6;++i)CHECK(saved[i]==ui.rows[i]);
+    for(unsigned i=0;i<7;++i)CHECK(saved[i]==ui.rows[i]);
     CHECK(!strcmp(lv_label_get_text(lv_obj_get_child(ui.rows[0],1)),"ReuseTest"));
     dashboard_close(&ui);advance(250);dashboard_network_status(&ui,false,NULL,NULL);
     dashboard_open(&ui,DASH_RECORDS);advance(250);
@@ -611,11 +741,39 @@ static void menu_reuse_contract(void)
     int32_t y=lv_obj_get_scroll_y(ui.body);dashboard_close(&ui);advance(30);
     CHECK(lv_obj_get_scroll_y(ui.body)==y);advance(250);
     incremental_contract("settings reuse and scroll stop");
-    puts("PASS: six settings rows reused with fresh values; list inertia stops before panel slides out");
+    puts("PASS: seven settings rows reused with fresh values; list inertia stops on direct return");
+}
+/* 用真实触摸滑到底再进入，证明新增末行可到达，版本一致且不伪报联网/更新成功。
+ * 后端连接/断开回报到来时，当前更新页必须立即显示新状态；不接真实服务器。 */
+static void update_entry_contract(void)
+{
+    dashboard_network_status(&ui,false,NULL,NULL);dashboard_open(&ui,DASH_SETTINGS);advance(250);
+    CHECK(ui.rows[6]&&!ui.rows[7]);
+    CHECK(!strcmp(lv_label_get_text(lv_obj_get_child(ui.rows[6],0)),"检查更新"));
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.rows[6],1)),GUI_FIRMWARE_VERSION));
+    tx=250;ty=245;down=true;advance(40);
+    for(int y=245;y>=90;y-=10){ty=y;advance(20);}down=false;advance(300);
+    CHECK(lv_obj_get_scroll_y(ui.body)>0);
+    lv_area_t last,body;lv_obj_get_coords(ui.rows[6],&last);lv_obj_get_coords(ui.body,&body);
+    CHECK(last.y1>=body.y1&&last.y2<=body.y2);
+    screenshot("settings_update_bottom.ppm");tap(ui.rows[6]);
+    CHECK(ui.menu==DASH_UPDATE&&!ui.connected&&!ui.connecting);
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.body,0)),GUI_FIRMWARE_VERSION));
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.body,1)),"未连接"));
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.body,2)),"暂未接入"));
+    screenshot("update_offline.ppm");incremental_contract("update offline");
+    dashboard_network_status(&ui,true,"OTA_Test","192.0.2.10");advance(60);
+    CHECK(!strcmp(lv_label_get_text(lv_obj_get_child(ui.body,1)),"Wi-Fi 已连接"));
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.body,2)),"暂未接入"));
+    screenshot("update_online_reserved.ppm");incremental_contract("update network changed");
+    dashboard_network_status(&ui,false,NULL,NULL);advance(60);
+    CHECK(strstr(lv_label_get_text(lv_obj_get_child(ui.body,1)),"未连接"));
+    tap(ui.back);CHECK(ui.menu==DASH_SETTINGS);dashboard_close(&ui);advance(250);
+    puts("PASS: bottom update entry touch/version/back; live Wi-Fi states and honest OTA placeholder");
 }
 static void font_check(void)
 {
-    const char *strings[]={"质检合格标准设定当前检测结果累计统计最近检测记录智能视觉测量仪测量设置","网络密码设备信息目标上下偏差断开连接"};
+    const char *strings[]={"质检合格标准设定当前检测结果累计统计最近检测记录智能视觉测量仪测量设置","网络密码设备信息目标上下偏差断开连接检查更新当前版本固件升级服务暂未接入连接中连接等待超时请检查网络状态联网接口未接入或请求忙"};
     for(unsigned f=0;f<2;++f)for(unsigned i=0;i<2;++i){
         const lv_font_t *font=f==0?&ui_font_12:&ui_font_14_bold;
         const char *p=strings[i];while(*p){uint32_t cp;unsigned char c=(unsigned char)*p++;
@@ -645,7 +803,7 @@ static void font_check(void)
     lv_text_get_size(&size,"99.9%",&ui_font_12,0,0,LV_COORD_MAX,0);CHECK(size.x<=40);
 }
 /* 同一时刻观察真实渲染后的Wi-Fi区域：连接/未连接必须不同，分隔线位置固定。
- * 只改变软件后端状态，不连接真实网络；两个状态都必须保留蓝色像素。 */
+ * 只改变软件后端状态，不连接真实网络；离线必须灰色，联网才允许蓝色。 */
 static void wifi_visual_contract(void)
 {
     uint16_t disconnected[24*24];lv_display_t *display=lv_display_get_default();
@@ -660,9 +818,42 @@ static void wifi_visual_contract(void)
         uint16_t on=frame[(y+3)*480+x+384],off=disconnected[y*24+x];different+=(on!=off);
         blue_on+=((on&31)>((on>>11)&31)+5U);blue_off+=((off&31)>((off>>11)&31)+5U);
     }
-    CHECK(different>5&&blue_on>10&&blue_off>10&&frame[15*480+413]==separator);
+    CHECK(different>5&&blue_on>10&&blue_off==0&&frame[15*480+413]==separator);
     screenshot("wifi_connected.ppm");dashboard_network_status(&ui,false,NULL,NULL);
     screenshot("wifi_disconnected.ppm");
+}
+/* 验证真实网络快照独立于模拟测量；UART在线但Wi-Fi离线是有效且常见的状态。
+ * 直接检查RGB565渲染像素，防止只改布尔变量却漏掉头部失效/颜色。 */
+static void camera_visual_contract(void)
+{
+    lv_display_t *display=lv_display_get_default();
+    CHECK(page.session.simulated&&page.session.connected&&!page.camera_online);
+    CameraNetworkState state={.online=1,.wifi=CAMERA_WIFI_OFFLINE};
+    dashboard_network_update(&ui,&state);lv_refr_now(display);
+    CHECK(page.camera_online&&!page.wifi_connected);
+    unsigned green=0;
+    for(unsigned y=3;y<28;++y)for(unsigned x=292;x<316;++x) {
+        uint16_t color=frame[y*480+x];
+        green+=(((color>>5)&63)/2U>((color>>11)&31)+5U);
+    }
+    CHECK(green>10);screenshot("camera_online_wifi_offline.ppm");
+    state.wifi=CAMERA_WIFI_CONNECTED;
+    dashboard_network_update(&ui,&state);lv_refr_now(display);
+    CHECK(page.camera_online&&page.wifi_connected);screenshot("camera_wifi_online.ppm");
+    memset(&state,0,sizeof(state));dashboard_network_update(&ui,&state);lv_refr_now(display);
+    CHECK(!page.camera_online&&!page.wifi_connected&&page.session.simulated&&page.session.connected);
+    green=0;
+    for(unsigned y=3;y<28;++y)for(unsigned x=292;x<316;++x) {
+        uint16_t color=frame[y*480+x];
+        green+=(((color>>5)&63)/2U>((color>>11)&31)+5U);
+    }
+    CHECK(green==0);screenshot("camera_offline.ppm");
+    lv_point_t size;
+    lv_text_get_size(&size,"相机未连接",&ui_font_12,0,0,64,0);
+    CHECK(size.x<=64&&size.y==ui_font_12.line_height);
+    lv_text_get_size(&size,"相机已连接",&ui_font_12,0,0,64,0);
+    CHECK(size.x<=64&&size.y==ui_font_12.line_height);
+    puts("PASS: real UART status independent of demo; green/grey camera and blue/grey Wi-Fi; single-line header");
 }
 int main(void)
 {
@@ -673,6 +864,7 @@ int main(void)
     measurement_page_create(&page,lv_screen_active(),&r);GUI_DemoInit(&page,&model);dashboard_create(&ui,&page,&model,NULL);advance(60);
     lv_obj_add_event_cb(page.geometry.object,observe_overlap,LV_EVENT_DRAW_MAIN,NULL);
     wifi_visual_contract();
+    camera_visual_contract();
     CHECK(page.selected_navigation==0&&!page.quality_mode&&instrument_model_check(&model));
     screenshot("measurement_idle.ppm");
     plot_dither_contract();
@@ -749,7 +941,7 @@ int main(void)
     lv_textarea_set_text(ui.textarea,"Lab_WiFi");lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);
     screenshot("wifi_keyboard.ppm");
     lv_textarea_set_text(ui.textarea,"demo12345");lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);
-    CHECK(!ui.connected&&!ui.connecting&&strstr(ui.message,"未接入"));
+    CHECK(!ui.connected&&!ui.connecting&&strstr(ui.message,"连接失败"));
     DashboardNetworkOps net={.connect=connect_request,.disconnect=disconnect_request};dashboard_set_network(&ui,&net);
     tap(ui.rows[0]);lv_textarea_set_text(ui.textarea,"Lab_WiFi");lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);
     lv_textarea_set_text(ui.textarea,"demo12345");lv_obj_send_event(ui.keyboard,LV_EVENT_READY,NULL);
@@ -757,6 +949,7 @@ int main(void)
     dashboard_network_status(&ui,true,"Lab_WiFi","192.168.1.6");CHECK(ui.connected&&page.wifi_connected);
     screenshot("wifi.ppm");tap(ui.rows[1]);CHECK(disconnects==1&&ui.connected);
     dashboard_network_status(&ui,false,NULL,NULL);CHECK(!ui.connected);
+    wifi_scan_contract();
     dashboard_open(&ui,DASH_DEVICE);advance(250);screenshot("device.ppm");
     /* 公差边界两端都合格，超出一单位失败；无效测量不能合格。 */
     InstrumentSettings s=model.settings;MeasurementResult q={.geometry=MEASUREMENT_RING,.primary_cmm=2980,.secondary_cmm=1190,.status=MEASUREMENT_VALID};
@@ -776,7 +969,13 @@ int main(void)
     for(int y=245;y>=90;y-=10){ty=y;advance(20);}down=false;advance(200);CHECK(lv_obj_get_scroll_y(ui.body)>0);
     screenshot("records_scroll.ppm");dashboard_close(&ui);advance(250);
     /* 重复打开不同二级页，检查销毁/重建不会耗尽当前配置的LVGL池。 */
-    for(unsigned i=0;i<30;++i){dashboard_open(&ui,(DashboardMenu)(i%7));advance(200);dashboard_close(&ui);advance(200);CHECK(lv_mem_test()==LV_RESULT_OK);}
+    for(unsigned i=0;i<30;++i){
+        dashboard_open(&ui,(DashboardMenu)(i%7));advance(200);dashboard_close(&ui);
+        /* 每种菜单均通过同一返回入口，关闭后不残留动画或输入遮挡。 */
+        CHECK(lv_obj_is_hidden(ui.panel)&&!ui.animating&&!page.presentation_paused);
+        CHECK(lv_anim_get(ui.panel,NULL)==NULL&&!lv_obj_is_clickable(ui.transition_guard));
+        advance(200);CHECK(lv_mem_test()==LV_RESULT_OK);
+    }
     MeasurementBackend original=page.backend,quiet={.start=silent_backend};measurement_page_set_backend(&page,&quiet);
     measurement_page_navigate(&page,1);page.session.timeout_ms=2000;uint32_t count=model.inspected;
     dashboard_action(&ui);CHECK(page.automatic);advance(2300);
@@ -784,11 +983,13 @@ int main(void)
     measurement_page_set_backend(&page,&original);
     dirty_area_contract();
     animation_contract();
+    reopen_transfer_contract();
     strip_comparison_contract();
     record_cache_update_contract();
     occlusion_contract();
     presentation_contract();
     menu_reuse_contract();
+    update_entry_contract();
     padded_flush_contract();
     asynchronous_contract();
     lv_mem_monitor_t monitor;lv_mem_monitor(&monitor);

@@ -17,6 +17,8 @@
 #define UI_UNIT     0x8795A8
 #define UI_CYAN     0x98CBFA
 #define UI_WIFI     0x87BCF5
+/* 离线图标使用中性灰；蓝色/绿色只表示对应的真实连接已建立。 */
+#define UI_OFFLINE  0xA0A0A0
 #define UI_YELLOW   0xFFFF62
 #define UI_TAG      0x809AB4
 #define UI_SELECTED 0x98CBFA

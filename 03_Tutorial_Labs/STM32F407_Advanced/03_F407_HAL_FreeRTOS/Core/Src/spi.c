@@ -78,9 +78,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     PA6     ------> SPI1_MISO
     PA7     ------> SPI1_MOSI
     */
-    /* PA6是SPI硬件的数据输入，接35002第9脚，为液晶读回及后续板载Flash读取预留。
-       三脚统一交给AF5复用功能；MISO由SPI外设作为输入使用，不由GPIO主动驱动。
-       LCD与板载Flash共用SPI1，后续读取时仍须保证PE0和PA4片选不同时为低。 */
     GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -132,7 +129,6 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
     PA6     ------> SPI1_MISO
     PA7     ------> SPI1_MOSI
     */
-    /* 关闭SPI1时同步释放新增的PA6，避免该脚残留在SPI复用模式。 */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7);
 
     /* SPI1 DMA DeInit */

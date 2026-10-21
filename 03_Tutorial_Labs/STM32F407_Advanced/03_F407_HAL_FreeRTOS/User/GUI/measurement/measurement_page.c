@@ -55,15 +55,20 @@ static void draw_header(lv_event_t *e)
     triangle(l,12,11,20,16,20,25,0x53BFFF);triangle(l,12,11,20,25,12,20,0x53BFFF);
     triangle(l,22,16,30,11,30,20,0x438DF2);triangle(l,22,16,30,20,22,25,0x438DF2);
     text(l,39,6,254,&ui_font_16_bold,UI_INK,"智能视觉测量仪");
-    ui_icon(l,300,8,16,UI_GREEN,UI_ICON_CAMERA);
-    text(l,324,7,61,&ui_font_12,UI_MUTED,p->session.simulated?"模拟相机":p->session.connected?"相机已连接":"相机未连接");
-    /* Wi-Fi两种状态都用蓝色；未连接使用带斜杠的独立完整字形。
-     * 两种图形都离线取字，运行时不以细线覆盖，避免条带端点产生微小裁切差异。 */
-    ui_icon(l,384,7,16,UI_WIFI,p->wifi_connected?UI_ICON_WIFI:UI_ICON_WIFI_OFF);
+    /* 顶部只显示真实UART链路；模拟测量结果不能把相机图标点亮。
+     * 图标和文字共用y=21的基线（字形落下的位置），按各自字体行高换算顶部。
+     * 文字单独保留64px，足够容纳五个12px汉字，与右侧Wi-Fi图标不重叠。 */
+    int icon_y=21-ui_icons_16.line_height+ui_icons_16.base_line;
+    /* 相机字形上部较高，基线对齐后再下移2px，让视觉中心贴齐右侧汉字。 */
+    ui_icon(l,292,icon_y+2,16,p->camera_online?UI_GREEN:UI_OFFLINE,UI_ICON_CAMERA);
+    text_baseline(l,318,21,64,&ui_font_12,UI_MUTED,p->camera_online?"相机已连接":"相机未连接");
+    /* Wi-Fi独立显示相机回报的实际联网结果；握手成功并不代表已经连上Wi-Fi。 */
+    ui_icon(l,384,icon_y,16,p->wifi_connected?UI_WIFI:UI_OFFLINE,
+            p->wifi_connected?UI_ICON_WIFI:UI_ICON_WIFI_OFF);
     ui_line(l,413,7,413,24,0xD5E5F4,1);
     char t[24];uint32_t seconds=p->clock_seconds;
     snprintf(t,sizeof(t),"%02" PRIu32 ":%02" PRIu32 ":%02" PRIu32,seconds/3600U,seconds/60U%60U,seconds%60U);
-    ui_text(l,419,7,54,&ui_font_12,UI_MUTED,t,LV_TEXT_ALIGN_RIGHT);
+    ui_text(l,419,21-ui_font_12.line_height+ui_font_12.base_line,54,&ui_font_12,UI_MUTED,t,LV_TEXT_ALIGN_RIGHT);
 }
 static void draw_result_content(lv_event_t *e)
 {
@@ -236,12 +241,16 @@ static lv_obj_t *make_button(lv_obj_t *parent,int x,int y,int w,int h,const char
 {
     lv_obj_t *o=lv_button_create(parent); lv_obj_remove_style_all(o);
     lv_obj_set_pos(o,x,y);lv_obj_set_size(o,w,h);
-    /* 明确使用完整胶囊圆角，页脚增加高度后上下弧线仍保持对称。 */
-    lv_obj_set_style_radius(o,LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_opa(o,255,0);
+    /* 蓝色启停按钮高36px，两端使用18px半径，保持完整半圆。
+     * 圆角与下方渐变图片的裁剪共用这一尺寸，避免边缘使用不同的轮廓。 */
+    lv_obj_set_style_radius(o,blue?h/2:LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_opa(o,255,0);
     lv_obj_set_style_bg_color(o,ui_color(blue?0xB6E0FF:0xFFFFFF),0);
     lv_obj_set_style_bg_grad_color(o,ui_color(blue?UI_CYAN:0xFBFBF8),0);
     lv_obj_set_style_bg_grad_dir(o,LV_GRAD_DIR_VER,0);
-    lv_obj_set_style_border_width(o,1,0);lv_obj_set_style_border_color(o,ui_color(blue?0xAED9F5:UI_BORDER),0);
+    /* 蓝色按钮的浅色1px描边会覆盖渐变的最外沿，尤其下沿形成明显平直亮线，
+     * 与较蓝的底部渐变叠加后产生色差。去掉这层描边，让完整圆角渐变直接
+     * 以抗锯齿边缘收尾；白色按钮仍保留原边框，文字、点击范围和阴影不变。 */
+    lv_obj_set_style_border_width(o,blue?0:1,0);lv_obj_set_style_border_color(o,ui_color(UI_BORDER),0);
     /* 按下态的两个端点一起改变，避免只改顶部却残留另一套渐变。 */
     lv_obj_set_style_bg_color(o,ui_color(0xCAE6FA),LV_STATE_PRESSED);
     lv_obj_set_style_bg_grad_color(o,ui_color(0xA9D2F0),LV_STATE_PRESSED);
@@ -308,9 +317,7 @@ static void sync_ui(MeasurementPage *p)
     }
     lv_obj_set_pos(p->progress_bar,12,184);lv_obj_set_size(p->progress_bar,117,8);
     if(lv_bar_get_value(p->progress_bar)!=s->progress) lv_bar_set_value(p->progress_bar,s->progress,LV_ANIM_OFF);
-    if(!p->ui_synced || p->displayed.connected!=s->connected || p->displayed.simulated!=s->simulated) {
-        const lv_area_t a={322,5,385,28};lv_obj_invalidate_area(p->header,&a);
-    }
+    /* 相机状态由dashboard_network_update单独刷新，不随模拟测量结果变化。 */
     if(mode_changed || p->displayed.geometry!=s->geometry || p->displayed.state==(MeasurementState)-1) {
         lv_obj_invalidate(p->result_panel);
     } else if(p->quality_mode) {
