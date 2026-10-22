@@ -41,3 +41,36 @@ void GUI_AppSetNetwork(const DashboardNetworkOps *ops) {dashboard_set_network(&u
 void GUI_AppNetworkStatus(bool connected,const char *ssid,const char *ip)
 { dashboard_network_status(&ui,connected,ssid,ip); }
 void GUI_AppNetworkUpdate(const CameraNetworkState *state) {dashboard_network_update(&ui,state);}
+void GUI_AppSetUpload(bool (*submit)(void *context, const InstrumentRecord *record),void *context)
+{ ui.services.upload=submit;ui.services.upload_context=context; }
+
+uint16_t GUI_AppCloudCommand(const CameraCloudCommand *command)
+{ return dashboard_cloud_command(&ui,command); }
+void GUI_AppCloudState(CameraCloudState *s)
+{
+    /* 从GUI所拥有的模型复制；通信任务绝不借用模型指针。累计统计沿用质检口径，
+     * 仅内存有效、重启清零；普通测量不加入合格率的分母。 */
+    const InstrumentSettings *v=&model.settings;
+    *s=(CameraCloudState){0};
+    s->values[0]=page.quality_mode;s->values[1]=v->mode==MEASUREMENT_RECTANGLE?0:2;
+    for(unsigned i=2;i<6;++i)s->values[i]=v->tolerance[i<4?MEASUREMENT_RECTANGLE:MEASUREMENT_RING][i%2].target_cmm;
+    s->values[6]=v->tolerance[v->mode][0].upper_cmm;s->values[7]=v->tolerance[v->mode][0].lower_cmm;
+    s->total=model.inspected;s->passed=model.passed;s->failed=model.failed;
+    s->uptime_ms=lv_tick_get();s->progress=page.session.progress;s->trigger=page.trigger_source;
+    s->error=(uint16_t)page.session.error;
+    /* 自动质检包括每件完成后的2.5秒阅读间隔，整轮结束前都属于运行中。
+     * 否则网页会在两件之间误显示空闲；错误仍优先报告为故障。 */
+    s->status=s->error?2:((page.automatic||measurement_session_busy(&page.session))?1:0);
+}
+void GUI_AppUploadSnapshot(CameraUploadRecord *s)
+{
+    /* 回调发生在有效记录完成时，此刻固定标准、耗时和触发来源；
+     * 后续队列等待期间修改设置，也不能改变已经完成那件工件的历史。 */
+    const InstrumentSettings *v=&model.settings;
+    s->extended=1;s->trigger=page.trigger_source;
+    s->duration_ms=s->uptime_ms-page.session.started_ms;
+    if(s->duration_ms>600000U)s->duration_ms=600000U;
+    for(unsigned i=0;i<4;++i)s->targets[i]=v->tolerance[i<2?MEASUREMENT_RECTANGLE:MEASUREMENT_RING][i%2].target_cmm;
+    s->upper_cmm=v->tolerance[v->mode][0].upper_cmm;s->lower_cmm=v->tolerance[v->mode][0].lower_cmm;
+    s->total=model.inspected;s->passed=model.passed;s->failed=model.failed;
+}

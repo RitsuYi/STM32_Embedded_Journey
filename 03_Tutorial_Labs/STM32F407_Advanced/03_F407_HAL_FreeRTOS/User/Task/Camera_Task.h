@@ -20,6 +20,11 @@ typedef struct
      * link_timeouts增长而receive_errors不变，表示一秒内没有有效探测应答；
      * 它只能定位超时分支，不能单独证明相机、线路或主控哪端损坏。 */
     uint32_t matched_pongs, transmit_errors, link_timeouts;
+    /* 最近一条开始处理的上传及累计结果；cloud_code=200与state=4才是云端接受。
+     * dropped是GUI未排入的次数；unconfirmed不等于平台肯定没收到。
+     * 这些变量供调试观察，不代表持久化历史或原子一致的多字段快照。 */
+    uint32_t upload_record_id, upload_state, upload_cloud_code;
+    uint32_t upload_accepted, upload_failed, upload_unconfirmed, upload_dropped;
 } CameraTaskStatus;
 
 extern volatile CameraTaskStatus g_camera_task;

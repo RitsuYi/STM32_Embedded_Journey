@@ -2,6 +2,7 @@
 #define DASHBOARD_UI_H
 #include "instrument_ui.h"
 #include "../../Task/Camera_Network.h"
+#include "../../Task/Camera_Cloud.h"
 
 /* 网络接口仅发请求，必须立即返回，不能在GUI里等待连接。
  * 后续串口任务通过队列把状态送回GUI任务，再调用dashboard_network_status。
@@ -56,6 +57,7 @@ void dashboard_create(DashboardUI *ui, MeasurementPage *page, InstrumentModel *m
 void dashboard_open(DashboardUI *ui, DashboardMenu menu);
 void dashboard_close(DashboardUI *ui);
 void dashboard_action(DashboardUI *ui);
+uint16_t dashboard_cloud_command(DashboardUI *ui, const CameraCloudCommand *command);
 void dashboard_set_network(DashboardUI *ui, const DashboardNetworkOps *ops);
 void dashboard_network_status(DashboardUI *ui, bool connected, const char *ssid, const char *ip);
 /* 只能由GUI任务调用；相同快照直接返回，避免每秒心跳重建整个网络页。 */

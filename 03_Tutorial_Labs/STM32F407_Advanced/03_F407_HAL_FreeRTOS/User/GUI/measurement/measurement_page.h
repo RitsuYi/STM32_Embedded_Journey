@@ -40,6 +40,7 @@ typedef struct {
     /* 只由Camera任务的握手/失联快照更新，不能使用模拟测量的connected标志。
      * 初始为false：即使演示测量可用，也必须等真实UART握手后才亮绿灯。 */
     bool camera_online;
+    uint8_t trigger_source; /* 每次开始先设本地0；远程单次请求成功后由GUI置1。 */
     bool ui_synced; /* 首次创建需要完整绘制，后续按真正可见字段判定脏区。 */
     bool presentation_paused; /* 只合并底图显示更新；session仍接收进度、结果和超时。 */
     uint32_t presentation_clock; /* 暂停时的结果卡时钟，页头时钟仍正常走。 */

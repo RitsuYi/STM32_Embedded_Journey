@@ -480,6 +480,7 @@ bool measurement_page_start(MeasurementPage * p)
 {
     if(!p || !p->root || p->selected_navigation >= 2 || measurement_session_busy(&p->session) || p->calibration_capture_active) return false;
     if(!measurement_session_start(&p->session, lv_tick_get())) { sync_ui(p); return false; }
+    p->trigger_source=0; /* 新请求默认来自本机；云请求在成功返回后明确改为1。 */
     sync_ui(p); /* feedback is immediate, even before the backend returns */
     uint32_t id = p->session.request_id;
     if(!p->backend.start || !p->backend.start(p->backend.context, id, p->session.geometry)) {

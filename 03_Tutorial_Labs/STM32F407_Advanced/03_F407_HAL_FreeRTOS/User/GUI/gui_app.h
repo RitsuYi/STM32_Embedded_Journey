@@ -1,6 +1,8 @@
 #ifndef GUI_APP_H
 #define GUI_APP_H
 #include "instrument/dashboard_ui.h"
+#include "../Task/Camera_Cloud.h"
+#include "../Task/Camera_Upload.h"
 
 /* Persistence is optional. A future Flash implementation must report durable
  * success only after write/verification; NULL ops means volatile RAM only. */
@@ -17,4 +19,10 @@ void GUI_AppProcess(void);
 void GUI_AppSetNetwork(const DashboardNetworkOps *ops);
 void GUI_AppNetworkStatus(bool connected, const char *ssid, const char *ip);
 void GUI_AppNetworkUpdate(const CameraNetworkState *state);
+/* 在GUI任务初始化时绑定上传回调；回调参数只在调用期间有效，后端必须立即复制。 */
+void GUI_AppSetUpload(bool (*submit)(void *context, const InstrumentRecord *record), void *context);
+/* 仅在GUI任务执行：参数先整体验证再提交，不允许部分修改成功。 */
+uint16_t GUI_AppCloudCommand(const CameraCloudCommand *command);
+void GUI_AppCloudState(CameraCloudState *state);
+void GUI_AppUploadSnapshot(CameraUploadRecord *snapshot);
 #endif

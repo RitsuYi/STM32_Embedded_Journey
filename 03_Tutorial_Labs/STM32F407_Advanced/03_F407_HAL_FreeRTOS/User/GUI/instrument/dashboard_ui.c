@@ -179,6 +179,10 @@ static void completed(void *context,const MeasurementResult *result)
         else ++m->failed;
     }
     if(!persist(u))u->page->automatic=false;
+    /* 先确认记录留在模型中，再交给可选上传接口：保存失败会回滚编号，
+     * 不能用随后将复用的编号上报。仅内存模式persist也返回成功。
+     * 网络失败不撤销本地测量；队满由后端计数，GUI不等待串口或云端。 */
+    else if(u->services.upload) (void)u->services.upload(u->services.upload_context,r);
     /* 结果完成后至少留2.5秒阅读时间，再请求下一件；使用期限比较，不阻塞GUI触摸。
      * 下一轮采集仍保留上一份有效结果，只有新结果完成才替换数值与结论。 */
     summary(u);u->next_auto_ms=lv_tick_get()+2500U;
@@ -222,6 +226,53 @@ void dashboard_action(DashboardUI *u)
     measurement_page_set_backend(p,&p->backend);
 }
 static void primary(void *context) {dashboard_action(context);}
+/* 云命令在唯一GUI任务落地。开始与触摸屏共用同一动作：
+ * 普通测量采一件，质量检测启用设备自动循环，停止退出循环并取消当前件。
+ * 其余命令遇到编辑、转场或测量中均拒绝，重复开始不能反向切成停止。 */
+uint16_t dashboard_cloud_command(DashboardUI *u,const CameraCloudCommand *c)
+{
+    if(!u||!c)return 422;
+    MeasurementPage *p=u->page;
+    if(c->operation==CAMERA_CLOUD_STOP) {
+        p->automatic=false;
+        if(measurement_session_busy(&p->session)&&p->backend.cancel)
+            p->backend.cancel(p->backend.context,p->session.request_id);
+        p->session.state=MEASUREMENT_IDLE;p->session.progress=0;p->session.error=MEASUREMENT_ERROR_NONE;
+        measurement_page_set_backend(p,&p->backend);return 200;
+    }
+    if(measurement_session_busy(&p->session)||p->automatic||u->edit||u->animating||
+       !lv_obj_is_hidden(u->panel)||p->selected_navigation>=2)return 409;
+    if(c->operation==CAMERA_CLOUD_START) {
+        if(p->quality_mode) {
+            dashboard_action(u);
+            if(!p->automatic)return 503;
+        } else if(!measurement_page_start(p))return 503;
+        p->trigger_source=1;return 200;
+    }
+    if(c->operation!=CAMERA_CLOUD_SET||!c->mask||(c->mask&~255U))return 422;
+    InstrumentSettings candidate=u->model->settings;
+    if((c->mask&1U)&&c->values[0]>1)return 422;
+    /* 现有算法仅矩形/圆环；圆形枚举1如实拒绝，不偷偷当圆环处理。 */
+    if(c->mask&2U) {
+        if(c->values[1]!=0&&c->values[1]!=2)return 422;
+        candidate.mode=c->values[1]==0?MEASUREMENT_RECTANGLE:MEASUREMENT_RING;
+    }
+    for(unsigned i=2;i<6;++i)if(c->mask&(1U<<i)) {
+        if(!c->values[i]||c->values[i]>100000U)return 422;
+        candidate.tolerance[i<4?MEASUREMENT_RECTANGLE:MEASUREMENT_RING][i%2].target_cmm=c->values[i];
+    }
+    /* 原物模型只有一对偏差：下发时统一当前工件的两维；
+     * 本地原来两维不相同时，上报/事件这对标量代表主尺寸，详通信文档。 */
+    for(unsigned d=0;d<2;++d) {
+        if(c->mask&64U) {if(c->values[6]>10000U)return 422;candidate.tolerance[candidate.mode][d].upper_cmm=c->values[6];}
+        if(c->mask&128U) {if(c->values[7]>10000U)return 422;candidate.tolerance[candidate.mode][d].lower_cmm=c->values[7];}
+    }
+    if(!instrument_settings_check(&candidate))return 422;
+    u->rollback=*u->model;u->model->settings=candidate;
+    if(!persist(u))return 500;
+    if(c->mask&1U)measurement_page_navigate(p,c->values[0]);
+    apply(u);summary(u);return 200;
+}
 static void timer_tick(lv_timer_t *t)
 {
     DashboardUI *u=lv_timer_get_user_data(t);MeasurementPage *p=u->page;
@@ -244,7 +295,11 @@ static void timer_tick(lv_timer_t *t)
         if(p->session.state==MEASUREMENT_FAILED||!p->session.connected) {
             p->automatic=false;measurement_page_set_backend(p,&p->backend);
         } else if(p->selected_navigation==1&&(int32_t)(now-u->next_auto_ms)>=0) {
+            /* 自动循环的后续件沿用启动来源；start内部默认本机来源，成功后恢复。
+             * 这样网页启动的一整轮质检都标记远程，而触摸启动仍标记本机。 */
+            uint8_t trigger=p->trigger_source;
             if(!measurement_page_start(p))p->automatic=false;
+            else p->trigger_source=trigger;
         }
     }
 }

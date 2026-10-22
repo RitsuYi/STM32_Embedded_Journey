@@ -56,7 +56,7 @@ void vTaskDelay(TickType_t wait)
     assert(ticks<7000); /* 握手失败不能靠无限重试把测试挂住。 */
 }
 QueueHandle_t xQueueCreateStatic(unsigned length,unsigned size,uint8_t *data,StaticQueue_t *c)
-{ assert(length==1); c->data=data;c->size=size;c->full=0;return c; }
+{ assert(length==1 || length==4); c->data=data;c->size=size;c->full=0;return c; }
 BaseType_t xQueueSend(QueueHandle_t q,const void *item,TickType_t wait)
 { assert(wait==0);if(q->full)return 0;memcpy(q->data,item,q->size);q->full=1;return pdPASS; }
 BaseType_t xQueueOverwrite(QueueHandle_t q,const void *item)

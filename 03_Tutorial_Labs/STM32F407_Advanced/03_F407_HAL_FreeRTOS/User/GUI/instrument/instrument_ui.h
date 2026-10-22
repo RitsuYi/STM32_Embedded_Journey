@@ -12,6 +12,9 @@ typedef struct {
     void * calibration_context;
     bool persistent;
     const char * storage_name;
+    /* 完成有效记录后立即通知上传后端；回调须复制数据并立即返回，不能等待网络。 */
+    bool (*upload)(void *context, const InstrumentRecord *record);
+    void *upload_context;
 } InstrumentServices;
 typedef enum { EDIT_NONE, EDIT_REFERENCE, EDIT_SAMPLES, EDIT_QUALITY, EDIT_TIMEOUT } InstrumentEdit;
 typedef enum { CONFIRM_NONE, CONFIRM_DELETE, CONFIRM_CLEAR, CONFIRM_DEFAULTS, CONFIRM_PROFILE } InstrumentConfirm;

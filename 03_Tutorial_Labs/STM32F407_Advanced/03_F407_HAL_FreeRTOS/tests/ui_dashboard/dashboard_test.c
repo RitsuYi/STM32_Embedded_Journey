@@ -2,6 +2,7 @@
 #include "gui_camera_config.h"
 #include "gui_version.h"
 #include "gui_demo.h"
+#include "gui_app.h"
 #include "lvgl_port.h"
 #include "ST7796.h"
 #include "fonts/measurement_fonts.h"
@@ -886,6 +887,14 @@ static void camera_visual_contract(void)
     CHECK(size.x<=64&&size.y==ui_font_12.line_height);
     puts("PASS: real UART status independent of demo; green/grey camera and blue/grey Wi-Fi; single-line header");
 }
+/* 使用真实完成回调验证上传事件：普通测量/质检各一次，保留模拟来源。
+ * 故意返回false模拟队满，本地有效测量仍必须保存，不能被网络失败回滚。 */
+static unsigned upload_events;
+static InstrumentRecord upload_last;
+static bool capture_upload(void *context,const InstrumentRecord *record)
+{
+    CHECK(context==&upload_events);++upload_events;upload_last=*record;return false;
+}
 int main(void)
 {
     lv_init();lv_tick_set_cb(HAL_GetTick);CHECK(GUI_DisplayInit());CHECK(GUI_RegisterTouch(reader,NULL));font_check();color_contract();gradient_contract();
@@ -905,10 +914,20 @@ int main(void)
     lv_obj_t *buttons[]={page.navigation[0],page.start_button,page.navigation[3]};
     int centers[]={81,240,399};
     for(unsigned i=0;i<3;++i)for(int y=310;y<=319;++y){lv_point_t p={centers[i],y};CHECK(lv_indev_search_obj(page.root,&p)==buttons[i]);}
+    ui.services.upload=capture_upload;ui.services.upload_context=&upload_events;
+    CHECK(upload_events==0);
     tap_at(page.start_button,240,319);incremental_contract("acquiring");
     advance(500);incremental_contract("progress/phase");advance(1500);
     CHECK(page.session.state==MEASUREMENT_COMPLETE&&model.record_count==1);
     CHECK(model.records[0].result.primary_cmm==3012&&!model.records[0].inspection);
+    CHECK(upload_events==1 && upload_last.id==model.records[0].id && !upload_last.inspection);
+    CHECK(upload_last.verdict==INSPECTION_NONE && upload_last.result.simulated);
+    /* 若未来存储后端拒绝保存，模型会回滚并复用编号，不能把这条记录上传。
+     * 与上传队满不同：队满只拒绝网络排队，不回滚已保留的有效测量。 */
+    uint32_t next_record_id=model.next_id;
+    ui.services.save=reject_save;CHECK(measurement_page_start(&page));advance(2000);
+    CHECK(model.record_count==1 && model.next_id==next_record_id && upload_events==1);
+    ui.services.save=NULL;
     screenshot("measurement.ppm");
     redraw_contract();
     uint32_t scale=page.geometry.scale_q8;tap(page.zoom[0]);CHECK(page.geometry.scale_q8>scale);
@@ -917,6 +936,7 @@ int main(void)
     screenshot("inspection_idle.ppm");plot_dither_contract();redraw_contract(); /* 两种布局的渐变/图标都核对条带边界。 */
     tap_at(page.start_button,240,319);CHECK(page.automatic);advance(2000);
     CHECK(page.session.state==MEASUREMENT_COMPLETE&&model.inspected==1);
+    CHECK(upload_events==2 && upload_last.inspection && upload_last.verdict==INSPECTION_PASS);
     uint32_t completed_at=model.records[0].uptime_ms;
     CHECK(ui.next_auto_ms-completed_at==2500U);
     uint16_t *saved_result=malloc(174U*39U*2U);CHECK(saved_result);
@@ -1029,5 +1049,53 @@ int main(void)
     printf("PASS: deferred DMA ownership/tail drain; %u blocks, %u overlapping draw callbacks, %llu bytes\n",
            dma_starts,draw_while_dma,(unsigned long long)sent_bytes);
     printf("PASS: modes, bottom touch, auto inspection, tolerance, records, scroll, rollback, Wi-Fi contracts, rectangle; heap free=%lu max_used=%lu\n",(unsigned long)monitor.free_size,(unsigned long)monitor.max_used);
-    dashboard_destroy(&ui);return 0;
+    /* 远控使用正式GUI业务入口：验证事务回滚、忙拒绝、设备自动质检和停止。
+     * 这里不使用RTOS/云端替身来伪造GUI执行成功。 */
+    dashboard_close(&ui);advance(250);measurement_page_navigate(&page,0);
+    page.automatic=false;page.session.state=MEASUREMENT_IDLE;
+    CameraCloudCommand cloud={.operation=CAMERA_CLOUD_SET,.mask=7,
+        .values={1,0,3300,0,0,0,0,0}};
+    CHECK(dashboard_cloud_command(&ui,&cloud)==200);
+    CHECK(page.quality_mode&&model.settings.mode==MEASUREMENT_RECTANGLE&&model.settings.tolerance[1][0].target_cmm==3300);
+    cloud.mask=2;cloud.values[1]=1;CHECK(dashboard_cloud_command(&ui,&cloud)==422);
+    CHECK(model.settings.mode==MEASUREMENT_RECTANGLE);
+    cloud.mask=4;cloud.values[2]=1;CHECK(dashboard_cloud_command(&ui,&cloud)==422);
+    CHECK(model.settings.tolerance[1][0].target_cmm==3300);
+    cloud.values[2]=3400;ui.services.save=reject_save;
+    CHECK(dashboard_cloud_command(&ui,&cloud)==500&&model.settings.tolerance[1][0].target_cmm==3300);
+    ui.services.save=NULL;cloud.operation=CAMERA_CLOUD_START;
+    CHECK(dashboard_cloud_command(&ui,&cloud)==200&&page.trigger_source==1&&page.automatic);
+    CHECK(dashboard_cloud_command(&ui,&cloud)==409);
+    cloud.operation=CAMERA_CLOUD_SET;CHECK(dashboard_cloud_command(&ui,&cloud)==409);
+    uint32_t before_auto=model.inspected;
+    advance(2000);CHECK(model.inspected==before_auto+1&&page.automatic);
+    CHECK(!measurement_session_busy(&page.session)); /* 完成后仍在阅读间隔。 */
+    advance(4400);CHECK(model.inspected==before_auto+2&&page.automatic&&page.trigger_source==1);
+    cloud.operation=CAMERA_CLOUD_STOP;uint32_t before_stop=model.inspected;
+    CHECK(dashboard_cloud_command(&ui,&cloud)==200&&!measurement_session_busy(&page.session));
+    advance(2300);CHECK(model.inspected==before_stop&&!page.automatic);
+    CHECK(dashboard_cloud_command(&ui,&cloud)==200); /* 重复停止是无副作用的成功。 */
+    printf("PASS: cloud settings atomic rollback, busy rejection, device-owned continuous inspection and stop\n");
+    dashboard_destroy(&ui);lv_obj_clean(lv_screen_active());
+    /* 再通过正式GUI_App入口检查真正上报的状态：包括两件之间的100%阅读间隔。
+     * 只推进主机虚拟毫秒，不接真实设备；普通测量仍必须只采一件。 */
+    GUI_AppInit(NULL);CameraCloudState observed;
+    CameraCloudCommand remote={.operation=CAMERA_CLOUD_SET,.mask=1,.values={1}};
+    CHECK(GUI_AppCloudCommand(&remote)==200);remote.operation=CAMERA_CLOUD_START;
+    CHECK(GUI_AppCloudCommand(&remote)==200);
+    for(unsigned i=0;i<6500;i+=5) {
+        now+=5;GUI_AppProcess();lv_timer_handler();GUI_DisplayService();GUI_AppCloudState(&observed);
+        CHECK(observed.status==1&&observed.trigger==1);
+    }
+    CHECK(observed.total==2&&observed.progress==100);
+    /* 触摸屏/实体主动作也能停止网页启动的自动模式，上报立即回到空闲。 */
+    GUI_AppKey(3);GUI_AppCloudState(&observed);CHECK(observed.status==0);
+    remote.operation=CAMERA_CLOUD_STOP;CHECK(GUI_AppCloudCommand(&remote)==200);
+    GUI_AppCloudState(&observed);CHECK(observed.status==0);
+    remote.operation=CAMERA_CLOUD_SET;remote.values[0]=0;CHECK(GUI_AppCloudCommand(&remote)==200);
+    remote.operation=CAMERA_CLOUD_START;CHECK(GUI_AppCloudCommand(&remote)==200);
+    for(unsigned i=0;i<6500;i+=5) {now+=5;GUI_AppProcess();lv_timer_handler();GUI_DisplayService();}
+    GUI_AppCloudState(&observed);CHECK(observed.status==0&&observed.total==2);
+    printf("PASS: GUI_App status remains running through inspection cooldown; normal measurement stays one-shot\n");
+    return 0;
 }
