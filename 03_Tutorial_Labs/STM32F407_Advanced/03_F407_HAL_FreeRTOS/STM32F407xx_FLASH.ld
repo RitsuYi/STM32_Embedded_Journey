@@ -267,7 +267,12 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
+    /* 系统信息页只读取此符号的地址，包含已经预留的C堆和主栈，不与RTOS堆重复相加。 */
+    _eram_reserved = .;
   } >RAM
+
+  /* 最后装载到Flash的数据终点；随固件实际链接自动变化，不把旧构建数字写死在UI。 */
+  _eflash_image = MAX(LOADADDR(.data) + SIZEOF(.data), LOADADDR(.tdata) + SIZEOF(.tdata));
 
 
 

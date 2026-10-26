@@ -21,6 +21,8 @@ void GUI_AppNetworkStatus(bool connected, const char *ssid, const char *ip);
 void GUI_AppNetworkUpdate(const CameraNetworkState *state);
 /* 在GUI任务初始化时绑定上传回调；回调参数只在调用期间有效，后端必须立即复制。 */
 void GUI_AppSetUpload(bool (*submit)(void *context, const InstrumentRecord *record), void *context);
+/* 绑定系统统计只读数据源；回调必须在GUI任务内立即返回，不等待其他任务。 */
+void GUI_AppSetSystemSource(SystemInfoRead read,void *context);
 /* 仅在GUI任务执行：参数先整体验证再提交，不允许部分修改成功。 */
 uint16_t GUI_AppCloudCommand(const CameraCloudCommand *command);
 void GUI_AppCloudState(CameraCloudState *state);

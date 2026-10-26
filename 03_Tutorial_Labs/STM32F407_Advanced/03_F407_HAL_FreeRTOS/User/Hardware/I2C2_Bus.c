@@ -12,7 +12,7 @@ static SemaphoreHandle_t mutex;
 static bool have_recovery_time;
 static uint32_t last_recovery_ms;
 
-/* 这里只使用已核实的I2C2引脚，不碰触摸复位和LCD/SPI。
+/* 这里只使用已核实的I2C2引脚，不碰触摸复位和LCD接口。
  * 开漏输出的“高”表示放开线路，仍由现有3.3V上拉电阻提供高电平。 */
 #define BUS_SCL GPIO_PIN_10
 #define BUS_SDA GPIO_PIN_11

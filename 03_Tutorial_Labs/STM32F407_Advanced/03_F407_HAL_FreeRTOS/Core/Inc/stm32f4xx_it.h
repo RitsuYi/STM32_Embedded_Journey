@@ -57,11 +57,11 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void DMA1_Stream5_IRQHandler(void);
 void DMA1_Stream6_IRQHandler(void);
-void SPI1_IRQHandler(void);
 void USART2_IRQHandler(void);
 void TIM6_DAC_IRQHandler(void);
-void DMA2_Stream3_IRQHandler(void);
 /* USER CODE BEGIN EFP */
+/* LCD专用DMA流，声明与stm32f4xx_it.c中USER CODE入口配对。 */
+void DMA2_Stream0_IRQHandler(void);
 
 /* USER CODE END EFP */
 

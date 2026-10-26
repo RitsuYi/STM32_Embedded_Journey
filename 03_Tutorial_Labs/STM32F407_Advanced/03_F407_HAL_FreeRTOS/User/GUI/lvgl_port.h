@@ -5,14 +5,14 @@
 
 typedef bool (*GUI_TouchReader)(void *context, int32_t *x, int32_t *y, bool *pressed);
 /* 输入定时器单独设为15ms，减少短按漏采；不改变显示刷新周期或芯片扫描率。
- * 这是调度目标，实际间隔还受GUI绘图、SPI传输及任务调度影响。 */
+ * 这是调度目标，实际间隔还受GUI绘图、并口传输及任务调度影响。 */
 #define GUI_TOUCH_READ_PERIOD_MS 15U
 
-/* 每块32行RGB565，双缓冲共61440B，只使用DMA可读的普通SRAM。
+/* 每块32行RGB565，双缓冲共61440B，保留在普通SRAM。
  * 相比双20行多用23040B，减少历史滚动/切页时重复的绘图回调和窗口命令；
- * 每块30720B仍可一次DMA发送。缓冲只处理LVGL标记的变化区域，不强制刷新整屏。
+ * 每块30720B交DMA2写入FSMC，CPU同时画另一块；只处理变化区域，不强制刷新整屏。
  * 保留内存给通信/测量和运行时分配，不把剩余SRAM全部用作显示缓冲。
- * 主机对照可覆盖行数；每块最多32行，确保一次发送小于65535字节。 */
+ * 行数保持1～32的原有内存预算，不借清理扩大缓冲。 */
 #ifndef GUI_DRAW_BUFFER_ROWS
 #define GUI_DRAW_BUFFER_ROWS 32U
 #endif
@@ -21,9 +21,9 @@ typedef bool (*GUI_TouchReader)(void *context, int32_t *x, int32_t *y, bool *pre
 #endif
 #define GUI_DRAW_BUFFER_BYTES (480U * GUI_DRAW_BUFFER_ROWS * 2U)
 lv_display_t *GUI_DisplayInit(void);
-/* 一帧指一次有像素发送、且全部DMA成功收尾的LVGL刷新，可包含多个局部矩形。
+/* 一帧指一次有像素发送、且全部传输成功收尾的LVGL刷新，可包含多个局部矩形。
  * fps_x10是最近约1秒的平均刷新次数乘10，例如125表示12.5 FPS；静止时可降为0。
- * 它不是液晶内部扫描率，也不是DMA块数；last_frame_ms包含布局、绘图和末块等待。 */
+ * 它不是液晶内部扫描率，也不是局部矩形块数；last_frame_ms包含布局、绘图和末块等待。 */
 typedef struct {
     uint32_t fps_x10;
     uint32_t last_frame_ms;
@@ -32,9 +32,10 @@ typedef struct {
     uint32_t last_frame_bytes;
     uint32_t completed_frames;
     uint32_t transfer_errors;
-    /* 以下两项供调试器分项观察，OLED原三行保持：wait是Finish等待的墙钟时间，
-     * pack是字节换序/紧密化的墙钟时间，单位ms。它们不是CPU周期或DMA总忙时长；
-     * DMA与绘图重叠、任务抢占和毫秒分辨率都会影响数值，不可直接相加推算CPU占用。 */
+    /* wait是GUI实际等待DMA归还缓冲的墙钟时间，单位ms，包含调度影响。
+     * 与CPU绘图重叠的传输时间不重复计入wait，等待期间GUI通过信号量让出CPU。
+     * pack字段保留为0以保持现有统计结构兼容；并口没有字节换序过程。
+     * 这些数值不能直接推算CPU占用率。 */
     uint32_t last_frame_wait_ms;
     uint32_t last_frame_pack_ms;
 } GUI_DisplayStats;

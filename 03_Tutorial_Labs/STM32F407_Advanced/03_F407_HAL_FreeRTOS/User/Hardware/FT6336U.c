@@ -5,7 +5,7 @@
 #include "main.h"
 #include "task.h"
 
-/* 按商家STM32F1_4SPI示例ctp.c：先读0x02点数，再读0x03起的4字节坐标。
+/* 按商家示例ctp.c：先读0x02点数，再读0x03起的4字节坐标。
  * 只接受CONTACT事件，表示芯片已确认持续接触；不把初始DOWN当作有效坐标。
  * 保留本工程HAL/RTOS总线保护与已实测的横屏方向，不搬商家的F1引脚/软件I2C。 */
 #define FT_REG_TOUCH_COUNT   0x02U

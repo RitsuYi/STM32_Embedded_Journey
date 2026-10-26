@@ -12,6 +12,7 @@
 #include "Camera_Network.h"
 #include "Camera_Upload.h"
 #include "Camera_Task.h"
+#include "System_Monitor.h"
 
 static bool upload_record(void *context,const InstrumentRecord *record)
 {
@@ -87,13 +88,18 @@ void vGUI_Task(void *pvParameters)
      * 输入设备注册失败则是LVGL内存问题，与硬件未应答分别处理。 */
     (void)FT6336U_Init();
     if (!GUI_RegisterTouch(read_touch, NULL)) GUI_LVGL_AssertFailed(__FILE__, __LINE__);
+    /* 在用户打开系统信息前就开始轻量CPU采样，首屏直接使用最近结果。 */
+    SystemMonitor_Poll();
     GUI_AppInit(NULL); /* Flash persistence not connected: RAM-only, explicitly labelled. */
+    GUI_AppSetSystemSource(SystemMonitor_Read,NULL);
     GUI_AppSetUpload(upload_record,NULL);
     const DashboardNetworkOps network_ops={.connect=network_connect,.disconnect=network_disconnect,.scan=network_scan};
     GUI_AppSetNetwork(&network_ops);
 
     for (;;)
     {
+        /* 内部限制每秒一次，只读计数；任务栈仍仅在系统信息可见时采集。 */
+        SystemMonitor_Poll();
         unsigned key;
         /* Camera任务只入队；真正校验/改参数/开始/停止全部在这里执行。
          * 回执带原会话号，掉线换会话后的旧命令不得误作用于新连接。 */
@@ -118,7 +124,7 @@ void vGUI_Task(void *pvParameters)
             GUI_AppKey(key);
         GUI_AppProcess();
         uint32_t delay = lv_timer_handler();
-        GUI_DisplayService(); /* DMA异常的完整重绘请求必须在本次LVGL刷新结束后提交。 */
+        GUI_DisplayService(); /* 刷新失败后的完整重绘请求在本次LVGL处理结束后提交。 */
         if(delay == LV_NO_TIMER_READY || delay > 10U) delay = 10U;
         if(delay < 1U) delay = 1U;
         vTaskDelay(pdMS_TO_TICKS(delay));

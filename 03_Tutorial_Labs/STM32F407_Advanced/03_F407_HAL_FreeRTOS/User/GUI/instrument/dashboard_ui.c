@@ -12,8 +12,8 @@
 
 /* 二级页面共用一个可垂直滚动的容器，每次仅创建当前菜单。
  * 历史采用8条一段的滚动列表，64条记录不会同时占用LVGL的52KiB内存池。
- * 页面从右侧滑入，返回时直接显示准备好的主页，减少SPI连续整页传输。
- * 列表保留惯性滑动，手指拖动不会误当成按钮点击。 */
+ * 页面从右侧滑入，返回时准备好主页后直接关闭菜单。
+ * 列表复用LVGL的惯性和边缘回弹，手指拖动不会误当成按钮点击。 */
 enum { EDIT_OFF, EDIT_TARGET, EDIT_SAMPLES_NEW, EDIT_TIMEOUT_NEW, EDIT_RESIDUAL_NEW,
        EDIT_SSID, EDIT_PASSWORD };
 static void render(DashboardUI *u);
@@ -291,6 +291,11 @@ static void timer_tick(lv_timer_t *t)
             const lv_area_t time={429,44,473,63};lv_obj_invalidate_area(p->result_panel,&time);
         }
     }
+    /* 从进入/切换标签后的实际刷新时间计满1秒，不依赖顶部时钟的整秒边界。
+     * 复用100ms定时器；隐藏/转场时不扫描栈，后台CPU轻量采样由GUI任务维护。 */
+    if(u->menu==DASH_DEVICE&&!lv_obj_is_hidden(u->panel)&&!u->animating&&
+       now-u->system.last_refresh_ms>=1000U)
+        system_info_refresh(&u->system);
     if(p->automatic&&!measurement_session_busy(&p->session)) {
         if(p->session.state==MEASUREMENT_FAILED||!p->session.connected) {
             p->automatic=false;measurement_page_set_backend(p,&p->backend);
@@ -304,6 +309,20 @@ static void timer_tick(lv_timer_t *t)
     }
 }
 static void slide_x(void *object,int32_t x) {lv_obj_set_x(object,x);}
+/* 离页时停止正文和嵌套列表的回弹，避免屏外动画继续占用绘图时间。
+ * 这些指针只在对应菜单存在时有效，system_info_detach负责在销毁时清空。 */
+static void stop_menu_scroll(DashboardUI *u)
+{
+    /* 惯性还可能由输入设备持有，单停对象的回位动画并不能终止它。
+     * 只复位正在滚动本菜单的设备，普通返回按钮的点击流程不受影响。 */
+    for(lv_indev_t *i=lv_indev_get_next(NULL);i;i=lv_indev_get_next(i)) {
+        lv_obj_t *o=lv_indev_get_scroll_obj(i);
+        if(o&&(o==u->body||o==u->system.content||o==u->system.list))lv_indev_reset(i,NULL);
+    }
+    lv_obj_stop_scroll_anim(u->body);
+    if(u->system.content)lv_obj_stop_scroll_anim(u->system.content);
+    if(u->system.list)lv_obj_stop_scroll_anim(u->system.list);
+}
 static void opened(lv_anim_t *a)
 {
     DashboardUI *u=lv_anim_get_user_data(a);u->animating=false;
@@ -329,7 +348,7 @@ void dashboard_open(DashboardUI *u,DashboardMenu menu)
     bool hidden=lv_obj_is_hidden(u->panel);
     u->menu=menu;u->closing=false;lv_anim_delete(u->panel,slide_x);
     measurement_page_pause_presentation(u->page,true);
-    lv_obj_stop_scroll_anim(u->body);
+    stop_menu_scroll(u);
     /* 先在屏幕右侧准备菜单，不能先放X=0并隐藏底图，再启动滑入。
      * 透明输入层覆盖未被菜单遮住的区域，动画中不会点穿到原主页面。 */
     if(hidden)lv_obj_set_x(u->panel,480);
@@ -344,23 +363,19 @@ void dashboard_open(DashboardUI *u,DashboardMenu menu)
 void dashboard_close(DashboardUI *u)
 {
     if(!u||u->closing||lv_obj_is_hidden(u->panel))return;
-    /* 返回不再逐帧移动菜单。先取消可能仍在执行的滑入，防止旧动画回调
-     * 在关闭后继续移动菜单；closing只防止本次状态整理被重复调用。 */
+    /* 按用户要求恢复直接关闭；取消尚未完成的进入动画，防止旧回调再移动菜单。
+     * closing只保护本次状态整理，不再等待关闭动画的完成回调。 */
     u->closing=true;lv_anim_delete(u->panel,slide_x);u->animating=false;
-    lv_obj_stop_scroll_anim(u->body);
+    stop_menu_scroll(u);
     u->page->selected_navigation=u->last_main;
     lv_obj_set_hidden(u->page->geometry.object,false);lv_obj_set_hidden(u->page->result_panel,false);
     /* 菜单仍盖着主页时，解除显示合并并提交最新轮廓、统计、结果及按钮。
      * 业务一直在运行，这里只把被覆盖期间积累的最终状态同步到控件。 */
     measurement_page_pause_presentation(u->page,false);summary(u);
     measurement_page_set_backend(u->page,&u->page->backend);
-    /* 在同一次GUI调用内最后隐藏菜单，再归还输入。LVGL随后正常刷新最终
-     * 主页，不创建180ms返回动画；SPI仍按条带发送，不代表屏幕瞬时整页替换。 */
+    /* 在同一次GUI调用中隐藏菜单并归还输入，不创建关闭位移动画。
+     * 隐藏后完成屏外定位/布局，避免下次打开先按旧X=0申请额外整页刷新。 */
     lv_obj_set_hidden(u->panel,true);
-    /* 恢复旧版退出后的屏外位置，进入函数和180ms滑入保持原样。
-     * set_x只登记目标位置，update_layout才真正移动对象；必须在隐藏期间
-     * 完成这两步，否则下次显示菜单会按旧X=0申请一次整菜单重绘。
-     * 此处没有位移动画，隐藏对象也不会因复位而发送菜单像素。 */
     lv_obj_set_x(u->panel,480);lv_obj_update_layout(u->panel);
     u->menu_dirty=false;u->closing=false;
     lv_obj_set_clickable(u->transition_guard,false);
@@ -375,6 +390,7 @@ static void navigation(void *context,unsigned destination)
 static void back_event(lv_event_t *e)
 {
     DashboardUI *u=lv_event_get_user_data(e);
+    if(u->menu==DASH_DEVICE&&system_info_back(&u->system))return;
     if(u->menu==DASH_SETTINGS||u->menu==DASH_RECORDS||u->menu==DASH_STANDARDS)dashboard_close(u);
     else dashboard_open(u,u->menu==DASH_RECORD_DETAIL?DASH_RECORDS:DASH_SETTINGS);
 }
@@ -522,16 +538,18 @@ static void render(DashboardUI *u)
      * 文字相同时不调用set_text，避免无意义的分配、布局和整行重绘。 */
     bool reuse=u->menu==DASH_SETTINGS && u->rendered_menu==DASH_SETTINGS && u->rows[0];
     /* 删除的是当前菜单的LVGL对象，涉及内存释放，不是删除任何磁盘文件。 */
-    if(!reuse) {lv_obj_clean(u->body);memset(u->rows,0,sizeof(u->rows));}
+    if(!reuse) {system_info_detach(&u->system);lv_obj_clean(u->body);memset(u->rows,0,sizeof(u->rows));}
+    /* 系统页内部有自己的固定标签栏/任务滚动区，外层正文不跟着滚动。 */
+    lv_obj_set_scrollable(u->body,u->menu!=DASH_DEVICE);
     u->rendered_menu=u->menu;u->menu_dirty=false;
-    static const char *titles[]={"设置","Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录","检测记录详情","检查更新"};
+    static const char *titles[]={"设置","Wi-Fi 网络","系统信息","测量参数","显示设置","标准设定","最近检测记录","检测记录详情","检查更新"};
     if(strcmp(lv_label_get_text(u->title),titles[u->menu]))lv_label_set_text(u->title,titles[u->menu]);
     char value[128],a[20],b[20];
     InstrumentModel *m=u->model;InstrumentSettings *s=&m->settings;
     int y=4;
     if(u->menu==DASH_SETTINGS) {
-        const char *names[]={"Wi-Fi 网络","设备信息","测量参数","显示设置","标准设定","最近检测记录","检查更新"};
-        const char *vals[]={u->connected?u->ssid:"未连接  >","固件 / 屏幕 / 相机  >","工件 / 采样 / 超时  >","网格 / 标注 / 单位  >","目标尺寸与上下公差  >","滑动查看历史  >","当前版本 " GUI_FIRMWARE_VERSION "  >"};
+        const char *names[]={"Wi-Fi 网络","系统信息","测量参数","显示设置","标准设定","最近检测记录","检查更新"};
+        const char *vals[]={u->connected?u->ssid:"未连接  >","CPU / 任务 / 内存 / 设备  >","工件 / 采样 / 超时  >","网格 / 标注 / 单位  >","目标尺寸与上下公差  >","滑动查看历史  >","当前版本 " GUI_FIRMWARE_VERSION "  >"};
         for(unsigned i=0;i<7;++i) {
             if(reuse) {
                 lv_obj_t *v=lv_obj_get_child(u->rows[i],1);
@@ -589,11 +607,8 @@ static void render(DashboardUI *u)
         label(u->body,16,y,430,"OTA升级接口预留，暂未接入更新服务。",false,UI_MUTED);y+=30;
         label(u->body,16,y,430,"后续连接Wi-Fi后，可在此检查固件更新。",false,UI_MUTED);
     } else if(u->menu==DASH_DEVICE) {
-        const char *names[]={"设备名称","主控","显示屏","触摸","图形库","视觉前端","存储","运行时间"};
-        snprintf(value,sizeof(value),"%" PRIu32 " 秒",lv_tick_get()/1000U);
-        const char *vals[]={"智能视觉测量仪","STM32F407VGT6 / 168MHz","ST7796 / 480 x 320 / RGB565","FT6336U / I2C2","LVGL 9.6.0 / FW " GUI_FIRMWARE_VERSION,
-            "MaixCAM2",u->services.persistent?"后端已接入":"仅内存 / 重启后清空",value};
-        for(unsigned i=0;i<8;++i) {row(u,i,y,names[i],vals[i]);y+=45;lv_obj_set_clickable(u->rows[i],false);}
+        u->system.title=u->title;
+        system_info_create(&u->system,u->body,u->services.persistent);
     } else if(u->menu==DASH_MEASUREMENT) {
         row(u,0,y,"工件类型",s->mode==MEASUREMENT_RING?"圆环  >":"矩形  >");y+=45;
         snprintf(value,sizeof(value),"%" PRIu32 " 点  >",s->sample_count);row(u,1,y,"采样点数",value);y+=45;
@@ -690,7 +705,7 @@ void dashboard_create(DashboardUI *u,MeasurementPage *p,InstrumentModel *m,const
 {
     memset(u,0,sizeof(*u));u->page=p;u->model=m;if(services)u->services=*services;
     p->navigation_changed=navigation;p->result_completed=completed;p->application_context=u;p->primary_action=primary;
-    /* 透明对象只拦截菜单/滑入期间的输入；返回准备好主页后立即归还输入。 */
+    /* 透明对象拦截菜单外的输入；直接关闭后立即归还主页输入。 */
     u->transition_guard=box(p->root,0,30,480,290,UI_BG);
     lv_obj_set_style_bg_opa(u->transition_guard,LV_OPA_TRANSP,0);
     lv_obj_set_clickable(u->transition_guard,false);
@@ -700,7 +715,10 @@ void dashboard_create(DashboardUI *u,MeasurementPage *p,InstrumentModel *m,const
     u->title=label(u->panel,88,9,377,"设置",true,UI_INK);
     u->body=box(u->panel,7,39,466,246,UI_BG);lv_obj_set_scrollable(u->body,true);
     lv_obj_set_scroll_dir(u->body,LV_DIR_VER);lv_obj_set_scrollbar_mode(u->body,LV_SCROLLBAR_MODE_AUTO);
-    lv_obj_set_scroll_momentum(u->body,true);lv_obj_set_scroll_elastic(u->body,false);lv_obj_set_scroll_chain(u->body,false);
+    /* 惯性由LVGL按最近的手指位移计算：快划松手后走得远，慢拖更快停下。
+     * 弹性使顶/底两端都能阻尼拖出并回位；关闭滚动链，防止带动外层页面。
+     * 复用原输入/动画定时器和整数运算，不另建逐帧回调或像素缓冲。 */
+    lv_obj_set_scroll_momentum(u->body,true);lv_obj_set_scroll_elastic(u->body,true);lv_obj_set_scroll_chain(u->body,false);
     lv_obj_set_style_pad_bottom(u->body,14,0);
     u->editor=box(p->root,0,0,480,320,UI_BG);lv_obj_set_hidden(u->editor,true);
     u->editor_title=label(u->editor,12,8,454,"输入参数",true,UI_INK);
@@ -774,6 +792,7 @@ void dashboard_destroy(DashboardUI *u)
     /* 清掉借用指针并解除显示合并，防止销毁后自绘访问已经释放的菜单。 */
     u->page->opaque_cover=NULL;u->page->geometry.opaque_cover=NULL;
     measurement_page_pause_presentation(u->page,false);summary(u);
+    system_info_detach(&u->system);
     lv_obj_delete(u->panel);lv_obj_delete(u->editor);lv_obj_delete(u->transition_guard);
     memset(u->password,0,sizeof(u->password));
 }

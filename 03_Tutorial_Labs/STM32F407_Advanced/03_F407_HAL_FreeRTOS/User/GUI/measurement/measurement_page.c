@@ -9,7 +9,7 @@
 #include "../assets/ui_skin.h"
 
 /* 本文件只负责480×320主画面与测量会话。网络、记录和标准由dashboard_ui连接，
- * 所有回调都在GUI任务运行；不额外创建任务，也不改变触摸驱动和SPI刷新时序。 */
+ * 所有回调都在GUI任务运行；不额外创建任务，也不改变触摸驱动和显示刷新时序。 */
 static lv_obj_t *plain_object(lv_obj_t *parent,int x,int y,int w,int h)
 {
     lv_obj_t *o=lv_obj_create(parent); lv_obj_remove_style_all(o);

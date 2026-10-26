@@ -2,7 +2,7 @@
 
 > **本文件放在 `03_F407_HAL_FreeRTOS/` 工程根目录，供 Codex 自动发现。**
 > **每次开始任务，都必须先读取同级 `PROJECT_PROGRESS.md` 的完整内容；其内容是本项目的唯一进度记录。**
-> 最近整理：2026-10-17。**初次交接时是H4.1**；这是历史快照而非永久指定步骤。此后每次以 `PROJECT_PROGRESS.md` 顶部记录的最新“当前步骤”为准。
+> 最近整理：2026-10-25。**初次交接时是H4.1**；这是历史快照而非永久指定步骤。此后每次以 `PROJECT_PROGRESS.md` 顶部记录的最新“当前步骤”为准。
 
 ## 1. 你的身份：教学指导助手，不是全自动代做机器人
 
@@ -35,24 +35,23 @@
 
 ## 4. 当前工程基线（细节以进度文件为准）
 
-- 工程：`03_F407_HAL_FreeRTOS`，STM32F407VGT6**单独天空星核心板**（不是筑基学习底板）；CubeMX HAL + FreeRTOS + CMake + Arm GCC + Ninja。
-- 屏幕：35002 14针ST7796，SPI1 PA5=SCK、PA7=MOSI、PE0=LCD_CS、PB0=DC、PB1=RST、PB14=背光；板载Flash_CS=PA4，两个CS不能一起拉低。
-- 屏幕外部稳压3.3V供电，GND与F407共地，禁止不同3.3V输出正极直接并联。
-- LCD驱动已**实测通过**五色与480×320四角矩形；初始化需要 `MADCTL(0x36) 参数0x28` 与 `INVON(0x21)`，不要无根据改回。
-- 模块划分：`User/Driver/ST7796.c/.h` 管SPI与硬件；`User/Task/GUI_Task.c/.h` 管FreeRTOS GUI任务；`main.c` 只初始化外设并创建任务。现有用户要求ST7796驱动可直接用`vTaskDelay()`，初始化接口`void ST7796_Init(void)`，阻塞SPI可用`HAL_MAX_DELAY`（要理解错误返回/卡死风险）。
-- `LVGL/` 是工程根目录的**LVGL核心库**，`lv_conf.h`在根目录。用户选择LVGL v9.6.0发布包；曾混入v10配置，必须核对真正版本一致性。不要再次要求新建`ThirdParty/`或把PC SDL仿真工程整份搬入STM32。
-- 已有板载/工程引脚：PB2 LED1、PB6 LED3、PC8蜂鸣器、PE13/14/15按键、PB10/PB11 I²C2 OLED、PA9/PA10 USART1、PA13/PA14 SWD。以后触摸和其他外设要先做资源冲突检查。SPI1与板载W25Q128共用，未来访问Flash需要串行化和模式协调。
+- 工程：STM32F407VGT6单独天空星核心板，HAL + FreeRTOS + CMake + Arm GCC + Ninja。
+- 显示：35001的34针i8080转接板、同一ST7796屏体，FSMC NE1、16位数据、A16；用户已于2026-10-25明确确认“已验收功能正常”。
+- D0～D15依次PD14、PD15、PD0、PD1、PE7～PE15、PD8～PD10；CS=PD7、RS=PD11、WR=PD5、RD=PD4，复位PB1、背光PB14。PE13～PE15原按钮已让出。
+- LCD外部稳压3.3V供电，与F407共地，不得并联两路3.3V输出正极，禁止带电插拔/改线。
+- 当前显示文件：`User/Hardware/ST7796_FSMC.c`与`ST7796.h`；FSMC的5/15/5、MADCTL=0x28及INVON保持。H8.3按用户明确要求启用DMA2 Stream0/Channel0内存到内存异步半字传输，代码/编译通过，实机待验。
+- `User/GUI/lvgl_port.c`负责LVGL原生RGB565与stride刷新，双480×32局部缓冲61440B普通SRAM；52KiB LVGL软件池位于CCM。写入完成后才能归还缓冲。
+- `User/Task/GUI_Task.c`为唯一图形任务；main只初始化外设、建立RTOS对象和启动任务。正常构建直接进入现有界面，无独立五色自检。
+- `LVGL/`为工程根核心库，固定v9.6.0，根`lv_conf.h`配置，不移动目录、不修改第三方核心。
+- 触摸FT6336U继续I²C2 PB10/PB11，PE1复位、PE2输入；OLED共用I²C2。相机USART2 PA2/PA3及DMA1 Stream5/6保留，USART1 PA9/PA10、SWD PA13/PA14、LED/蜂鸣器保持。
+- 外部W25Q128未接入正式功能，历史闲置串行接口已按用户精简要求移除；以后需要外部存储时再独立配置和验收。
+- 根CMake已有`GLOB_RECURSE ... CONFIGURE_DEPENDS`自动收集User目录，不单独重复声明显示文件，不添加已经删除文件的排除名单或总线切换宏。
 
-## 5. 初始交接快照：H4.1（后续以进度文件实时状态为准）
+## 5. 当前交接：并口CPU功能已验收，DMA双缓冲待实测
 
-**现状**：LVGL源码已经通过根CMake接入，出现过ARM编译链接成功；最后一次构建日志RAM 13,448 B、Flash 34,460 B（尚未调用LVGL图形API，此值不代表完整UI资源）。配置输出指向根目录`lv_conf.h`，日志仍出现`Enabling the building of ThorVG internal`及C++链接。此前`lv_conf.h`文件头曾是v10，用户尚未确认用v9.6模板重建。**截至2026-10-16，H4.1仍在进行中；如果进度文件后来已验收通过，此处仅作历史参考。**
+2026-10-25用户确认并口屏功能正常，并要求只保留FSMC实现、精简构建。旧显示驱动、总线封装、独立自检及对应显示测试已逐文件删除；本次逐文件删除有用户明确授权，不代表以后允许递归或批量删除。
 
-仅在 `PROJECT_PROGRESS.md` 当前步骤仍为H4.1时，下一小步只做：
-1. 验证`LVGL`源码实际major/minor/patch为v9.6.0（从版本头文件或源码事实判断）；
-2. 检查当前根目录`lv_conf.h`是否适配v9.6.0，尤其`#if 1`、RGB565、32KB内存池、LV_OS_NONE、软件绘图、ThorVG是否关闭；切勿在不查该版本实际CMake选项名称时盲目添加构建宏；
-3. `cmake --preset debug-armgcc --fresh`与`cmake --build --preset build-debug`重新构建；核对日志并更新进度。
-
-**H4.1确认验收后**进入H4.2：LVGL Tick、480×20 RGB565局部缓冲（约19,200B）、ST7796 SPI Flush回调、色序/字节序；初期单缓冲+阻塞SPI，不提前引入DMA/触摸/四页面；刷新传输完成后才能通知LVGL。
+继续读取`PROJECT_PROGRESS.md`的最新当前步骤和证据。后续用户明确要求FSMC也实现CPU绘图与DMA搬运重叠，5.67已接入原双32行缓冲。下一步仅下载正常Debug固件验证DMA显示与FPS/MS/ERR，原接线/五色不用重做；当前没有量化FPS、CPU或长期共存的新实机数据，不把主机模拟当作板上提速。DMA2 Stream0由User驱动初始化，IRQ放Core的USER CODE区，不在CubeMX重复配置同一条流；不恢复已删除旧显示/自检。
 
 ## 6. 编程与硬件原则
 
@@ -61,13 +60,9 @@
 - STM32F407普通SRAM 128KB，另有64KB CCM；**完整480×320 RGB565帧缓冲=307,200B**，不能放入普通SRAM。DMA缓冲必须放DMA可访问的SRAM，不能放F407 CCM。
 - `LVGL`是第三方库，不直接修改核心源码；通过根`lv_conf.h`、应用层、显示驱动接口集成。PC端四页面等源码迁移前应核对PC与STM32 LVGL实际API版本。
 - `lv_timer_handler()`、控件更新等由唯一GUI任务统一访问；其他任务通过FreeRTOS队列/任务通知送数据，不直接跨任务调用LVGL（除非明确加入同步措施）。
-- SPI命令与参数区分：LCD_DC=0命令，LCD_DC=1数据；ST7796 RGB565写入高字节在前，小端LVGL内存可能需交换。DMA不可提前拉高CS或释放/复用缓冲；板载Flash需与LCD共用SPI总线安全互斥。
-- 编译通过不等于测试通过，HAL_SPI_Transmit返回不代表LCD确实收到（当前MISO未验证）。不捏造测试结果、功耗或精度数据，不把开发中的毕业设计成果写成已完成实验。
+- FSMC命令/数据地址分别0x60000000/0x60020000，volatile半字写入；像素按原生RGB565值写入，不交换字节，目标数据地址不递增。DMA的PAR源递增、M0AR目标固定，普通模式/FIFO而非硬件DBM；完成/错误/超时确认停流后才由GUI任务flush_ready，无法停流则保护停机。中断只续传/发信号量，不调用LVGL。
+- 编译通过不等于测试通过，FSMC写入完成不代表已取得LCD读回确认。不捏造测试结果、功耗或精度数据，不把开发中的毕业设计成果写成已完成实验。
 
-## 7. Codex首次接手时应该怎样回复
+## 7. Codex接续时的回复要求
 
-仅在进度文件仍处于H4.1时，可采用以下结构（不是死板模板）；在其他步骤应根据最新进度重新表述：
-
-> 我已读取 `AGENTS.md` 和 `PROJECT_PROGRESS.md`。目前已通过H3.4的ST7796五色/矩形实机测试；正在H4.1的LVGL v9.6.0配置验收。今天先检查`lv_conf.h`版本匹配、ThorVG是否确实关闭，然后再编译。请把当前文件或让我读取后，我会只指导这一步，不擅自跳到H4.2。
-
-如果用户明确表示已做完某一步，则先验收并更新`PROJECT_PROGRESS.md`，再提出下一步。不要机械重复已经验收过的ST7796硬件步骤。
+先根据最新进度简洁说明当前步骤、用户已验收范围、本轮目标及验收条件。用户只问概念时直接回答，不强推编码。用户明确报告完成后先同步固定进度，再沿既有路线继续；不要恢复已清理的历史显示通路、自检或旧构建选项。

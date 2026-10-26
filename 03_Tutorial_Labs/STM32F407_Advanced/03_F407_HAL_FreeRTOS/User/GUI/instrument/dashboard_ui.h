@@ -1,6 +1,7 @@
 #ifndef DASHBOARD_UI_H
 #define DASHBOARD_UI_H
 #include "instrument_ui.h"
+#include "system_info_page.h"
 #include "../../Task/Camera_Network.h"
 #include "../../Task/Camera_Cloud.h"
 
@@ -29,6 +30,7 @@ typedef struct {
     InstrumentModel rollback; /* 保存失败时回滚，避免把约2KB模型放到任务栈。 */
     InstrumentServices services;
     DashboardNetworkOps network;
+    SystemInfoPage system; /* 系统信息只在当前菜单存在时保留控件，数据源由GUI任务绑定。 */
     CameraNetworkState wireless; /* 固定5条热点，不为每次心跳新建列表缓存。 */
     lv_obj_t *ap_rows[CAMERA_AP_LIMIT];
     lv_obj_t *panel, *title, *body, *back, *transition_guard;

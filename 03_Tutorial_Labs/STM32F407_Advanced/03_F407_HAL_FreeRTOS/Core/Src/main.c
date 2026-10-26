@@ -20,9 +20,9 @@
 #include "main.h"
 #include "dma.h"
 #include "i2c.h"
-#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
+#include "fsmc.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -30,8 +30,6 @@
 #include "task.h"
 #include "semphr.h"
 #include "timers.h"
-#include "Key.h"
-#include "Key_Task.h"
 #include "OLED_Task.h"
 #include "Buzzer_Task.h"
 #include "GUI_Task.h"
@@ -147,8 +145,8 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_I2C2_Init();
-  MX_SPI1_Init();
   MX_USART2_UART_Init();
+  MX_FSMC_Init();
   /* USER CODE BEGIN 2 */
   /* 先完成OLED启动探测、HAL_Delay和刷新，再创建FreeRTOS对象。
    * 本工程在调度前创建锁会保持BASEPRI中断屏蔽，使TIM6毫秒计时停止；
@@ -181,7 +179,6 @@ int main(void)
   if(!Camera_NetworkPrepare()) Error_Handler();
   //xTaskCreate(prvLEDTask, "LED1", 128, (void *)&LED1BlinkInfo, 1, NULL);
   //xTaskCreate(prvLEDTask, "LED3", 128, (void *)&LED3BlinkInfo, 1, NULL);
-  xTaskCreate(vKeyTask, "Key", 128, NULL, 3, NULL);
   /* OLED共享总线出错时还要执行有限恢复，任务栈使用头文件注明的字数。 */
   xTaskCreate(vOLED_Task, "OLED", OLED_TASK_STACK_WORDS, NULL, 1, NULL);
   xTaskCreate(vBuzzer_Task, "Buzzer", 128, NULL, 1, NULL);

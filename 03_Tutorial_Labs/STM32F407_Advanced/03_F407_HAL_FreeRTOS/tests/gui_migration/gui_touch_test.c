@@ -8,7 +8,7 @@
 
 #define CHECK(c) do { if (!(c)) { fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #c); exit(1); } } while (0)
 
-/* 此测试把真实lvgl_port和四页面应用交给LVGL 9.6运行，只替代SPI和触摸硬件。
+/* 此测试把真实lvgl_port和四页面应用交给LVGL 9.6运行，只替代显示和触摸硬件。
  * 不直接发送CLICKED，只有按下/松手报文能够产生按钮事件，覆盖以前漏测的命中流程。 */
 static uint32_t now_ms;
 static int32_t touch_x, touch_y;
@@ -42,7 +42,10 @@ void GUI_LVGL_AssertFailed(const char *file, int line)
     fprintf(stderr, "LVGL assert: %s:%d\n", file, line);
     exit(1);
 }
-HAL_StatusTypeDef ST7796_WriteRGB565(uint16_t x, uint16_t y, uint16_t width,
+/* 触摸回归只替代硬件启动/等待，不跳过真实LVGL刷新和输入定时器。 */
+HAL_StatusTypeDef ST7796_DMAInit(void) { return HAL_OK; }
+HAL_StatusTypeDef ST7796_WriteRGB565Wait(void) { return HAL_OK; }
+HAL_StatusTypeDef ST7796_WriteRGB565Start(uint16_t x, uint16_t y, uint16_t width,
     uint16_t height, const uint8_t *pixels, uint32_t stride)
 {
     CHECK(x + width <= 480 && y + height <= 320 && pixels && stride >= width * 2U);
@@ -372,7 +375,7 @@ int main(void)
     }
     /* 复现用户操作顺序：真实触摸完成标定、启动模拟测量，再等到结果出现。
      * 不能只检查画面完成；还必须证明输入定时器继续取样，并能再次点击导航。
-     * SPI替身不会模拟板上的I2C故障，因此本测试只验证应用是否误停输入设备。 */
+     * 显示替身不会模拟板上的I2C故障，因此本测试只验证应用是否误停输入设备。 */
     tap(page.navigation[1]);
     for (unsigned i = 0; i < 3U; ++i) tap(ui.actions[0]);
     advance(1500);

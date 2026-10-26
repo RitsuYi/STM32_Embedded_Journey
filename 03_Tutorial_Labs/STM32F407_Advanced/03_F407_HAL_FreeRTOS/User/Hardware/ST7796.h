@@ -34,18 +34,30 @@ void ST7796_FillScreen(uint16_t color);
 // 填充矩形区域
 void ST7796_FillRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 
-/* Native little-endian RGB565, row-major. stride_bytes includes row padding.
- * The caller owns at least (height-1)*stride_bytes + width*2 source bytes.
- * Invalid rectangles are rejected, not clipped. GUI task only; blocking SPI. */
+/* GUI任务调用一次初始化DMA2 Stream0；初始化成功返回HAL_OK。
+ * 不改动CubeMX的USART2 DMA配置，禁止其他模块占用同一条DMA流。 */
+HAL_StatusTypeDef ST7796_DMAInit(void);
+/* 由Core中DMA2 Stream0的中断入口转交HAL处理，业务层不要主动调用。 */
+void ST7796_DMAIRQHandler(void);
+
+/* 异步发送原生RGB565矩形：Start返回HAL_OK表示已启动，CPU可绘制另一块缓冲。
+ * pixels必须半字对齐、完整落在普通SRAM，不能放CCM；stride_bytes是两行起点距离。
+ * 调用者保证至少(height-1)*stride_bytes + width*2字节，等待期间不得修改/释放源数据。
+ * 同一GUI任务必须配对调用Wait；成功、错误或超时安全停流后才可复用源缓冲。
+ * 在途重复Start返回HAL_BUSY且不影响原传输；等待期间不得调用其他LCD写入接口。
+ * 两个LVGL缓冲轮换构成绘图/发送流水线，不是DMA硬件DBM或两个整屏显存。 */
+HAL_StatusTypeDef ST7796_WriteRGB565Start(uint16_t x, uint16_t y,
+                                        uint16_t width, uint16_t height,
+                                        const uint8_t *pixels, uint32_t stride_bytes);
+HAL_StatusTypeDef ST7796_WriteRGB565Wait(void);
+
+/* 将小端RGB565矩形按行写入屏幕，stride_bytes是相邻两行起点的字节距离。
+ * 调用者提供至少(height-1)*stride_bytes + width*2字节，返回前不可改写源数据。
+ * 非法区域直接拒绝，不自动裁剪；只允许GUI任务调用。
+ * 这是CPU同步兼容接口；LVGL使用上面的Start/Wait异步接口。
+ * HAL_OK仅表示软件写入结束，不提供LCD硬件读回确认。 */
 HAL_StatusTypeDef ST7796_WriteRGB565(uint16_t x, uint16_t y,
                                     uint16_t width, uint16_t height,
                                     const uint8_t *pixels, uint32_t stride_bytes);
-
-/* 新LVGL快路径：pixels已经是高字节在前、无行尾填充的RGB565连续矩形。
- * width*height*2必须<=65534；Start成功后源内存直到Finish返回都不可复用。
- * CS及外层递归锁由启动任务持有，必须同一任务调用Finish，ISR只发完成通知。 */
-HAL_StatusTypeDef ST7796_StartRGB565DMA(uint16_t x,uint16_t y,uint16_t width,uint16_t height,
-                                       const uint8_t *pixels);
-HAL_StatusTypeDef ST7796_FinishRGB565DMA(void);
 
 #endif

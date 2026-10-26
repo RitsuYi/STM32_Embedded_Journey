@@ -22,6 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ST7796.h" /* LCD DMA的回调由驱动处理，不在中断里访问LVGL。 */
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,8 +56,6 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_spi1_tx;
-extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
 extern UART_HandleTypeDef huart2;
@@ -233,20 +232,6 @@ void DMA1_Stream6_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles SPI1 global interrupt.
-  */
-void SPI1_IRQHandler(void)
-{
-  /* USER CODE BEGIN SPI1_IRQn 0 */
-
-  /* USER CODE END SPI1_IRQn 0 */
-  HAL_SPI_IRQHandler(&hspi1);
-  /* USER CODE BEGIN SPI1_IRQn 1 */
-
-  /* USER CODE END SPI1_IRQn 1 */
-}
-
-/**
   * @brief This function handles USART2 global interrupt.
   */
 void USART2_IRQHandler(void)
@@ -274,20 +259,13 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
-/**
-  * @brief This function handles DMA2 stream3 global interrupt.
-  */
-void DMA2_Stream3_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA2_Stream3_IRQn 0 */
-
-  /* USER CODE END DMA2_Stream3_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi1_tx);
-  /* USER CODE BEGIN DMA2_Stream3_IRQn 1 */
-
-  /* USER CODE END DMA2_Stream3_IRQn 1 */
-}
-
 /* USER CODE BEGIN 1 */
+
+/* DMA2 Stream0由User显示驱动独立初始化，放在USER CODE区避免重新生成丢失。
+ * USART2仍走原DMA1 Stream5/6；这个入口只处理LCD像素传输。 */
+void DMA2_Stream0_IRQHandler(void)
+{
+  ST7796_DMAIRQHandler();
+}
 
 /* USER CODE END 1 */

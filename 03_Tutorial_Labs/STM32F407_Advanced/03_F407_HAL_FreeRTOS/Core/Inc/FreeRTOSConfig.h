@@ -366,7 +366,13 @@
  * processing time used by each task.  Set to 0 to not collect the data.  The
  * application writer needs to provide a clock source if set to 1.  Defaults to 0
  * if left undefined.  See https://www.freertos.org/rtos-run-time-stats.html. */
-#define configGENERATE_RUN_TIME_STATS           0
+/* 系统信息页需要真实任务运行计数。TIM5提供1MHz时基，64位累计避免长期回绕；
+ * 保持格式化统计关闭，由UI用固定数组计算5秒差值，不生成大块统计字符串。 */
+#include "Runtime_Clock.h"
+#define configGENERATE_RUN_TIME_STATS           1
+#define configRUN_TIME_COUNTER_TYPE            uint64_t
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() RuntimeClock_Init()
+#define portGET_RUN_TIME_COUNTER_VALUE()         RuntimeClock_Read()
 
 /* Set configUSE_TRACE_FACILITY to include additional task structure members
  * are used by trace and visualisation functions and tools.  Set to 0 to exclude
@@ -640,7 +646,7 @@
 #define INCLUDE_xTaskGetSchedulerState         1
 #define INCLUDE_xTaskGetCurrentTaskHandle      1
 #define INCLUDE_uxTaskGetStackHighWaterMark    1
-#define INCLUDE_xTaskGetIdleTaskHandle         0
+#define INCLUDE_xTaskGetIdleTaskHandle         1
 #define INCLUDE_eTaskGetState                  0
 #define INCLUDE_xEventGroupSetBitFromISR       1
 #define INCLUDE_xTimerPendFunctionCall         0

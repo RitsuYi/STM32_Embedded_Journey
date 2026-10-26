@@ -43,6 +43,8 @@ void GUI_AppNetworkStatus(bool connected,const char *ssid,const char *ip)
 void GUI_AppNetworkUpdate(const CameraNetworkState *state) {dashboard_network_update(&ui,state);}
 void GUI_AppSetUpload(bool (*submit)(void *context, const InstrumentRecord *record),void *context)
 { ui.services.upload=submit;ui.services.upload_context=context; }
+void GUI_AppSetSystemSource(SystemInfoRead read,void *context)
+{ui.system.read=read;ui.system.context=context;}
 
 uint16_t GUI_AppCloudCommand(const CameraCloudCommand *command)
 { return dashboard_cloud_command(&ui,command); }
